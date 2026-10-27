@@ -1,6 +1,6 @@
 # Video explainer
 
-`regression_vs_classification.mp4` is a 5.6-minute narrated animation, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
+`regression_vs_classification.mp4` is a 5.7-minute narrated animation, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
 
 1. **Intro**: regression vs. bins for one coordinate of a vector shape.
 2. **L2 = springs**: the prediction settles at the mean, which falls in the gap when the labels are bimodal. Includes the loss "bowl".

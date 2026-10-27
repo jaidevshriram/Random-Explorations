@@ -1,144 +1,144 @@
 1
-00:00:00,800 --> 00:00:06,986
+00:00:01,500 --> 00:00:07,686
 Suppose a neural network has to output a number. Say, the x coordinate of one point on a vector shape.
 
 2
-00:00:07,433 --> 00:00:13,027
+00:00:08,133 --> 00:00:13,727
 The obvious approach is regression. Output the number directly, and penalize its distance to the label.
 
 3
-00:00:13,467 --> 00:00:20,802
+00:00:14,167 --> 00:00:21,502
 A popular alternative sounds almost wasteful. Chop the range into bins, and treat the problem as classification.
 
 4
-00:00:21,233 --> 00:00:27,849
+00:00:21,933 --> 00:00:28,549
 Why would throwing away precision ever help? To see it, we have to look at what each loss is actually asking for.
 
 5
-00:00:28,633 --> 00:00:37,128
+00:00:30,033 --> 00:00:38,528
 Freeze the input, and look at every training label that goes with it. Here they're tightly clustered. The prediction, this yellow marker, is a single number.
 
 6
-00:00:37,567 --> 00:00:49,403
+00:00:38,967 --> 00:00:50,803
 Squared error, or L2, connects the prediction to every label with a spring. The farther away a label is, the harder its spring pulls. The prediction settles where all the pulls cancel out. That's the mean.
 
 7
-00:00:49,833 --> 00:00:58,643
+00:00:51,233 --> 00:01:00,043
 Now make the labels ambiguous. For the very same input, seventy percent of the labels say the point is up here, and thirty percent say it's down there.
 
 8
-00:00:59,067 --> 00:01:05,299
+00:01:00,467 --> 00:01:06,699
 The springs still cancel at the mean, and the mean lands right in the gap. A value that no label ever had.
 
 9
-00:01:05,733 --> 00:01:15,621
+00:01:07,133 --> 00:01:17,021
 This isn't a training bug. Plot the average loss for every possible prediction, and the bottom of the bowl really is in the gap. L2 found exactly what it was asked for.
 
 10
-00:01:16,400 --> 00:01:25,212
+00:01:18,500 --> 00:01:27,312
 Absolute error, or L1, swaps the springs for ropes, and every rope pulls with the same force, no matter how far away its label is.
 
 11
-00:01:25,633 --> 00:01:35,568
+00:01:27,733 --> 00:01:37,668
 So it becomes a vote. Twenty eight ropes pull right, twelve pull left, and the prediction gets dragged all the way into the majority cluster. That's the median.
 
 12
-00:01:36,000 --> 00:01:45,472
+00:01:38,100 --> 00:01:47,572
 But at fifty fifty, the vote is tied everywhere in between. The loss goes completely flat, and the prediction just drifts wherever initialization and noise happen to leave it.
 
 13
-00:01:45,900 --> 00:02:00,871
+00:01:48,000 --> 00:02:02,751
 Here's the same story as a picture of how hard each loss pushes. L2's push grows with the error, so one wild outlier can dominate. L1 pushes equally hard at any distance. Huber loss is spring-like up close, and rope-like far away.
 
 14
-00:02:01,667 --> 00:02:10,521
+00:02:04,233 --> 00:02:13,100
 Classification does something different. Cut the range into bins, and give every bin its own score. A softmax turns those scores into probabilities.
 
 15
-00:02:10,967 --> 00:02:19,661
+00:02:13,533 --> 00:02:22,227
 Cross entropy rewards putting probability on whichever bin the label falls into. Each label nudges up its own bin, and nothing else.
 
 16
-00:02:20,100 --> 00:02:29,605
+00:02:22,667 --> 00:02:32,172
 So there's no tug of war. The seventy percent and the thirty percent push on different bins, and both peaks simply grow. The network learns the whole histogram.
 
 17
-00:02:30,033 --> 00:02:40,421
+00:02:32,600 --> 00:02:42,987
 One refinement. Instead of a one-hot target, spread each label over its neighbors as a small Gaussian. That tells the network that neighboring bins are almost the same answer.
 
 18
-00:02:41,200 --> 00:02:49,801
+00:02:44,467 --> 00:02:53,149
 But in the end we still need one number. If we take the most likely bin, the argmax, we commit to one peak, and that is always a real answer.
 
 19
-00:02:50,233 --> 00:02:56,712
+00:02:53,567 --> 00:03:00,045
 If instead we take the expected value, the probability weighted average, we're finding the balance point of the histogram.
 
 20
-00:02:57,133 --> 00:03:02,610
+00:03:00,467 --> 00:03:05,943
 And the balance point is the mean. Right back in the gap. Exactly the L2 answer.
 
 21
-00:03:03,033 --> 00:03:15,290
-The expected value isn't useless, though. Inside a single peak it interpolates between bins, and it's more precise than argmax. So the best recipe is: pick the peak, then average within it.
+00:03:06,367 --> 00:03:18,472
+The expected value isn't useless, though. Inside a single peak it interpolates between bins, and it's more precise than the argmax. So the best recipe is: pick the peak, then average within it.
 
 22
-00:03:16,067 --> 00:03:25,655
+00:03:19,967 --> 00:03:29,555
 Here's what that looks like for real. The same small network, trained on four regions: clean labels, outliers, seventy thirty, and fifty fifty.
 
 23
-00:03:26,100 --> 00:03:31,255
+00:03:30,000 --> 00:03:35,155
 With L2, the prediction falls into the gap as soon as the labels become ambiguous.
 
 24
-00:03:31,700 --> 00:03:35,659
+00:03:35,600 --> 00:03:39,559
 L1 sticks with the majority, then drifts once the split is even.
 
 25
-00:03:36,100 --> 00:03:47,068
+00:03:40,000 --> 00:03:50,886
 The bin head lights up both curves. Its argmax hops between them, but every point it lands on is a correct answer. In the ambiguous regions, its error is about a hundred times smaller.
 
 26
-00:03:47,867 --> 00:03:56,189
+00:03:52,367 --> 00:04:00,689
 What about very many bins? Two-level bins first choose one of sixteen coarse bins, then one of sixteen fine bins inside it.
 
 27
-00:03:56,633 --> 00:04:06,523
+00:04:01,133 --> 00:04:11,151
 If the fine choice depends on the coarse one, this is just the same two hundred fifty six way softmax, factored into two steps. Same loss, same results.
 
 28
-00:04:06,967 --> 00:04:18,679
+00:04:11,600 --> 00:04:23,313
 But if one fine distribution is shared by every coarse bin, the two modes have to agree on where they sit inside their bins. When they don't, one of them borrows the other's position, and lands in the wrong place.
 
 29
-00:04:19,467 --> 00:04:29,192
+00:04:24,800 --> 00:04:34,525
 Now, two dimensions, which is closer to vector graphics. A point travels around the letter O. In some stretches, it might belong to the outer contour, or to the inner one.
 
 30
-00:04:29,633 --> 00:04:35,692
+00:04:34,967 --> 00:04:41,025
 L2 averages the two possibilities, and draws a phantom ring between them. A contour that doesn't exist.
 
 31
-00:04:36,133 --> 00:04:41,542
+00:04:41,467 --> 00:04:46,875
 The bin head mostly snaps onto a real contour. But look closely at the fifty fifty stretch.
 
 32
-00:04:41,967 --> 00:04:55,163
-With separate softmaxes for x and for y, each axis makes its own choice. Their product puts probability on four corners. Two real points, and two ghosts: x from the outer point, y from the inner one.
+00:04:47,300 --> 00:05:01,286
+With separate softmaxes for x and for y, each axis makes its own choice. Their product puts probability on four corners. Two real points, and two ghosts, which take x from the outer point, and y from the inner one.
 
 33
-00:04:55,600 --> 00:05:02,088
+00:05:01,733 --> 00:05:07,896
 A single softmax over x y cells can say, this point, or that point. And the ghosts disappear.
 
 34
-00:05:02,867 --> 00:05:14,914
+00:05:09,367 --> 00:05:21,414
 Back to the vector model. With Hungarian matching, early in training, a query gets matched to different shapes from one batch to the next. That's an ambiguous target, and regression responds by averaging the shapes together.
 
 35
-00:05:15,333 --> 00:05:20,186
+00:05:21,833 --> 00:05:26,686
 A bin head can hold several hypotheses while the matching settles, and commit later.
 
 36
-00:05:20,633 --> 00:05:32,027
+00:05:27,133 --> 00:05:38,527
 So. L2 predicts the mean. L1 predicts the median. Bins learn the whole distribution. Then decode with care: take the peak, refine inside it, and watch out for ghosts.
 

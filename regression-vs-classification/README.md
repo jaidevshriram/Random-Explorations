@@ -2,7 +2,7 @@
 
 **Question:** when a network has to output a number, such as a coordinate of an SVG point, should it *regress* the number (L2 / L1 / Huber) or *classify* it into bins (softmax + cross-entropy)? Why does the choice matter so much when the answer is ambiguous?
 
-**▶ Video explainer (5.6 min, narrated, 3Blue1Brown style):** [`video/regression_vs_classification.mp4`](video/regression_vs_classification.mp4). It has English subtitles, also available as [`.srt`](video/regression_vs_classification.srt). Source: [`video/`](video/). See [`video/README.md`](video/README.md) to re-render it.
+**▶ Video explainer (5.7 min, narrated, 3Blue1Brown style):** [`video/regression_vs_classification.mp4`](video/regression_vs_classification.mp4). It has English subtitles, also available as [`.srt`](video/regression_vs_classification.srt). Source: [`video/`](video/). See [`video/README.md`](video/README.md) to re-render it.
 
 ```bash
 pip install torch numpy matplotlib

@@ -27,12 +27,12 @@ NARRATION = {
         "But at fifty fifty, the vote is tied everywhere in between. The loss goes completely flat, and the "
         "prediction just drifts wherever initialization and noise happen to leave it.",
         "Here's the same story as a picture of how hard each loss pushes. L2's push grows with the error, so one "
-        "wild outlier can dominate. L1 pushes equally hard at any distance. Huber loss is spring-like up close, "
+        "wild outlier can dominate. L1 pushes equally hard at any distance. Hoober loss is spring-like up close, "
         "and rope-like far away.",
     ],
     "S04_Bins": [
         "Classification does something different. Cut the range into bins, and give every bin its own score. "
-        "A softmax turns those scores into probabilities.",
+        "A soft max turns those scores into probabilities.",
         "Cross entropy rewards putting probability on whichever bin the label falls into. "
         "Each label nudges up its own bin, and nothing else.",
         "So there's no tug of war. The seventy percent and the thirty percent push on different bins, and both "
@@ -41,26 +41,26 @@ NARRATION = {
         "That tells the network that neighboring bins are almost the same answer.",
     ],
     "S05_Decode": [
-        "But in the end we still need one number. If we take the most likely bin, the argmax, we commit to one "
+        "But in the end we still need one number. If we take the most likely bin, the arg max, we commit to one "
         "peak, and that is always a real answer.",
         "If instead we take the expected value, the probability weighted average, we're finding the balance point "
         "of the histogram.",
         "And the balance point is the mean. Right back in the gap. Exactly the L2 answer.",
         "The expected value isn't useless, though. Inside a single peak it interpolates between bins, and it's "
-        "more precise than argmax. So the best recipe is: pick the peak, then average within it.",
+        "more precise than the arg max. So the best recipe is: pick the peak, then average within it.",
     ],
     "S06_Results": [
         "Here's what that looks like for real. The same small network, trained on four regions: clean labels, "
         "outliers, seventy thirty, and fifty fifty.",
         "With L2, the prediction falls into the gap as soon as the labels become ambiguous.",
         "L1 sticks with the majority, then drifts once the split is even.",
-        "The bin head lights up both curves. Its argmax hops between them, but every point it lands on is a correct "
+        "The bin head lights up both curves. Its arg max hops between them, but every point it lands on is a correct "
         "answer. In the ambiguous regions, its error is about a hundred times smaller.",
     ],
     "S07_CoarseFine": [
         "What about very many bins? Two-level bins first choose one of sixteen coarse bins, then one of sixteen "
         "fine bins inside it.",
-        "If the fine choice depends on the coarse one, this is just the same two hundred fifty six way softmax, "
+        "If the fine choice depends on the coarse one, this is just the same two hundred fifty six way soft max, "
         "factored into two steps. Same loss, same results.",
         "But if one fine distribution is shared by every coarse bin, the two modes have to agree on where they sit "
         "inside their bins. When they don't, one of them borrows the other's position, and lands in the wrong place.",
@@ -70,9 +70,9 @@ NARRATION = {
         "stretches, it might belong to the outer contour, or to the inner one.",
         "L2 averages the two possibilities, and draws a phantom ring between them. A contour that doesn't exist.",
         "The bin head mostly snaps onto a real contour. But look closely at the fifty fifty stretch.",
-        "With separate softmaxes for x and for y, each axis makes its own choice. Their product puts probability "
-        "on four corners. Two real points, and two ghosts: x from the outer point, y from the inner one.",
-        "A single softmax over x y cells can say, this point, or that point. And the ghosts disappear.",
+        "With separate soft maxes for x and for y, each axis makes its own choice. Their product puts probability "
+        "on four corners. Two real points, and two ghosts, which take x from the outer point, and y from the inner one.",
+        "A single soft max over x y cells can say, this point, or that point. And the ghosts disappear.",
     ],
     "S09_Summary": [
         "Back to the vector model. With Hungarian matching, early in training, a query gets matched to different "
@@ -83,3 +83,13 @@ NARRATION = {
         "take the peak, refine inside it, and watch out for ghosts.",
     ],
 }
+
+# Some words are spelled phonetically above so the TTS voice says them right;
+# subtitles use the real spelling.
+SPELLING = {"Hoober": "Huber", "arg max": "argmax", "soft maxes": "softmaxes", "soft max": "softmax"}
+
+
+def subtitle(text):
+    for spoken, written in SPELLING.items():
+        text = text.replace(spoken, written)
+    return text

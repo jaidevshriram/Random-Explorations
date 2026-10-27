@@ -10,7 +10,7 @@ from manim import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from narration import NARRATION  # noqa: E402
+from narration import NARRATION, subtitle  # noqa: E402
 
 BUILD = os.path.join(HERE, "build")
 AUDIO = os.path.join(BUILD, "audio")
@@ -37,12 +37,14 @@ class NScene(Scene):
 
     def say(self):
         name, i = type(self).__name__, self._beat
+        if i == 0:
+            self.wait(0.7)
         self._beat += 1
         path = os.path.join(AUDIO, f"{name}_{i}.wav")
         d = wav_duration(path)
         t = self.renderer.time
         self.add_sound(path)
-        self._timing.append((t, t + d, NARRATION[name][i]))
+        self._timing.append((t, t + d, subtitle(NARRATION[name][i])))
         self._end = t + d
         return d
 
@@ -171,7 +173,7 @@ def heat_image(arr, cmap_rgb, gamma=0.5):
     a = np.flipud(a.T)
     img = np.zeros((*a.shape, 4), dtype=np.uint8)
     img[..., :3] = cmap_rgb(a)
-    img[..., 3] = 255
+    img[..., 3] = (np.clip(a * 2.5, 0, 1) * 255).astype(np.uint8)
     return img
 
 
@@ -213,8 +215,9 @@ class S01_Intro(NScene):
 
         # beat 1: regression
         d = self.say()
-        art = VGroup(shape, pts, drop, nl, nl_lab, q)
-        self.play(art.animate.scale(0.38).to_corner(UL, buff=0.3), run_time=1)
+        self.play(FadeOut(VGroup(drop, nl, nl_lab, q)), run_time=0.5)
+        art = VGroup(shape, pts)
+        self.play(art.animate.scale(0.45).to_corner(UL, buff=0.4), run_time=1)
         net1 = RoundedRectangle(corner_radius=0.2, width=1.8, height=1.2, color=GREY_B).shift(LEFT * 1.6 + UP * 1.0)
         net1_l = Tex("network").scale(0.7).move_to(net1)
         arr1 = Arrow(net1.get_right(), net1.get_right() + 2.2 * RIGHT, color=GREY_B)
@@ -258,7 +261,7 @@ class S02_Springs(NScene):
         rng = np.random.default_rng(3)
         nl = number_line()
         title = Tex(r"L2 loss: springs", color=C_L2, font_size=46).to_corner(UL)
-        clustered = np.sort(np.clip(0.42 + 0.03 * rng.standard_normal(40), 0, 1))
+        clustered = np.sort(np.clip(0.42 + 0.06 * rng.standard_normal(40), 0, 1))
         bimodal = np.sort(np.concatenate([0.27 + 0.018 * rng.standard_normal(12), 0.76 + 0.018 * rng.standard_normal(28)]))
         pos1, pos2 = dot_plot(nl, clustered), dot_plot(nl, bimodal)
         dots = VGroup(*[Dot(p, radius=0.06, color=C_LAB) for p in pos1])
@@ -296,7 +299,7 @@ class S02_Springs(NScene):
         # beat 3: back to the mean, which is in the gap
         d = self.say()
         self.play(yv.animate.set_value(bimodal.mean()), run_time=d * 0.4, rate_func=smooth)
-        gap = DashedVMobject(Rectangle(width=2.3, height=1.6, color=C_L2).move_to(nl.n2p(bimodal.mean()) + 0.9 * UP))
+        gap = DashedVMobject(Rectangle(width=2.9, height=1.6, color=C_L2).move_to(nl.n2p(0.5) + 0.9 * UP))
         gap_l = Tex("no label is here", color=C_L2, font_size=30).next_to(gap, UP, buff=0.1)
         self.play(Create(gap), Write(gap_l), run_time=1.2)
         self.sync()
@@ -429,7 +432,7 @@ class S04_Bins(NScene):
         self.play(Write(title), Create(nl), run_time=1)
         self.play(Create(edges), run_time=1)
         self.play(FadeIn(bars), Write(formula), run_time=1.5)
-        sm = Tex("one probability per bin", font_size=30, color=C_BIN).next_to(nl, UP, buff=1.4)
+        sm = Tex("one probability per bin", font_size=30, color=C_BIN).next_to(nl, UP, buff=0.75)
         self.play(FadeIn(sm), run_time=0.6)
         self.sync()
 
@@ -530,7 +533,7 @@ class S05_Decode(NScene):
 
         # beat 2: it is the mean, in the gap
         d = self.say()
-        gap = DashedVMobject(Rectangle(width=2.4, height=2.0, color=C_L2).move_to(nl.n2p(mean) + 1.1 * UP))
+        gap = DashedVMobject(Rectangle(width=3.2, height=2.0, color=C_L2).move_to(nl.n2p(0.48) + 1.1 * UP))
         same = Tex(r"the mean --- same as L2!", color=C_L2, font_size=36).next_to(gap, UP, buff=0.15)
         self.play(Create(gap), Write(same), run_time=1.5)
         self.sync()
