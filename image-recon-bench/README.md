@@ -57,7 +57,7 @@ that generates it:
 
 - `submissions/claude-code-session/` (`draw.py`, about 18 dB): drawn entirely by
   eye. No code reads the reference; only the render, heatmap and score were used.
-- `submissions/claude-code-vector/` (`vectorize.py`, about 26 dB): a *semantic*
+- `submissions/claude-code-vector/` (`vectorize.py`, about 28 dB): a *semantic*
   vectorizer that does read the reference. It segments the image into
   materials and shading levels within each object (bucket, boom, cab, body,
   tracks, base plate), traces each region as one part, and keeps the parts that

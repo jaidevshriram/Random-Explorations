@@ -14,6 +14,15 @@ scene, not pixel soup. The pipeline:
    gradient, then keep the parts that remove the most squared error per byte
    against it, until the 32 KB budget is spent. Within an object, parts of the
    same shade share one <path>; large parts may get their own linear gradient.
+   Parts with nothing nested inside them are drawn last, so they merge freely.
+4. Render an ownership map (which part is visible where) and refit each
+   shade to the pixels it actually covers.
+
+Geometry detail that matters a lot: traced contours run through the centres of
+boundary pixels, which in SVG sit at +0.5, so the drawing is shifted half a
+pixel and every part is stroked in its own colour (via currentColor) to cover
+its edge pixels. Path data is relative, uses h/v for axis-aligned steps and
+lets minus signs act as separators.
 
 The SVG has one <g> per object, one path per shade inside it.
 
@@ -24,16 +33,19 @@ environment (e.g. KO=8 BLUR=1.2); the defaults were picked by sweeping them
 against the score.
 """
 
+import io
 import os
 import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
+import resvg_py
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 P = {  # tunables, overridable from the environment for experiments
-    "K": 10, "MODE": 3, "MIN_AREA": 4, "EPS": 1.1, "GRAD_AREA": 300, "HOLE_AREA": 60, "BUDGET": 32700, "SHADES": 24, "BLUR": 0.9, "MS_SP": 8, "MS_SR": 24, "KO": 10,
+    "K": 10, "MODE": 1, "MIN_AREA": 4, "EPS": 1.1, "GRAD_AREA": 300, "HOLE_AREA": 60, "BUDGET": 32700, "SHADES": 12, "BLUR": 0.5, "MS_SP": 12, "MS_SR": 30, "KO": 8, "SW": 1.3, "REFIT": 1, "SMOOTH": 1, "LEAVES": 1,
 }
 for k in P:
     if k in os.environ:
@@ -98,6 +110,7 @@ OBJECTS = {  # polygon per object; parts are assigned by centroid, first match w
     "boom-and-grille": [(270, 190), (480, 190), (480, 470), (280, 470)],
     "base-plate": [(30, 400), (760, 400), (760, 680), (30, 680)],
 }
+ORDER = ["base-plate", "tracks", "body", "boom-and-grille", "cab", "bucket", "red-light"]  # bottom to top
 obj_masks = {}
 for name, poly in OBJECTS.items():
     m = np.zeros((H, W), np.uint8)
@@ -150,16 +163,58 @@ if P["KO"]:
 
 
 def path_data(c):
-    """Closed polygon as compact SVG path data: absolute start, then relative steps.
-    A minus sign doubles as a separator, so '3,-2 -1,4' is written '3-2-1,4'."""
-    nums = [int(c[0][0]), int(c[0][1])]
+    """Closed polygon as compact SVG path data: absolute start, then relative steps,
+    using h/v for axis-aligned steps when that is shorter. A minus sign doubles as
+    a separator ('3,-2' then '-1,4' is written '3-2-1,4')."""
+    out = f"M{int(c[0][0])},{int(c[0][1])}"
+    cmd = None
     for (a, b), (x, y) in zip(c[:-1], c[1:]):
-        nums += [int(x - a), int(y - b)]
-    out = f"M{nums[0]},{nums[1]}l"
-    for i, v in enumerate(nums[2:]):
-        sep = "" if i == 0 or v < 0 else ("," if i % 2 else " ")
-        out += f"{sep}{v}"
+        dx, dy = int(x - a), int(y - b)
+        if dx == 0 or dy == 0:
+            letter, nums = ("v", [dy]) if dx == 0 else ("h", [dx])
+            l_cost = (cmd != "l") + len(f"{dx},{dy}") + (cmd == "l" and dx >= 0)
+            hv_cost = (cmd != letter) + len(str(nums[0])) + (cmd == letter and nums[0] >= 0)
+            if hv_cost < l_cost:
+                out += (letter if cmd != letter else ("" if nums[0] < 0 else " ")) + str(nums[0])
+                cmd = letter
+                continue
+        if cmd != "l":
+            out += f"l{dx}{'' if dy < 0 else ','}{dy}"
+        else:
+            out += f"{'' if dx < 0 else ' '}{dx}{'' if dy < 0 else ','}{dy}"
+        cmd = "l"
     return out + "z"
+
+
+def simplify(c, eps):
+    """Polygon for a pixel contour: smooth the staircase first (circular moving
+    average), so Douglas-Peucker keeps real corners rather than pixel steps."""
+    c = c.reshape(-1, 2).astype(np.float32)
+    w = P["SMOOTH"]
+    if w > 1 and len(c) > 2 * w:
+        k = np.ones(w, np.float32) / w
+        pad = np.concatenate([c[-(w // 2):], c, c[: w // 2]])
+        c = np.stack([np.convolve(pad[:, j], k, "valid") for j in range(2)], 1)[: len(c)]
+    c = cv2.approxPolyDP(c.reshape(-1, 1, 2), eps, True).reshape(-1, 2)
+    c = np.round(c).astype(np.int32)
+    keep = np.any(c != np.roll(c, 1, axis=0), axis=1)  # drop repeats from rounding
+    return c[keep]
+
+
+def join_subpaths(ds):
+    """Concatenate closed subpaths, starting each one after the first with a
+    relative 'm' from the previous subpath's start (where 'z' leaves the pen)."""
+    out, prev = [], None
+    for d in ds:
+        k = next(n for n, ch in enumerate(d[1:], 1) if ch in "lhv")
+        x, y = (int(v) for v in d[1:k].split(","))
+        if prev is None:
+            out.append(d)
+        else:
+            dx, dy = x - prev[0], y - prev[1]
+            out.append(f"m{dx}{'' if dy < 0 else ','}{dy}{d[k:]}")
+        prev = (x, y)
+    return "".join(out)
 
 
 def linear_gradient(idx, gid="{id}"):
@@ -200,7 +255,7 @@ for k in range(P["K"]):
         part = comp == i
         contours, _ = cv2.findContours(part.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         c = max(contours, key=cv2.contourArea)
-        c = cv2.approxPolyDP(c, P["EPS"], True).reshape(-1, 2)
+        c = simplify(c, P["EPS"])
         if len(c) < 3:
             continue
         px = rgb[part]
@@ -251,8 +306,8 @@ for n_obj, (obj, sil) in enumerate(silhouettes.items()):
     sil = cv2.morphologyEx(sil, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     cs, _ = cv2.findContours(sil, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
     idx = np.flatnonzero(sil)
-    d = "".join(path_data(cv2.approxPolyDP(c, 1.5, True).reshape(-1, 2))
-                for c in cs if abs(cv2.contourArea(c)) >= P["HOLE_AREA"])
+    d = join_subpaths([path_data(simplify(c, 1.5))
+                       for c in cs if abs(cv2.contourArea(c)) >= P["HOLE_AREA"]])
     g = linear_gradient(idx, f"u{n_obj}")
     if g:
         under_canvas[idx] = g[0]
@@ -261,7 +316,8 @@ for n_obj, (obj, sil) in enumerate(silhouettes.items()):
     else:
         under_canvas[idx] = rgb.reshape(-1, 3)[idx].mean(axis=0)
         fill = "#%02x%02x%02x" % tuple(int(v) for v in under_canvas[idx[0]])
-    underlays[obj] = (None, f'<path d="{d}" fill-rule="evenodd" fill="{fill}"/>')
+    paint = f'fill="{fill}" stroke="{fill}"' if fill.startswith("url") else f'color="{fill}"'
+    underlays[obj] = (None, f'<path d="{d}" fill-rule="evenodd" {paint}/>', d, idx, fill)
 
 # --- 6. spend the byte budget where it buys the most -----------------------------
 # A part's gain is the squared error it removes compared with leaving its
@@ -277,55 +333,135 @@ for i, c in enumerate(cands):
 options.sort(reverse=True)
 
 
-def render(chosen, grads):
+def leaves(chosen):
+    """Chosen parts with no other chosen part nested inside them. Those can be
+    drawn last in their object, so they merge into one path per shade."""
+    by_depth = {}
+    for i in chosen:
+        by_depth.setdefault(cands[i]["depth"], []).append(i)
+    containers = set()
+    for d, members in by_depth.items():
+        idmap = np.full(H * W, -1, np.int32)
+        for i in members:
+            m = np.zeros((H, W), np.uint8)
+            cv2.fillPoly(m, [cands[i]["poly"]], 1)
+            idmap[m.ravel().astype(bool)] = i
+        for j in chosen:
+            if cands[j]["depth"] > d:
+                hit = idmap[cands[j]["idx"][len(cands[j]["idx"]) // 2]]
+                if hit >= 0:
+                    containers.add(int(hit))
+    return set(chosen) - containers
+
+
+def render(chosen, grads, label=False):
+    """The SVG for the chosen parts. With label=True, every part and underlay is
+    painted in a unique id colour without blur or antialiasing, which gives an
+    ownership map: which part is actually visible at each pixel."""
+    global leaf_set
+    leaf_set = leaves(chosen) if P["LEAVES"] and not label else set()
     defs, body = [], []
-    ORDER = ["base-plate", "tracks", "body", "boom-and-grille", "cab", "bucket", "red-light"]
     for obj in ORDER:
         if obj not in underlays:
             continue
         mine = [i for i in chosen if cands[i]["obj"] == obj]
+        late = leaf_set & set(mine) if not label else set()
         paths = []
-        for depth in sorted({cands[i]["depth"] for i in mine}):
+        for depth in sorted({cands[i]["depth"] for i in mine}) + ["leaves"]:
             groups = {}
             for i in mine:
-                if cands[i]["depth"] != depth:
+                if (depth == "leaves") != (i in late) or (depth != "leaves" and cands[i]["depth"] != depth):
                     continue
-                if i in grads:
+                if label:
+                    paths.append(f'<path d="{cands[i]["d"]}" color="#%06x"/>' % (i + 1))
+                elif i in grads:
                     gid = f"g{len(defs)}"
                     defs.append(cands[i]["grad"]["def"].replace("{id}", gid))
-                    paths.append(f'<path d="{cands[i]["d"]}" fill="url(#{gid})"/>')
+                    paths.append(f'<path d="{cands[i]["d"]}" fill="url(#{gid})" stroke="url(#{gid})"/>')
                 else:
                     groups.setdefault(cands[i]["fill"], []).append(cands[i]["d"])
-            paths += [f'<path d="{"".join(ds)}" fill="{fill}"/>' for fill, ds in groups.items()]
+            paths += [f'<path d="{join_subpaths(ds)}" color="{fill}"/>' for fill, ds in groups.items()]
         # objects stacked bottom to top; inside one, parts drawn shallowest first
-        body.append(f'<g id="{obj}">' + underlays[obj][1] + "".join(paths) + "</g>")
+        under = underlays[obj][1]
+        if label:
+            under = f'<path d="{underlays[obj][2]}" fill-rule="evenodd" color="#%06x"/>' % (0xFF0000 + ORDER.index(obj))
+        body.append(f'<g id="{obj}">' + under + "".join(paths) + "</g>")
     return "\n".join([
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">',
         f'<defs><filter id="b"><feGaussianBlur stdDeviation="{P["BLUR"]}"/></filter>' + "".join(under_defs + defs) + "</defs>",
-        '<rect width="800" height="800" fill="#fff"/><g filter="url(#b)">',
-        *body, "</g></svg>"]) + "\n"
+        # Contours run through the centres of boundary pixels, which in SVG sit at
+        # +0.5: shift everything by half a pixel, and stroke each part in its own
+        # colour (via currentColor) so it also covers the outer half of its edge pixels.
+        '<rect width="800" height="800" fill="#fff"/>'
+        + ('<g shape-rendering="crispEdges">' if label else '<g filter="url(#b)">') +
+        f'<g transform="translate(.5 .5)" fill="currentColor" stroke="currentColor" stroke-width="{P["SW"]}" stroke-linejoin="round">',
+        *body, "</g></g></svg>"]) + "\n"
 
 
 chosen, grads = set(), set()
 size = len(render(chosen, grads).encode())
-for ratio, i, kind in options:
-    if ratio <= 0:
-        break
-    add = 0
-    if i not in chosen:
-        add += len(cands[i]["d"]) + 2
-    if kind == "grad":
-        add += len(cands[i]["grad"]["def"]) + 10
-    if size + add > P["BUDGET"]:
-        continue
-    chosen.add(i)
-    if kind == "grad":
-        grads.add(i)
-    size += add
+for _ in range(4):  # byte estimates run high (merged paths share overhead): re-sync and top up
+    for n, (ratio, i, kind) in enumerate(options):
+        if ratio <= 0:
+            break
+        if i in chosen and (kind == "part" or i in grads):
+            continue
+        add = 0
+        if i not in chosen:
+            add += len(cands[i]["d"]) + 2
+        if kind == "grad":
+            add += len(cands[i]["grad"]["def"]) + 10
+        if size + add > P["BUDGET"]:
+            continue
+        chosen.add(i)
+        if kind == "grad":
+            grads.add(i)
+        size += add
+    size = len(render(chosen, grads).encode())
 svg = render(chosen, grads)
 while len(svg.encode()) > P["BUDGET"]:  # estimates were slightly off: drop the weakest parts
-    worst = min(chosen, key=lambda i: next(r for r, j, k in options if j == i and k == "part"))  # noqa
+    worst = min(chosen, key=lambda i: next(r for r, j, k in options if j == i and k == "part"))
     chosen.discard(worst); grads.discard(worst)
     svg = render(chosen, grads)
+
+# --- 7. colour refit -----------------------------------------------------------
+# Part colours so far are means over each part's raw region, but after stacking
+# and stroking a part shows on a slightly different set of pixels. Render the
+# ownership map and give each shade the mean colour of the pixels it really owns.
+for _ in range(P["REFIT"]):
+    png = resvg_py.svg_to_bytes(svg_string=render(chosen, grads, label=True))
+    own = np.asarray(Image.open(io.BytesIO(bytes(png))).convert("RGB")).astype(np.int64)
+    own = (own[..., 0] << 16 | own[..., 1] << 8 | own[..., 2]).ravel()
+    flat_ref = rgb.reshape(-1, 3)
+    groups = {}  # same grouping as render(): shared <path> elements get one colour
+    lv = leaves(chosen) if P["LEAVES"] else set()
+    for i in chosen:
+        if i not in grads:
+            slot = "leaves" if i in lv else cands[i]["depth"]
+            groups.setdefault((cands[i]["obj"], slot, cands[i]["fill"]), []).append(i)
+    order = np.argsort(own, kind="stable")
+    ids_sorted = own[order]
+    def owned(code):
+        lo, hi = np.searchsorted(ids_sorted, [code, code + 1])
+        return order[lo:hi]
+    for members in groups.values():
+        px = np.concatenate([owned(i + 1) for i in members])
+        if len(px):
+            mean = flat_ref[px].mean(axis=0)
+            fill = "#%02x%02x%02x" % tuple(int(round(v)) for v in mean)
+            for i in members:
+                cands[i]["mean"], cands[i]["fill"] = mean, fill
+    for obj, u in underlays.items():
+        if not u[4].startswith("url"):  # flat underlays only; gradient ones keep their fit
+            px = owned(0xFF0000 + ORDER.index(obj))
+            if len(px):
+                fill = "#%02x%02x%02x" % tuple(int(round(v)) for v in flat_ref[px].mean(axis=0))
+                underlays[obj] = (None, u[1].replace(f'color="{u[4]}"', f'color="{fill}"'), u[2], u[3], fill)
+    svg = render(chosen, grads)
+while len(svg.encode()) > P["BUDGET"]:  # the refit can merge/split groups: re-check the budget
+    worst = min(chosen, key=lambda i: next(r for r, j, k in options if j == i and k == "part"))
+    chosen.discard(worst); grads.discard(worst)
+    svg = render(chosen, grads)
+
 sys.stdout.write(svg)
 print(f"{len(chosen)}/{len(cands)} parts, {len(grads)} gradients, {len(svg.encode())} bytes", file=sys.stderr)
