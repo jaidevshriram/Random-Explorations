@@ -640,7 +640,7 @@ const CS = (() => {
     // palette for this person
     const L = p.L;
     const hairL = L * (hairType === 'shaved' ? 0.75 : [0.3, 0.42, 0.55, 0.75, 1.4][Math.floor(R() * 5)]) * (o.headL || 1);
-    const hairWarm = R() < 0.25 ? rr(0.4, 1) : 0;
+    const hairWarm = p.warm ? 1.3 : R() < 0.25 ? rr(0.4, 1) : 0;
     const clothL = L * (o.shirtL || 1) * [0.45, 0.7, 0.9, 1.2, 1.7][Math.floor(R() * 5)] * rr(0.85, 1.15);
     const hairC = o.tone(hairL, hairWarm), hairHi = o.tone(hairL * 1.6, hairWarm), hairLo = o.tone(hairL * 0.55, hairWarm);
     const skinC = o.tone(L * 0.85, 0.7), skinLo = o.tone(L * 0.55, 0.6);
