@@ -166,6 +166,8 @@ const CS = (() => {
     pg.setTransform(1, 0, 0, 1, 0, 0);
     lightPerformer(pg, cw, ch, S, style === 'sketch', light, tint);
     g.drawImage(perfCv, x - UOX * s, y - UOY * s, UW * s, UH * s);
+    // the last drawn figure and where it went, for scenes that need its silhouette (occlusion)
+    drawPerformer.last = { cv: perfCv, x: x - UOX * s, y: y - UOY * s, w: UW * s, h: UH * s };
   }
 
   // edge light from the figure's own alpha: silhouette minus itself shifted away from the light
@@ -1083,6 +1085,44 @@ const CS = (() => {
           o = vec4(mix(col, tp.rgb, tp.a), 1.);
         }`,
       copy: `${head} uniform sampler2D src, top; void main(){ vec4 tp = texture(top, uv); o = vec4(mix(texture(src, uv).rgb, tp.rgb, tp.a), 1.); }`,
+      // the camera that took the picture: bloom, veiling glare, aperture starbursts, ghosts strung
+      // through the centre, dirt on the front element, fringing, auto-exposure, and a sensor that
+      // clips with a soft shoulder. sA = (x, y, core size, strength), sB = (colour, -).
+      lens: `${head} uniform sampler2D img, dirtT; uniform float expo, bloom, ca, dirt, ghost, star, streak; uniform vec3 veil; uniform vec4 sA[6], sB[6]; uniform int ns;
+        const float AS = ${(w / h).toFixed(4)};
+        void main(){
+          vec2 c = uv - 0.5, asp = vec2(AS, 1.);
+          vec2 off = c * ca * 0.006;
+          vec3 col = vec3(textureLod(img, uv + off, 0.).r, textureLod(img, uv, 0.).g, textureLod(img, uv - off, 0.).b);
+          vec3 b = textureLod(img, uv, 3.).rgb * 0.45 + textureLod(img, uv, 4.5).rgb * 0.35 + textureLod(img, uv, 6.).rgb * 0.2;
+          col += max(b - 0.3, 0.) * bloom;
+          vec3 gl = veil, dc = vec3(0.);
+          float GF[5] = float[5](-0.35, -0.7, -1.15, 0.4, -1.7), GR[5] = float[5](0.025, 0.06, 0.11, 0.018, 0.17);
+          vec3 GT[5] = vec3[5](vec3(1., .75, .4), vec3(.4, .9, 1.), vec3(.7, .5, 1.), vec3(1.), vec3(.4, 1., .6));
+          for (int i = 0; i < 6; i++) {
+            if (i >= ns) break;
+            vec2 sp = sA[i].xy; float sz = sA[i].z, k = sA[i].w; vec3 sc = sB[i].rgb;
+            vec2 d = (uv - sp) * asp; float r = length(d), r2 = r * r;
+            gl += sc * k * (0.07 / (1. + r2 * 30.) + 0.9 * exp(-r2 / (sz * sz)));
+            float th = atan(d.y, d.x);
+            float spk = pow(abs(cos(th * 3.)), 90.) + 0.35 * pow(abs(cos(th * 3. + 0.5236)), 220.);
+            gl += sc * k * star * spk * exp(-r / (0.03 + 0.09 * min(k, 2.))) * 0.7;
+            gl += mix(sc, vec3(.45, .65, 1.), .5) * k * streak * exp(-abs(d.y) * 260.) * exp(-abs(d.x) * 3.) * 0.45;
+            for (int j = 0; j < 5; j++) {
+              vec2 gp = 0.5 + (sp - 0.5) * GF[j];
+              float gr = length((uv - gp) * asp), R0 = GR[j] * (0.8 + 0.4 * min(k, 1.5));
+              float disc = smoothstep(R0, R0 * 0.82, gr) * (0.55 + 0.45 * smoothstep(R0 * 0.4, R0, gr));
+              gl += GT[j] * sc * k * ghost * disc * 0.05;
+            }
+            dc += sc * k * exp(-r * 2.2);
+          }
+          gl += texture(dirtT, uv).r * dirt * dc * 0.6;
+          col = col * expo + gl;
+          float mx = max(col.r, max(col.g, col.b));
+          col += max(mx - 0.9, 0.) * 0.55;
+          col = min(col, 0.8) + 0.2 * (1. - exp(-max(col - 0.8, 0.) / 0.2));
+          o = vec4(col, 1.);
+        }`,
     };
     const compile = (type, src) => {
       const s = gl.createShader(type);
@@ -1113,7 +1153,7 @@ const CS = (() => {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
     // the paint passes can run at reduced resolution (opt.scale) and get upsampled in compose
-    const sc = opt.scale || 1, pw = Math.round(w * sc), ph = Math.round(h * sc);
+    let sc = 1, pw = w, ph = h;
     const tex = (fmt, data, wrap = gl.CLAMP_TO_EDGE, tw = w, th = h) => {
       const t = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, t);
@@ -1143,9 +1183,44 @@ const CS = (() => {
     }
     const tNoise = tex(gl.RGBA8, nd, gl.REPEAT, 256, 256);
     const tSrc = tex(gl.RGBA8), tTop = tex(gl.RGBA8);
-    const tWarp = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph), tPaint = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph);
-    const tT1 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph), tT2 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph);
-    const fWarp = fbo(tWarp), fT1 = fbo(tT1), fT2 = fbo(tT2), fPaint = fbo(tPaint);
+    // full-resolution composite, mipmapped so the lens pass can bloom from its coarse levels
+    const tComp = tex(gl.RGBA8), fComp = fbo(tComp);
+    gl.bindTexture(gl.TEXTURE_2D, tComp);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    // grime on the front element: soft smudges, specks and a few hairline scratches
+    const dcv = canvas(512, Math.round((512 * h) / w)), dg = dcv.getContext('2d'), DR = rng(91);
+    dg.fillStyle = '#000';
+    dg.fillRect(0, 0, dcv.width, dcv.height);
+    for (let i = 0; i < 46; i++) {
+      const x = DR() * dcv.width, y = DR() * dcv.height, r = 8 + DR() ** 2 * 70, a = 0.08 + DR() * 0.3;
+      const gr = dg.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.6, `rgba(255,255,255,${a * 0.5})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      dg.fillStyle = gr;
+      dg.beginPath(); dg.ellipse(x, y, r, r * (0.6 + DR() * 0.4), DR() * 3, 0, TAU); dg.fill();
+    }
+    for (let i = 0; i < 140; i++) { dg.fillStyle = `rgba(255,255,255,${0.25 + DR() * 0.6})`; dg.beginPath(); dg.arc(DR() * dcv.width, DR() * dcv.height, 0.5 + DR() * 1.6, 0, TAU); dg.fill(); }
+    dg.lineWidth = 0.7;
+    for (let i = 0; i < 7; i++) {
+      const x = DR() * dcv.width, y = DR() * dcv.height, a0 = DR() * TAU, rr = 40 + DR() * 160;
+      dg.strokeStyle = `rgba(255,255,255,${0.15 + DR() * 0.25})`;
+      dg.beginPath(); dg.arc(x, y, rr, a0, a0 + 0.2 + DR() * 0.5); dg.stroke();
+    }
+    const tDirt = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, dcv.width, dcv.height);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, dcv);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    let tWarp, tPaint, tT1, tT2, fWarp, fT1, fT2, fPaint;
+    // (re)allocate the paint-resolution targets; callable at runtime to change quality
+    const alloc = scale => {
+      for (const t of [tWarp, tPaint, tT1, tT2]) if (t) gl.deleteTexture(t);
+      for (const f of [fWarp, fT1, fT2, fPaint]) if (f) gl.deleteFramebuffer(f);
+      sc = scale; pw = Math.round(w * sc); ph = Math.round(h * sc);
+      tWarp = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph); tPaint = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph);
+      tT1 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph); tT2 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph);
+      fWarp = fbo(tWarp); fT1 = fbo(tT1); fT2 = fbo(tT2); fPaint = fbo(tPaint);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    };
+    alloc(opt.scale || 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
@@ -1163,26 +1238,45 @@ const CS = (() => {
       gl.uniform2f(gl.getUniformLocation(p, 'px'), 1 / vw, 1 / vh);
       for (const [u, v] of Object.entries(uni)) {
         const loc = gl.getUniformLocation(p, u);
-        if (Array.isArray(v)) gl.uniform2f(loc, v[0], v[1]);
-        else if (u === 'R') gl.uniform1i(loc, v);
+        if (v instanceof Float32Array) gl.uniform4fv(loc, v);
+        else if (Array.isArray(v)) v.length === 3 ? gl.uniform3f(loc, v[0], v[1], v[2]) : gl.uniform2f(loc, v[0], v[1]);
+        else if (u === 'R' || u === 'ns') gl.uniform1i(loc, v);
         else gl.uniform1f(loc, v);
       }
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
     return {
       P,
-      draw(srcCanvas, topCanvas, on = true) {
+      setScale(scale, radius) { alloc(scale); if (radius) P.radius = radius; },
+      // lens: null, or what the camera sees this frame (see the lens shader); src as
+      // [{x, y (pixels), size (fraction of height), k (strength), col (0..255)}]
+      draw(srcCanvas, topCanvas, on = true, lens = null) {
         gl.bindTexture(gl.TEXTURE_2D, tSrc);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);
         gl.bindTexture(gl.TEXTURE_2D, tTop);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, topCanvas);
-        if (!on) { pass('copy', null, { src: tSrc, top: tTop }, {}, w, h); return; }
-        pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble * sc, boil: P.boil });
-        pass('tensor', fT1, { src: tWarp });
-        pass('blur', fT2, { src: tT1 }, { dir: [1, 0] });
-        pass('blur', fT1, { src: tT2 }, { dir: [0, 1] });
-        pass('kuwa', fPaint, { src: tWarp, tfm: tT1 }, { R: P.radius, hard: P.hard, sharp: P.sharp });
-        pass('compose', null, { paint: tPaint, top: tTop, nz: tNoise }, { grain: P.grain }, w, h);
+        const out = lens ? fComp : null;
+        if (!on) pass('copy', out, { src: tSrc, top: tTop }, {}, w, h);
+        else {
+          pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble * sc, boil: P.boil });
+          pass('tensor', fT1, { src: tWarp });
+          pass('blur', fT2, { src: tT1 }, { dir: [1, 0] });
+          pass('blur', fT1, { src: tT2 }, { dir: [0, 1] });
+          pass('kuwa', fPaint, { src: tWarp, tfm: tT1 }, { R: P.radius, hard: P.hard, sharp: P.sharp });
+          pass('compose', out, { paint: tPaint, top: tTop, nz: tNoise }, { grain: P.grain }, w, h);
+        }
+        if (!lens) return;
+        gl.bindTexture(gl.TEXTURE_2D, tComp);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        const sA = new Float32Array(24), sB = new Float32Array(24), S = (lens.src || []).slice(0, 6);
+        S.forEach((s, i) => {
+          sA.set([s.x / w, 1 - s.y / h, s.size ?? 0.02, s.k], i * 4);
+          sB.set([s.col[0] / 255, s.col[1] / 255, s.col[2] / 255, 0], i * 4);
+        });
+        pass('lens', null, { img: tComp, dirtT: tDirt }, {
+          expo: lens.expo ?? 1, bloom: lens.bloom ?? 0, ca: lens.ca ?? 0, dirt: lens.dirt ?? 0, ghost: lens.ghost ?? 0,
+          star: lens.star ?? 0, streak: lens.streak ?? 0, veil: lens.veil || [0, 0, 0], sA, sB, ns: S.length,
+        }, w, h);
       },
     };
   }
@@ -1206,7 +1300,7 @@ const CS = (() => {
     for (const k of scene.toggles) { state.on[k] = true; state.clocks[k] = +(params.get('t') || 0); }
     const still = params.has('still');
 
-    const ui = document.getElementById('ui');
+    const ui = scene.ui === false ? document.createElement('div') : document.getElementById('ui');
     const el = (tag, attrs = {}, text) => {
       const e = document.createElement(tag);
       Object.assign(e, attrs);
@@ -1258,13 +1352,19 @@ const CS = (() => {
     ui.append(secs, rec, snap);
 
     scene.init(ctx, state);
-    let last = performance.now(), drawn = false;
+    let last = performance.now(), drawn = false, acc = 0, boilF = 0;
     const frame = now => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       if (state.playing && !still) for (const k of scene.toggles) if (state.on[k]) state.clocks[k] += dt * (state.speed[k] ?? 1);
-      if (!still || !drawn) draw();
-      drawn = true;
+      acc += dt;
+      // hand-made mode: hold each frame for 1/15 s and repaint the brushwork a little differently
+      if ((!still || !drawn) && (!state.handmade || acc >= 1 / 15)) {
+        acc = 0;
+        if (painter) painter.P.boil = state.handmade ? [(++boilF * 0.6180339) % 1, (boilF * 0.4142135) % 1] : [0, 0];
+        draw();
+        drawn = true;
+      }
       requestAnimationFrame(frame);
     };
     const draw = (paint = state.paint) => {
@@ -1272,7 +1372,7 @@ const CS = (() => {
       if (!painter) { if (scene.renderTop) scene.renderTop(ctx, state); return; }
       topCtx.clearRect(0, 0, scene.W, scene.H);
       if (scene.renderTop) scene.renderTop(topCtx, state);
-      painter.draw(src, top, paint);
+      painter.draw(src, top, paint, state.lens || null);
     };
     requestAnimationFrame(frame);
     // hooks for the screenshot / optimisation harness
