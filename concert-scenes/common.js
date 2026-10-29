@@ -1021,7 +1021,7 @@ const CS = (() => {
           for (int i = -6; i <= 6; i++) { float w = exp(-float(i*i) / 8.); s += texture(src, uv + dir * float(i) * px) * w; ws += w; }
           o = s / ws;
         }`,
-      kuwa: `${head} uniform sampler2D src, tfm, nz, top; uniform int R; uniform float hard, sharp, grain;
+      kuwa: `${head} uniform sampler2D src, tfm; uniform int R; uniform float hard, sharp;
         void main(){
           vec3 g = texture(tfm, uv).xyz;
           float d = sqrt(max(0., (g.x - g.y) * (g.x - g.y) + 4. * g.z * g.z));
@@ -1063,14 +1063,17 @@ const CS = (() => {
             acc += vec4(mu * wt, wt);
           }
           vec3 col = acc.w > 0. ? acc.rgb / acc.w : texture(src, uv).rgb;
-          // canvas weave + fine grain, strongest in the mid-tones
+          o = vec4(col, 1.);
+        }`,
+      // full-resolution composite: (possibly upsampled) paint + canvas grain + crisp focal layer
+      compose: `${head} uniform sampler2D paint, top, nz; uniform float grain;
+        void main(){
+          vec3 col = texture(paint, uv).rgb;
           float cw = texture(nz, uv * vec2(${(w / 9).toFixed(1)}, ${(h / 9).toFixed(1)}) / 256. * 9.).x - 0.5;
           float lum = dot(col, vec3(0.3, 0.59, 0.11));
           col += cw * grain * (0.35 + lum);
-          // crisp focal layer (orb, performer) laid over the paint
           vec4 tp = texture(top, uv);
-          col = mix(col, tp.rgb, tp.a);
-          o = vec4(col, 1.);
+          o = vec4(mix(col, tp.rgb, tp.a), 1.);
         }`,
       copy: `${head} uniform sampler2D src, top; void main(){ vec4 tp = texture(top, uv); o = vec4(mix(texture(src, uv).rgb, tp.rgb, tp.a), 1.); }`,
     };
@@ -1102,6 +1105,8 @@ const CS = (() => {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
+    // the paint passes can run at reduced resolution (opt.scale) and get upsampled in compose
+    const sc = opt.scale || 1, pw = Math.round(w * sc), ph = Math.round(h * sc);
     const tex = (fmt, data, wrap = gl.CLAMP_TO_EDGE, tw = w, th = h) => {
       const t = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, t);
@@ -1130,23 +1135,25 @@ const CS = (() => {
       nd[i + 3] = fbm(n4, x / 8, y / 8, 2, 32) * 255;
     }
     const tNoise = tex(gl.RGBA8, nd, gl.REPEAT, 256, 256);
-    const tSrc = tex(gl.RGBA8), tTop = tex(gl.RGBA8), tWarp = tex(gl.RGBA8), tT1 = tex(half), tT2 = tex(half);
-    const fWarp = fbo(tWarp), fT1 = fbo(tT1), fT2 = fbo(tT2);
+    const tSrc = tex(gl.RGBA8), tTop = tex(gl.RGBA8);
+    const tWarp = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph), tPaint = tex(gl.RGBA8, null, gl.CLAMP_TO_EDGE, pw, ph);
+    const tT1 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph), tT2 = tex(half, null, gl.CLAMP_TO_EDGE, pw, ph);
+    const fWarp = fbo(tWarp), fT1 = fbo(tT1), fT2 = fbo(tT2), fPaint = fbo(tPaint);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
     const P = { radius: 6, wobble: 2.2, hard: 8, sharp: 8, grain: 0.035, ...opt };
-    const pass = (name, target, texs, uni = {}) => {
+    const pass = (name, target, texs, uni = {}, vw = pw, vh = ph) => {
       const p = progs[name];
       gl.useProgram(p);
       gl.bindFramebuffer(gl.FRAMEBUFFER, target);
-      gl.viewport(0, 0, w, h);
+      gl.viewport(0, 0, vw, vh);
       Object.entries(texs).forEach(([u, t], i) => {
         gl.activeTexture(gl.TEXTURE0 + i);
         gl.bindTexture(gl.TEXTURE_2D, t);
         gl.uniform1i(gl.getUniformLocation(p, u), i);
       });
-      gl.uniform2f(gl.getUniformLocation(p, 'px'), 1 / w, 1 / h);
+      gl.uniform2f(gl.getUniformLocation(p, 'px'), 1 / vw, 1 / vh);
       for (const [u, v] of Object.entries(uni)) {
         const loc = gl.getUniformLocation(p, u);
         if (Array.isArray(v)) gl.uniform2f(loc, v[0], v[1]);
@@ -1162,12 +1169,13 @@ const CS = (() => {
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);
         gl.bindTexture(gl.TEXTURE_2D, tTop);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, topCanvas);
-        if (!on) { pass('copy', null, { src: tSrc, top: tTop }); return; }
-        pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble });
+        if (!on) { pass('copy', null, { src: tSrc, top: tTop }, {}, w, h); return; }
+        pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble * sc });
         pass('tensor', fT1, { src: tWarp });
         pass('blur', fT2, { src: tT1 }, { dir: [1, 0] });
         pass('blur', fT1, { src: tT2 }, { dir: [0, 1] });
-        pass('kuwa', null, { src: tWarp, tfm: tT1, nz: tNoise, top: tTop }, { R: P.radius, hard: P.hard, sharp: P.sharp, grain: P.grain });
+        pass('kuwa', fPaint, { src: tWarp, tfm: tT1 }, { R: P.radius, hard: P.hard, sharp: P.sharp });
+        pass('compose', null, { paint: tPaint, top: tTop, nz: tNoise }, { grain: P.grain }, w, h);
       },
     };
   }
@@ -1179,7 +1187,8 @@ const CS = (() => {
     cv.height = scene.H;
     // Scenes always draw with Canvas 2D. With `scene.paint`, they draw offscreen and the
     // visible canvas shows the painterly WebGL pass; otherwise they draw straight to it.
-    const painter = scene.paint ? makePainter(cv, scene.W, scene.H, scene.paint) : null;
+    const pscale = +(new URLSearchParams(location.search).get('pscale') || 0);
+    const painter = scene.paint ? makePainter(cv, scene.W, scene.H, pscale ? { ...scene.paint, scale: pscale, radius: Math.max(2, Math.round(scene.paint.radius * pscale)) } : scene.paint) : null;
     const src = painter ? canvas(scene.W, scene.H) : cv;
     const ctx = src.getContext('2d');
     // optional crisp layer for focal detail the paint filter would smear away

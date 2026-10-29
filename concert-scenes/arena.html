@@ -46,6 +46,59 @@
     { pa: -90, a: -90, half: 4, len: 0 }, // top can, unlit
   ];
 
+  // ---------- live lighting controls ----------
+  // Per-fixture colour and level plus a rotation of the whole fixture ring. The showcase
+  // timeline (?show, or the Showcase button) drives them; otherwise the painted look is untouched.
+  const TEAL = [40, 215, 205];
+  const LX = { on: new URLSearchParams(location.search).has('show'), rot: 0, gain: FIX.map(() => 1), col: FIX.map(() => TEAL.slice()), label: '', labelA: 0 };
+  const ease = x => x * x * (3 - 2 * x);
+  const seg = (t, a, b) => ease(CS.clamp((t - a) / (b - a), 0, 1));
+  const mixc = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+  const hsl = (h, sat, l) => {
+    const f = n => { const k = (n + h / 30) % 12, a = sat * Math.min(l, 1 - l); return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); };
+    return [f(0), f(8), f(4)];
+  };
+  const ORDER = [6, 0, 1, 2, 3, 5]; // left, up-left, up-right, right, down-right, down-left
+  const PALETTE = [[255, 70, 190], [255, 170, 50], [150, 90, 255], [150, 255, 90], [255, 60, 70], [70, 120, 255]];
+
+  // 30-second showcase: intensity → rotation → colour → everything at once → home
+  function showAt(t) {
+    t = ((t % 30) + 30) % 30;
+    for (let i = 0; i < FIX.length; i++) { LX.gain[i] = 1; LX.col[i] = TEAL.slice(); }
+    let label = '', la = 0;
+    const cap = (txt, a, b) => { if (t >= a && t < b) { label = txt; la = Math.min(seg(t, a, a + 0.5), 1 - seg(t, b - 0.5, b)); } };
+    cap('LIVE PROCEDURAL LIGHTING', 0.2, 2.9);
+
+    cap('INTENSITY  \u00b7  every beam on its own fader', 3.1, 8.9);
+    ORDER.forEach((i, k) => {
+      LX.gain[i] = 1 - seg(t, 3.3 + k * 0.35, 3.8 + k * 0.35) + seg(t, 6.4 + k * 0.32, 6.9 + k * 0.32);
+    });
+    LX.gain[4] = 1 - 0.75 * seg(t, 5.6, 6.0) + 0.75 * seg(t, 6.1, 6.5);
+    const swell = seg(t, 8.2, 8.55) - seg(t, 8.6, 9.2); // everything punches brighter, then settles
+    for (let i = 0; i < FIX.length; i++) LX.gain[i] *= 1 + 0.6 * swell;
+
+    cap('ROTATION  \u00b7  the whole rig turns', 9.1, 14.9);
+    LX.rot = 360 * seg(t, 9.4, 14.6);
+
+    cap('COLOUR  \u00b7  one fixture at a time', 15.1, 21.9);
+    ORDER.forEach((i, k) => { LX.col[i] = mixc(TEAL, PALETTE[k], seg(t, 15.4 + k * 0.85, 16.1 + k * 0.85) * (1 - seg(t, 27, 28.8))); });
+
+    cap('ALL TOGETHER  \u00b7  colour chase on the beat', 22.1, 26.9);
+    const chase = seg(t, 22, 22.8) * (1 - seg(t, 26.6, 27.6));
+    if (chase > 0) {
+      const beat = (t * 84) / 60;
+      ORDER.forEach((i, k) => {
+        LX.col[i] = mixc(LX.col[i], hsl(((t - 22) * 110 + k * 60) % 360, 0.95, 0.6), chase);
+        const pk = 0.5 + 0.5 * Math.cos((beat + k / 6) * TAU);
+        LX.gain[i] += (0.25 + 1.05 * pk * pk - LX.gain[i]) * chase;
+      });
+      LX.rot += 40 * Math.sin((t - 22) * 0.9) * chase;
+    }
+    cap('BACK TO THE PAINTING', 27.4, 29.9);
+    LX.label = label;
+    LX.labelA = la;
+  }
+
   // ---------- palette ----------
   // navy ramp sampled from the painting: shadow → lit crowd → beam-lit haze
   const RAMP = [[0, [2, 6, 14]], [0.3, [7, 20, 34]], [0.6, [20, 48, 66]], [1, [52, 100, 116]], [1.6, [90, 160, 170]]];
@@ -95,7 +148,24 @@
     return 1.6 + 50 * u ** 2.1 + 25 * u ** 6; // the nearest heads balloon, as in the painting
   };
 
-  let arena, overlay, beamTex = {}, glowCyan, glowWarm, glowSoft, twinkles = [], dust = [], people = [];
+  let arena, overlay, beamTex = {}, glowCyan, glowWarm, glowSoft, glowWhite, twinkles = [], dust = [], people = [];
+  const whiteTex = {}, tintCv = {}, glowCache = new Map();
+  // keep a texture's alpha (its brightness pattern) and give it a new colour
+  function recolor(src, col, dst) {
+    const g = dst.getContext('2d');
+    g.globalCompositeOperation = 'copy';
+    g.drawImage(src, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+    g.fillRect(0, 0, dst.width, dst.height);
+    g.globalCompositeOperation = 'source-over';
+    return dst;
+  }
+  const glowFor = col => {
+    const key = col.map(v => (v / 16) | 0).join(',');
+    if (!glowCache.has(key)) glowCache.set(key, recolor(glowWhite, col.map(v => Math.min(255, v * 1.1 + 25)), CS.canvas(128, 128)));
+    return glowCache.get(key);
+  };
 
   // Beam texture for one fixture. Brightness falls with absolute distance from the
   // lamp (fitted to the reference): side beams ~(1+r/90)^-1.6, the spot ~(1+r/400)^-1.2.
@@ -378,6 +448,9 @@
   function init() {
     FIX.forEach((f, i) => { if (f.len) beamTex[i] = makeBeam(3 + i * 7, f); });
     beamTex.wash = makeBeam(91, FIX[4]);
+    // white copies (for the hot core when beams are recoloured) and per-beam scratch canvases
+    FIX.forEach((f, i) => { if (f.len) { whiteTex[i] = recolor(beamTex[i], [255, 255, 255], CS.canvas(512, 192)); tintCv[i] = CS.canvas(512, 192); } });
+    glowWhite = CS.glow(255, 255, 255, 128);
     glowCyan = CS.glow(90, 230, 220, 128);
     glowSoft = CS.glow(70, 200, 200, 128, 0.4);
     glowWarm = CS.glow(255, 185, 115, 32, 0.12);
@@ -399,7 +472,7 @@
   // ---------- orb ----------
   const ringRot = t => Math.sin(t * 0.23) * 3.5 + Math.sin(t * 0.071) * 2; // degrees, gentle rocking
   function fixturePos(f, t) {
-    const rot = f.spot ? 0 : ringRot(t);
+    const rot = f.spot ? 0 : ringRot(t) + (LX.on ? LX.rot : 0);
     const pa = (f.pa + rot) * D2R, ba = (f.a + rot) * D2R;
     const x = ORB.x + Math.cos(pa) * ORB.ring, y = ORB.y + Math.sin(pa) * ORB.ring * 0.94;
     // aim at a far point on the ray from the orb centre, so the beam lines up with the reference
@@ -438,7 +511,7 @@
     g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
 
     // back half of the ring truss (seen through the glass)
-    const rot = ringRot(t) * D2R;
+    const rot = (ringRot(t) + (LX.on ? LX.rot : 0)) * D2R;
     g.save();
     g.translate(x, y);
     g.rotate(rot);
@@ -454,8 +527,9 @@
     g.restore();
 
     // cans: short cylinders pointing outward, lens at the outer end
-    for (const f of FIX) {
+    FIX.forEach((f, idx) => {
       const p = fixturePos(f, t);
+      const lc = LX.on ? LX.col[idx] : TEAL, lv = LX.on ? Math.min(1.3, LX.gain[idx]) : 1;
       const dx = Math.cos(p.a), dy = Math.sin(p.a);
       g.save();
       g.translate(p.x, p.y);
@@ -468,20 +542,21 @@
       g.beginPath(); g.roundRect(-13, -11, 17, 22, 3); g.fill();
       g.fillStyle = '#04090c';
       g.beginPath(); g.ellipse(4, 0, 5.5, 11.5, 0, 0, TAU); g.fill();
-      const lit = f.len ? 1 : 0.35;
+      const lit = (f.len ? 1 : 0.35) * (0.25 + 0.75 * Math.min(1, lv));
+      const hot = mixc(lc, [255, 255, 255], 0.8), mid = mixc(lc, [255, 255, 255], 0.35), edge = lc.map(v => v * 0.6);
       const lens = g.createRadialGradient(6, 0, 0, 6, 0, 11);
-      lens.addColorStop(0, `rgba(235,255,252,${lit})`);
-      lens.addColorStop(0.5, `rgba(120,240,230,${lit})`);
-      lens.addColorStop(1, `rgba(40,150,150,${lit * 0.8})`);
+      lens.addColorStop(0, `rgba(${hot.map(v => v | 0)},${lit})`);
+      lens.addColorStop(0.5, `rgba(${mid.map(v => v | 0)},${lit})`);
+      lens.addColorStop(1, `rgba(${edge.map(v => v | 0)},${lit * 0.8})`);
       g.fillStyle = lens;
       g.beginPath(); g.ellipse(6, 0, 5, 10.5, 0, 0, TAU); g.fill();
       g.restore();
       g.globalCompositeOperation = 'lighter';
       g.globalAlpha = CS.clamp(0.8 * lit * I, 0, 1);
-      g.drawImage(glowCyan, p.x + dx * 9 - 30, p.y + dy * 9 - 30, 60, 60);
+      g.drawImage(LX.on ? glowFor(lc) : glowCyan, p.x + dx * 9 - 30, p.y + dy * 9 - 30, 60, 60);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
-    }
+    });
 
     // front lamp facing the camera
     const hs = g.createRadialGradient(x - 5, y - 6, 2, x, y, 21);
@@ -569,6 +644,7 @@
   }
 
   function render(g, S) {
+    if (LX.on) showAt(S.clocks.lights);
     const tL = S.clocks.lights, tA = S.clocks.audience, tP = S.clocks.performer;
     const I = S.intensity;
     const beat = (tL * S.bpm) / 60;
@@ -595,12 +671,29 @@
       if (!f.len) return;
       const p = fixturePos(f, tL);
       const flick = f.spot ? 1 : 0.94 + 0.06 * Math.sin(tL * 3.1 + i * 2.3);
-      const a = I * flick * (f.spot ? 1 : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1);
-      drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a);
-      if (a > 1) drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a - 1);
+      const a = I * flick * (f.spot ? 1 : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1) * (LX.on ? LX.gain[i] : 1);
+      const tex = LX.on ? recolor(beamTex[i], LX.col[i], tintCv[i]) : beamTex[i];
+      drawBeam(g, tex, p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a);
+      if (a > 1) drawBeam(g, tex, p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a - 1);
+      if (LX.on) drawBeam(g, whiteTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a * 0.16); // hot core
       // faint scatter just outside the cone edge
-      drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a * TUNE.beamScatter, 2.1);
+      drawBeam(g, tex, p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a * TUNE.beamScatter, 2.1);
     });
+
+    if (LX.on) {
+      // the room picks up the dominant beam colour
+      let wsum = 0;
+      const wc = [0, 0, 0];
+      FIX.forEach((f, i) => { if (f.len && !f.spot) { wsum += LX.gain[i]; for (let k = 0; k < 3; k++) wc[k] += LX.col[i][k] * LX.gain[i]; } });
+      if (wsum > 0) {
+        const wash = g.createRadialGradient(ORB.x, ORB.y + 150, 50, ORB.x, ORB.y + 150, 950);
+        const c = wc.map(v => (v / wsum) | 0), k = Math.min(1, wsum / 6);
+        wash.addColorStop(0, `rgba(${c},${0.12 * k * I})`);
+        wash.addColorStop(1, `rgba(${c},0)`);
+        g.fillStyle = wash;
+        g.fillRect(0, 0, W, H);
+      }
+    }
 
     // halo of scattered light around the orb
     const halo = g.createRadialGradient(ORB.x, ORB.y, 60, ORB.x, ORB.y, 300);
@@ -690,11 +783,44 @@
     g.globalAlpha = TUNE.crowdTop;
     g.drawImage(crowdLayer, 0, 0);
     g.globalAlpha = 1;
+    if (LX.on && LX.labelA > 0) {
+      // caption naming the control being exercised
+      g.save();
+      g.globalAlpha = LX.labelA;
+      const [title, sub] = LX.label.split('  \u00b7  ');
+      g.shadowColor = 'rgba(0,0,0,0.85)';
+      g.shadowBlur = 10;
+      g.font = '700 22px system-ui, -apple-system, Segoe UI, sans-serif';
+      g.letterSpacing = '3px';
+      g.fillStyle = 'rgba(225,250,246,0.95)';
+      g.fillText(title, 52, H - 62);
+      if (sub) {
+        g.font = '400 17px system-ui, -apple-system, Segoe UI, sans-serif';
+        g.letterSpacing = '0.5px';
+        g.fillStyle = 'rgba(175,225,220,0.9)';
+        g.fillText(sub, 52, H - 36);
+      }
+      g.shadowBlur = 0;
+      g.fillStyle = 'rgba(120,225,215,0.85)';
+      g.fillRect(52, H - 92, 54, 3);
+      g.restore();
+    }
   }
   const topLayer = CS.canvas(W, H), crowdLayer = CS.canvas(W, H);
   const crowdOpts = { rimColor: '120,210,218', bob: 0.05, sway: 0.08 };
 
-  CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 4, wobble: 1.8 }, init, render, renderTop });
+  function extraUI(ui, S, el) {
+    const btn = el('button', { className: 'btn' }, LX.on ? '■ Stop showcase' : '▶ Lighting showcase');
+    btn.onclick = () => {
+      LX.on = !LX.on;
+      S.clocks.lights = 0;
+      S.on.lights = true;
+      btn.textContent = LX.on ? '■ Stop showcase' : '▶ Lighting showcase';
+    };
+    ui.append(btn);
+  }
+
+  CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 4, wobble: 1.8 }, init, render, renderTop, extraUI });
 })();
 </script>
 </body>
