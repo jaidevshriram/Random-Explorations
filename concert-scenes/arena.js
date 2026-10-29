@@ -407,8 +407,8 @@
       const [yw, pt, rl] = cosmosRig(t, P);
       LX.yaw = yw; LX.pitch = pt; LX.rot = rl;
       LX.tilt = 30;
-      LX.tiltScan = 14;
-      LX.tiltPh = t * 0.9;
+      LX.tiltScan = 20;          // the heads sweep, dragging their patterns across the crowd
+      LX.tiltPh = t * 1.3;
       LX.smoke = 0.95;
       LX.disperse = 1;
       LX.gain = 1.2;
@@ -421,20 +421,23 @@
       LX.burstPh = n * 3.7;
       LX.fireFrac = 0.6;
       LX.fireWin = Math.floor(t / 0.1);
+      // the projectors: new stencils on every beat, spinning hard with a sway every two bars and a
+      // kick forward on each beat, the cones flaring wider on the kick, a pop on each downbeat
+      const u = t - P.t0, bar = (C.tempo / 60) / 4, d0 = C.downbeats[di] ?? P.t0, pop = Math.exp(-Math.max(0, t - d0) * 6);
       LX.gobo = 'mix';
-      LX.goboSeed = di;               // new stencils every bar
-      LX.goboZoom = 22;
+      LX.goboSeed = bi;
+      LX.goboZoom = 22 + 7 * kick;
       LX.prism = 3;
-      LX.goboSpin = t * 2.4;
+      LX.goboSpin = u * 3.4 + 1.2 * Math.sin(u * bar * Math.PI) + 0.35 * kick;
       // the projections: a pale, translucent light brown drifting through warm tones
-      const wt = [[214, 172, 128], [222, 160, 150], [226, 196, 140], [200, 168, 140]], wu = ((t - P.t0) / 6) % wt.length, wk = Math.floor(wu);
+      const wt = [[214, 172, 128], [222, 160, 150], [226, 196, 140], [200, 168, 140]], wu = (u / 3.5) % wt.length, wk = Math.floor(wu);
       LX.projCol = mixc(wt[wk], wt[(wk + 1) % wt.length], ease(wu - wk));
-      LX.projAlpha = 0.42;
+      LX.projAlpha = 0.62;
       const silver = [[240, 244, 255], [205, 210, 222], [255, 249, 238]];
       ORDER.forEach((i, k) => {
         LX.col[i] = silver[k % 3];
         LX.lv[i].beam = (0.25 + 0.55 * kick) * (FIX[i].back ? 0.7 : 1) + 1.2 * hit;
-        LX.lv[i].proj = FIX[i].back ? 0 : 1.05 + 0.45 * kick;
+        LX.lv[i].proj = (FIX[i].back ? 0.9 : 1.5) + 0.7 * kick + 0.6 * pop; // the back heads throw patterns over the far stands
         LX.lv[i].burst = on ? 1.25 : 0;
       });
       // she stays a small figure under it all: the spot drops to a third, breathing with the kick
@@ -461,8 +464,8 @@
       LX.pitch = pt * (1 - h);
       LX.rot = rl + (home(rl) - rl) * h;
       LX.tilt = 30 * (1 - h) + 14 * h;
-      LX.tiltScan = 14 * (1 - h);
-      LX.tiltPh = t * 0.9;
+      LX.tiltScan = 20 * (1 - h);
+      LX.tiltPh = t * 1.3;
       LX.smoke = 0.95 * (1 - seg(t, P.t1, P.t1 + 12));
       LX.disperse = 1 - seg(t, P.t1, P.t1 + 4);
       LX.sparkle = 0.95 * (1 - seg(t, P.t1, P.t1 + 5));
