@@ -57,7 +57,7 @@
   const TEAL = [40, 215, 205];
   const DEFAULT_LV = { beam: 1, proj: 0, laser: 0, fan: 0 };
   const LX = {
-    on: new URLSearchParams(location.search).has('show'), rot: 0, spot: 1, goboSpin: 0, fanSpread: 24, fanScan: 0,
+    on: new URLSearchParams(location.search).has('show'), rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
     col: FIX.map(() => TEAL.slice()), lv: FIX.map(() => ({ ...DEFAULT_LV })), label: '', labelA: 0,
   };
   const ease = x => x * x * (3 - 2 * x);
@@ -69,7 +69,44 @@
     return [f(0), f(8), f(4)];
   };
   const ORDER = [6, 0, 1, 2, 3, 5]; // left, up-left, up-right, right, down-right, down-left
+  const SPOT_TEAL = [120, 210, 218], SPOT_AMBER = [255, 185, 110];
   const AMBER = [255, 175, 70], MAGENTA = [255, 80, 190], GREEN = [80, 255, 120], RED = [255, 50, 60], BLUE = [80, 120, 255], VIOLET = [170, 90, 255];
+
+  // the follow spot's beam in the spot colour (a teal spot gives back the painting's beam colour)
+  const spotBeamCol = () => mixc(TEAL, LX.spotCol, CS.clamp(Math.hypot(...LX.spotCol.map((v, k) => v - [120, 210, 218][k])) / 60, 0, 1));
+
+  // Live desk: the console (or ?live={...}) sets these and they are applied every frame.
+  const LIVE = {
+    rot: 0, spin: 0, spot: 1, spotCol: [120, 210, 218], goboSpeed: 1.8, fanSpread: 26, fanScan: 14, rainbow: false,
+    fx: FIX.map(() => ({ col: TEAL.slice(), beam: 1, proj: 0, laser: 0, fan: 0 })),
+  };
+  {
+    const q = new URLSearchParams(location.search).get('live');
+    if (q !== null) {
+      LX.on = true;
+      LX.mode = 'live';
+      try {
+        const o = JSON.parse(q || '{}');
+        for (const k of ['rot', 'spin', 'spot', 'spotCol', 'goboSpeed', 'fanSpread', 'fanScan', 'rainbow']) if (k in o) LIVE[k] = o[k];
+        LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
+      } catch (e) {}
+    }
+  }
+  function liveAt(t) {
+    LX.rot = LIVE.rot + LIVE.spin * t;
+    LX.spot = LIVE.spot;
+    LX.spotCol = LIVE.spotCol;
+    LX.goboSpin = t * LIVE.goboSpeed;
+    LX.fanSpread = LIVE.fanSpread * (0.65 + 0.35 * Math.sin(t * 1.4));
+    LX.fanScan = LIVE.fanScan * Math.sin(t * 2.1);
+    FIX.forEach((f, i) => {
+      const F = LIVE.fx[i];
+      Object.assign(LX.lv[i], f.spot ? DEFAULT_LV : { beam: F.beam, proj: F.proj, laser: F.laser, fan: F.fan });
+      LX.col[i] = f.spot ? spotBeamCol() : LIVE.rainbow ? hsl((t * 60 + i * 50) % 360, 0.95, 0.6) : F.col.slice();
+    });
+    LX.label = '';
+    LX.labelA = 0;
+  }
 
   // 30-second showcase. The rig turns all the way round across it: everything rides the satellite.
   function showAt(t) {
@@ -79,6 +116,8 @@
     for (let i = 0; i < FIX.length; i++) { LX.col[i] = TEAL.slice(); Object.assign(LX.lv[i], DEFAULT_LV); }
     LX.rot = 360 * seg(t, 3, 28.6);
     LX.spot = 1;
+    // the spot comes back warm after the blackout and stays warm through the gobos
+    LX.spotCol = mixc(SPOT_TEAL, SPOT_AMBER, seg(t, 9.9, 10.4) * (1 - seg(t, 16, 16.8)));
     LX.goboSpin = t * 1.8;
     LX.fanSpread = 10 + 32 * (0.5 + 0.5 * Math.sin(t * 1.4));
     LX.fanScan = 14 * Math.sin(t * 2.1);
@@ -131,6 +170,7 @@
       LX.lv[6].fan = LX.lv[2].fan = all * 0.8;
       LX.spot = 1 - all * 0.5 * (0.5 + 0.5 * Math.cos(beat * TAU));
     }
+    LX.col[4] = spotBeamCol();
     cap('BACK TO THE PAINTING', 28.3, 29.9);
     LX.label = label;
     LX.labelA = la;
@@ -185,7 +225,7 @@
     return 1.6 + 50 * u ** 2.1 + 25 * u ** 6; // the nearest heads balloon, as in the painting
   };
 
-  let arena, overlay, beamTex = {}, glowCyan, glowWarm, glowSoft, glowWhite, twinkles = [], dust = [], people = [];
+  let arena, arenaBase, arenaFlat, overlay, beamTex = {}, glowCyan, glowWarm, glowSoft, glowWhite, twinkles = [], dust = [], people = [];
   const whiteTex = {}, tintCv = {}, glowCache = new Map();
   // keep a texture's alpha (its brightness pattern) and give it a new colour
   function recolor(src, col, dst) {
@@ -502,12 +542,27 @@
     twinkles = [];
     people = [];
     arena = buildArena();
+    // the same arena with no beam light baked in (live fixtures light it instead), and evenly
+    // lit (what can catch light, for the receiver)
+    arenaBase = buildVariant({ lightBeam: 0 });
+    arenaFlat = buildVariant({ lightBeam: 0, lightBase: 0.55, lightFill: 0, fog: 0, backLift: 0.3 });
     buildPeople();
     // what in the stands can catch moving light: the arena's own lit surfaces, as a grey mask
     rcvStatic = CS.canvas(W / 2, H / 2);
     const rg = rcvStatic.getContext('2d');
-    rg.filter = 'grayscale(1) brightness(2.6) contrast(1.15)';
-    rg.drawImage(arena, 0, 0, W / 2, H / 2);
+    rg.filter = 'grayscale(1) brightness(1.6) contrast(1.1)';
+    rg.drawImage(arenaFlat, 0, 0, W / 2, H / 2);
+  }
+  // rebuild the arena layer with some knobs overridden; same seed so the layout is identical
+  function buildVariant(over) {
+    const saved = {}, tw = twinkles;
+    for (const k in over) { saved[k] = TUNE[k]; TUNE[k] = over[k]; }
+    R = CS.rng(11);
+    twinkles = [];
+    const c = buildArena();
+    twinkles = tw;
+    Object.assign(TUNE, saved);
+    return c;
   }
   window.__arena = { TUNE, rebuild };
 
@@ -669,9 +724,10 @@
     g.translate(x - 4, y);
     g.scale(1, (ry / rx) * 1.1);
     const pool = g.createRadialGradient(0, 0, 0, 0, 0, rx * 0.85);
-    pool.addColorStop(0, `rgba(220,255,245,${TUNE.pool * I * spot})`);
-    pool.addColorStop(0.4, `rgba(130,215,200,${0.7 * TUNE.pool * I * spot})`);
-    pool.addColorStop(0.75, `rgba(60,130,130,${0.35 * TUNE.pool * I * spot})`);
+    const sc = LX.on ? LX.spotCol : SPOT_TEAL, hotc = mixc(sc, [255, 255, 255], 0.7).map(v => v | 0), midc = sc.map(v => v | 0), lowc = sc.map(v => (v * 0.5) | 0);
+    pool.addColorStop(0, `rgba(${hotc},${TUNE.pool * I * spot})`);
+    pool.addColorStop(0.4, `rgba(${midc},${0.7 * TUNE.pool * I * spot})`);
+    pool.addColorStop(0.75, `rgba(${lowc},${0.35 * TUNE.pool * I * spot})`);
     pool.addColorStop(1, 'rgba(20,60,70,0)');
     g.globalCompositeOperation = 'lighter';
     g.fillStyle = pool;
@@ -702,6 +758,7 @@
   const floorHit = ang => Math.sin(ang) > 0.18;
 
   let lasers = []; // this frame's laser segments: soft in the paint, crisp on the top layer
+  let domCol = null; // dominant colour of what's lit this frame
 
   // resolve every fixture for this frame: position, levels, colour, reach, tinted texture
   function frameLights(S) {
@@ -751,7 +808,10 @@
           if (ab > 1) drawBeam(g, tex, p.x, p.y, p.a, len, half, ab - 1);
           if (LX.on) drawBeam(g, whiteTex[L.i], p.x, p.y, p.a, len, half, ab * 0.16); // hot core
           drawBeam(g, tex, p.x, p.y, p.a, len, half, ab * TUNE.beamScatter, 2.1);
-        } else if (!f.spot) drawBeam(g, tex, p.x, p.y, p.a, len, half, ab * 0.9, 1.25);
+        } else if (!f.spot) {
+          drawBeam(g, tex, p.x, p.y, p.a, len, half, ab * 0.9, 1.25);
+          drawBeam(g, tex, p.x, p.y, p.a, len, half, ab * 0.3, 2.6); // scattered light around the cone
+        }
         if (LX.on && !f.spot && floorHit(p.a)) pool(g, p, p.a, len, half, col, ab, foot);
       }
       if (lv.proj > 0 && a > 0) {
@@ -789,7 +849,7 @@
   }
 
   function render(g, S) {
-    if (LX.on) showAt(S.clocks.lights);
+    if (LX.on) (LX.mode === 'live' ? liveAt : showAt)(S.clocks.lights);
     const tL = S.clocks.lights, tA = S.clocks.audience, tP = S.clocks.performer;
     const I = S.intensity, spot = LX.on ? LX.spot : 1;
     const beat = (tL * S.bpm) / 60;
@@ -797,14 +857,15 @@
 
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
-    g.drawImage(arena, 0, 0);
+    g.drawImage(LX.on ? arenaBase : arena, 0, 0);
+    const sc = LX.on ? LX.spotCol : SPOT_TEAL, scs = sc.map(v => v | 0).join(',');
 
     // stage light hanging in the air at crowd level behind the stage: silhouettes the far floor
     g.save();
     g.translate(STAGE.x, 655);
     g.scale(1, 0.16);
     let fh = g.createRadialGradient(0, 0, 0, 0, 0, 820);
-    fh.addColorStop(0, `rgba(60,170,175,${TUNE.floorHaze * I * (0.35 + 0.65 * spot)})`);
+    fh.addColorStop(0, `rgba(${scs},${TUNE.floorHaze * I * (0.35 + 0.65 * spot)})`);
     fh.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = fh;
     g.fillRect(-820, -820, 1640, 1640);
@@ -818,9 +879,11 @@
       let wsum = 0;
       const wc = [0, 0, 0];
       list.forEach(L => { if (!L.f.spot) { const k = Math.max(L.lv.beam, L.lv.proj * 0.8, L.lv.laser * 0.4, L.lv.fan * 0.6); wsum += k; for (let j = 0; j < 3; j++) wc[j] += L.col[j] * k; } });
+      domCol = null;
       if (wsum > 0) {
         const wash = g.createRadialGradient(ORB.x, ORB.y + 150, 50, ORB.x, ORB.y + 150, 950);
         const c = wc.map(v => (v / wsum) | 0), k = Math.min(1, wsum / 6);
+        domCol = { c, k };
         wash.addColorStop(0, `rgba(${c},${0.12 * k * I})`);
         wash.addColorStop(1, `rgba(${c},0)`);
         g.fillStyle = wash;
@@ -838,7 +901,7 @@
 
     // dust in the follow spot
     g.globalCompositeOperation = 'lighter';
-    g.fillStyle = '#c8fff8';
+    g.fillStyle = `rgb(${mixc(sc, [255, 255, 255], 0.6).map(v => v | 0)})`;
     const sp = fixturePos(FIX[4], tL);
     for (const p of dust) {
       const u = (p.u + tL * p.sp) % 1;
@@ -854,19 +917,42 @@
     drawOrb(g, tL, I * pulse);
 
     // people go to the frame and to a buffer that receives the moving light
-    const po = crowdOpts, pg = pplCv.getContext('2d');
-    if (LX.on) pg.clearRect(0, 0, W, H);
+    // people go to the frame and to a buffer that receives the moving light. In show mode they
+    // are drawn unlit, and their stage rim light is laid back on in the spot's live colour/level
+    // (each person erases the rims behind them first, so occlusion holds).
+    crowdOpts.armLit = LX.on ? `rgba(${mixc(sc, [255, 255, 255], 0.2).map(v => v | 0)},${0.35 + 0.5 * spot})` : undefined;
+    const po = crowdOpts, pg = pplCv.getContext('2d'), rc = rimCv.getContext('2d');
+    const person = p => {
+      if (!LX.on) { CS.drawBaked(g, p, tA, po); return; }
+      CS.drawBaked(g, p, tA, po, 'base');
+      CS.drawBaked(pg, p, tA, po, 'base');
+      rc.globalCompositeOperation = 'destination-out';
+      CS.drawBaked(rc, p, tA, po, 'base');
+      rc.globalCompositeOperation = 'source-over';
+      CS.drawBaked(rc, p, tA, po, 'lite');
+    };
+    const flushRims = keep => {
+      if (!LX.on) return;
+      rc.globalCompositeOperation = 'source-in';
+      rc.fillStyle = `rgb(${scs})`;
+      rc.fillRect(0, 0, W, H);
+      rc.globalCompositeOperation = 'source-over';
+      g.globalCompositeOperation = 'lighter';
+      g.globalAlpha = Math.min(1, spot);
+      g.drawImage(rimCv, 0, 0);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+      if (keep) { const fg = rimFrontCv.getContext('2d'); fg.globalCompositeOperation = 'copy'; fg.drawImage(rimCv, 0, 0); fg.globalCompositeOperation = 'source-over'; }
+      rc.clearRect(0, 0, W, H);
+    };
+    if (LX.on) { pg.clearRect(0, 0, W, H); rc.clearRect(0, 0, W, H); }
     let i = 0;
-    for (; i < people.length && (people[i].sortY ?? people[i].y) < STAGE.y + 4; i++) {
-      CS.drawBaked(g, people[i], tA, po);
-      if (LX.on) CS.drawBaked(pg, people[i], tA, po);
-    }
+    for (; i < people.length && (people[i].sortY ?? people[i].y) < STAGE.y + 4; i++) person(people[i]);
+    flushRims(false);
     drawStage(g, I, spot);
-    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit', spot);
-    for (; i < people.length; i++) {
-      CS.drawBaked(g, people[i], tA, po);
-      if (LX.on) CS.drawBaked(pg, people[i], tA, po);
-    }
+    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit', spot, sc);
+    for (; i < people.length; i++) person(people[i]);
+    flushRims(true);
 
     if (LX.on) {
       // moving light on the crowd: this frame's footprints × what can catch light (stands + people)
@@ -878,6 +964,12 @@
       lg.setTransform(0.5, 0, 0, 0.5, 0, 0);
       drawLights(lg, list, true);
       lg.setTransform(1, 0, 0, 1, 0, 0);
+      if (domCol) {
+        // the room's ambient light, in the colour of whatever is lit, falls on every surface
+        lg.globalCompositeOperation = 'lighter';
+        lg.fillStyle = `rgba(${domCol.c},${0.16 * domCol.k * I})`;
+        lg.fillRect(0, 0, lightCv.width, lightCv.height);
+      }
       const rg = rcvCv.getContext('2d');
       rg.globalCompositeOperation = 'copy';
       rg.drawImage(rcvStatic, 0, 0);
@@ -901,7 +993,7 @@
     g.translate(STAGE.x, STAGE.y + 30);
     g.scale(1, 0.3);
     fh = g.createRadialGradient(0, 0, 0, 0, 0, 480);
-    fh.addColorStop(0, `rgba(60,180,185,${0.1 * I * spot})`);
+    fh.addColorStop(0, `rgba(${scs},${0.1 * I * spot})`);
     fh.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = fh;
     g.fillRect(-480, -480, 960, 960);
@@ -957,15 +1049,20 @@
       layer.restore();
     }
     drawOrb(layer, tL, S.intensity * pulse);
-    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot : 1);
+    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot : 1, LX.on ? LX.spotCol : undefined);
     g.globalAlpha = TUNE.topAlpha;
     g.drawImage(topLayer, 0, 0);
     // the crowd in front of the stage, again but crisp, over its painted copy: keeps the
     // rim light, hair edges and raised arms the paint filter would smear away
     const cl = crowdLayer.getContext('2d');
     cl.clearRect(0, 0, W, H);
-    for (const p of people) if ((p.sortY ?? p.y) >= STAGE.y + 4) CS.drawBaked(cl, p, tA, crowdOpts);
+    for (const p of people) if ((p.sortY ?? p.y) >= STAGE.y + 4) CS.drawBaked(cl, p, tA, crowdOpts, LX.on ? 'base' : 'c');
     if (LX.on) {
+      cl.globalCompositeOperation = 'lighter';
+      cl.globalAlpha = Math.min(1, LX.spot);
+      cl.drawImage(rimFrontCv, 0, 0);
+      cl.globalAlpha = 1;
+      cl.globalCompositeOperation = 'source-over';
       // the moving light lands on the crisp crowd too
       const mg = maskCv.getContext('2d');
       mg.globalCompositeOperation = 'copy';
@@ -1006,6 +1103,7 @@
   }
   const topLayer = CS.canvas(W, H), crowdLayer = CS.canvas(W, H), maskCv = CS.canvas(W, H);
   const pplCv = CS.canvas(W, H), lightCv = CS.canvas(W / 2, H / 2), rcvCv = CS.canvas(W / 2, H / 2);
+  const rimCv = CS.canvas(W, H), rimFrontCv = CS.canvas(W, H);
   let rcvStatic = null;
   const crowdOpts = { rimColor: '120,210,218', bob: 0.05, sway: 0.08 };
 

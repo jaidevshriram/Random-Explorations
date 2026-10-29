@@ -152,7 +152,7 @@ const CS = (() => {
   }
 
   let perfCv = null, perfMask = null;
-  function drawPerformer(g, x, y, s, t, bpm, style, light = 1) {
+  function drawPerformer(g, x, y, s, t, bpm, style, light = 1, tint = [120, 225, 215]) {
     const SS = 3, S = s * SS;
     const UW = 76, UH = 112, UOX = 30, UOY = 106;
     const cw = Math.ceil(UW * S), ch = Math.ceil(UH * S);
@@ -164,12 +164,13 @@ const CS = (() => {
     pg.setTransform(S, 0, 0, S, UOX * S, UOY * S);
     paintPerformer(pg, performerPose(t, bpm), style === 'sketch');
     pg.setTransform(1, 0, 0, 1, 0, 0);
-    lightPerformer(pg, cw, ch, S, style === 'sketch', light);
+    lightPerformer(pg, cw, ch, S, style === 'sketch', light, tint);
     g.drawImage(perfCv, x - UOX * s, y - UOY * s, UW * s, UH * s);
   }
 
   // edge light from the figure's own alpha: silhouette minus itself shifted away from the light
-  function lightPerformer(pg, cw, ch, S, sketch, light = 1) {
+  function lightPerformer(pg, cw, ch, S, sketch, light = 1, tint = [120, 225, 215]) {
+    const tc = tint.map(v => v | 0).join(','), hot = tint.map(v => (v + (255 - v) * 0.65) | 0).join(',');
     const mg = perfMask.getContext('2d');
     const pass = (dx, dy, w, color) => {
       mg.globalCompositeOperation = 'copy';
@@ -190,8 +191,8 @@ const CS = (() => {
       pg.fillStyle = `rgba(2,7,11,${0.72 * (1 - light)})`;
       pg.fillRect(0, 0, cw, ch);
       if (light > 0.01) {
-        pass(0.15, -1, 2.6, `rgba(120,225,215,${0.28 * light})`);  // broad spill from the spot above
-        pass(0.1, -1, 0.8, `rgba(215,255,250,${0.85 * light})`);   // hot top edges
+        pass(0.15, -1, 2.6, `rgba(${tc},${0.28 * light})`);  // broad spill from the spot above
+        pass(0.1, -1, 0.8, `rgba(${hot},${0.85 * light})`);  // hot top edges
       }
       pass(-1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`); // haze rims at the sides
       pass(1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`);
@@ -844,6 +845,10 @@ const CS = (() => {
       }
     }
 
+    // unlit copy: the light added below can then be pulled out as its own layer
+    const base = canvas(W, H);
+    base.getContext('2d').drawImage(c, 0, 0);
+
     // light from the stage: a sheen across the crown, the tops of the shoulders, then a crisp rim
     if (hairType !== 'shaved') {
       g.save();
@@ -895,34 +900,27 @@ const CS = (() => {
     const k = rr(0.55, 1.15); // not everyone stands in a clean line of sight to the stage
     rimPass(Math.max(2, r * 0.18), lit * 0.16 * k); // soft wrap
     rimPass(Math.max(1.6, r * 0.06), Math.min(1, lit * 1.0 * k), true); // crisp edge
-    if (r > 9 && hairType !== 'shaved' && hairType !== 'cap') {
-      // flyaway hairs leaving the real silhouette (found by marching out through the sprite's alpha)
-      const A = g.getImageData(0, 0, W, H).data;
-      const alphaAt = (x, y) => {
-        const xi = Math.round(ox + x), yi = Math.round(oy + y);
-        return xi < 0 || yi < 0 || xi >= W || yi >= H ? 0 : A[(yi * W + xi) * 4 + 3];
-      };
-      g.strokeStyle = `rgba(${o.rimColor},${Math.min(1, lit * 0.45 * k)})`;
-      for (let i = 0; i < r * 0.3; i++) {
-        const a0 = Math.atan2(ly, lx) + rr(-0.9, 0.9);
-        const dx = Math.cos(a0), dy = Math.sin(a0);
-        let d = r * 0.5;
-        while (d < r * 2.4 && alphaAt(dx * d, dy * d) > 20) d += 0.5;
-        if (d >= r * 2.4) continue;
-        const ex = dx * (d - 0.8), ey = dy * (d - 0.8);
-        const len = r * rr(0.04, 0.11);
-        g.lineWidth = Math.max(0.5, r * rr(0.008, 0.018));
-        g.beginPath();
-        g.moveTo(ex, ey);
-        g.quadraticCurveTo(ex + Math.cos(a0 + 0.35) * len, ey + Math.sin(a0 + 0.35) * len, ex + Math.cos(a0 + rr(-0.3, 0.6)) * len * 1.7, ey + Math.sin(a0) * len * 1.7 + len * 0.25);
-        g.stroke();
-      }
+    // light-only layer: what the stage light added, as white with its strength in alpha, so it
+    // can be re-tinted and re-levelled per frame (spot colour, spot fader)
+    const lite = canvas(W, H), lg = lite.getContext('2d');
+    const A = c.getContext('2d').getImageData(0, 0, W, H).data, B = base.getContext('2d').getImageData(0, 0, W, H).data;
+    const out = lg.createImageData(W, H), O = out.data;
+    const [cr, cg, cb] = o.rimColor.split(',').map(Number), norm = 1 / (cr + cg + cb);
+    for (let i = 0; i < A.length; i += 4) {
+      // compare opacity-weighted colour, so faint strands outside the silhouette stay faint
+      const aa = A[i + 3] / 255, ab = B[i + 3] / 255;
+      const d = Math.max(0, A[i] * aa - B[i] * ab) + Math.max(0, A[i + 1] * aa - B[i + 1] * ab) + Math.max(0, A[i + 2] * aa - B[i + 2] * ab);
+      if (d < 2) continue;
+      O[i] = O[i + 1] = O[i + 2] = 255;
+      O[i + 3] = Math.min(255, d * norm * 255);
     }
-    return { c, ox, oy, sw };
+    lg.putImageData(out, 0, 0);
+    return { c, base, lite, ox, oy, sw };
   }
 
   // per-frame: bob, sway and tilt the baked sprite; raised arms are drawn live
-  function drawBaked(g, p, t, o) {
+  // layer: 'c' fully lit (as baked), 'base' unlit, 'lite' the light alone (no arms)
+  function drawBaked(g, p, t, o, layer = 'c') {
     const r = p.r, S = p.sprite;
     const bob = Math.sin(t * p.f + p.ph) * r * o.bob;
     const sx = Math.sin(t * p.f * 0.47 + p.ph * 1.7) * r * o.sway;
@@ -930,7 +928,7 @@ const CS = (() => {
     g.save();
     g.translate(p.x + sx, p.y + bob);
     g.rotate(tilt);
-    if (p.arm && !o.noArms) {
+    if (p.arm && !o.noArms && layer !== 'lite') {
       const sw = S.sw;
       g.lineCap = 'round';
       for (const side of p.arms2 ? [-1, 1] : [p.side]) {
@@ -948,7 +946,7 @@ const CS = (() => {
         g.beginPath(); g.moveTo(...sh); g.quadraticCurveTo(side * (sw + r * 0.1), r * 0.85, ...el); g.stroke();
         g.lineWidth = r * 0.6;
         g.beginPath(); g.moveTo(...el); g.quadraticCurveTo(el[0] - side * r * 0.15, (el[1] + hand[1]) / 2, hand[0], hand[1] + r * 0.2); g.stroke();
-        g.strokeStyle = p.armC;
+        g.strokeStyle = o.armLit || p.armC; // the lit side takes the live light colour when given
         g.globalAlpha *= 0.7;
         g.lineWidth = r * 0.2;
         g.beginPath(); g.moveTo(sh[0] + ls, sh[1] - r * 0.1); g.lineTo(el[0] + ls, el[1]); g.lineTo(hand[0] + ls * 0.8, hand[1] + r * 0.25); g.stroke();
@@ -967,7 +965,7 @@ const CS = (() => {
         g.restore();
       }
     }
-    g.drawImage(S.c, -S.ox, -S.oy);
+    g.drawImage(S[layer], -S.ox, -S.oy);
     g.restore();
   }
 
