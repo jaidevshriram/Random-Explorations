@@ -2382,17 +2382,30 @@
         const tw = 0.5 + 0.5 * Math.sin(t * sp.sp + sp.ph), a = LX.sparkle * sp.k * tw * tw;
         if (a < 0.02) continue;
         const r = CS.clamp(230 / z, 0.9, 4.6) * (VIEW.Fz / CAM.F);
-        // the spectrum lies along the light's way across the screen (from the ball out)
+        // the light leaves a short rainbow where it lands, smeared along its way across the screen
+        // (from the ball out), white-hot at the near end; the brightest flare into small stars
         let ax = q[0] - ORBV.x, ay = q[1] - ORBV.y;
-        const m = Math.hypot(ax, ay) || 1;
-        ax = (ax / m) * r * 1.1; ay = (ay / m) * r * 1.1;
-        if (r > 1.6) { g.globalAlpha = Math.min(1, a * 0.35); g.drawImage(glowWhite, q[0] - r * 3, q[1] - r * 3, r * 6, r * 6); }
-        g.globalAlpha = Math.min(1, a);
-        g.fillStyle = '#ff3a2a'; g.beginPath(); g.arc(q[0] + ax, q[1] + ay, r * 0.75, 0, TAU); g.fill();
-        g.fillStyle = '#3aff6a'; g.beginPath(); g.arc(q[0], q[1], r * 0.75, 0, TAU); g.fill();
-        g.fillStyle = '#3a6cff'; g.beginPath(); g.arc(q[0] - ax, q[1] - ay, r * 0.75, 0, TAU); g.fill();
-        g.globalAlpha = Math.min(1, a * 0.9);
-        g.fillStyle = '#ffffff'; g.beginPath(); g.arc(q[0], q[1], r * 0.4, 0, TAU); g.fill();
+        const m = Math.hypot(ax, ay) || 1, L = r * 4.2;
+        ax /= m; ay /= m;
+        const x0 = q[0] - ax * L * 0.3, y0 = q[1] - ay * L * 0.3, x1 = q[0] + ax * L * 0.7, y1 = q[1] + ay * L * 0.7;
+        if (r > 1.6) { g.globalAlpha = Math.min(1, a * 0.3); g.drawImage(glowWhite, q[0] - r * 3, q[1] - r * 3, r * 6, r * 6); }
+        const sg = g.createLinearGradient(x0, y0, x1, y1);
+        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.18, '#ff4030'); sg.addColorStop(0.36, '#ffa020');
+        sg.addColorStop(0.52, '#f0ff40'); sg.addColorStop(0.68, '#40ff80'); sg.addColorStop(0.84, '#4080ff'); sg.addColorStop(1, 'rgba(150,70,255,0)');
+        g.globalAlpha = Math.min(1, a * 1.1);
+        g.strokeStyle = sg;
+        g.lineWidth = r * 1.05;
+        g.lineCap = 'round';
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+        g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x0, y0, r * 0.55, 0, TAU); g.fill();
+        if (tw > 0.88 && r > 1.4) {
+          // a star glint: two thin crossing flares
+          const S = r * 7 * (tw - 0.85) / 0.15;
+          g.globalAlpha = Math.min(1, a * 0.8);
+          g.strokeStyle = '#f4f8ff';
+          g.lineWidth = Math.max(0.6, r * 0.25);
+          g.beginPath(); g.moveTo(x0 - S, y0); g.lineTo(x0 + S, y0); g.moveTo(x0, y0 - S); g.lineTo(x0, y0 + S); g.stroke();
+        }
       }
     }
     if (LX.stardust > 0) {

@@ -15,3 +15,9 @@ Offline helpers for turning the arena scene into video.
 ```
 ffmpeg -framerate 15 -i frames/f%04d.jpg -i song.mp3 -map 0:v -map 1:a -c:v libx264 -pix_fmt yuv420p -crf 18 -c:a aac -b:a 192k -shortest out.mp4
 ```
+
+- `impact.py cue.json frames/ out/ orb_x orb_y`: adds impact frames at the song's big hits (the
+  drop, sixteen bars into it, and the cut out of it). Each hit replaces two frames, a posterised
+  negative and then a white-on-black cut-out, both with speed lines radiating from the orb's
+  screen position and a prismatic colour split. Frames are replaced rather than inserted, so
+  the audio stays in sync; untouched frames are symlinked. Encode from `out/`.
