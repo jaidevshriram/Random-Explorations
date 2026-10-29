@@ -316,9 +316,9 @@ const CS = (() => {
     face.closePath();
     shadeIn(face, -96 + hy, -87 + hy, C.skinHi, C.skin);
     // eye sockets and mouth, just enough to read as a face under the hair
-    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.fillStyle = 'rgba(0,0,0,0.16)';
     g.beginPath();
-    g.ellipse(-0.6, -92.3 + hy, 0.9, 0.45, 0, 0, TAU);
+    g.ellipse(-0.6, -92.3 + hy, 0.8, 0.45, 0, 0, TAU);
     g.ellipse(2.6, -92.4 + hy, 0.8, 0.42, 0, 0, TAU);
     g.ellipse(2.4, -88.9 + hy, 0.9, 0.25, 0, 0, TAU);
     g.fill();
@@ -338,6 +338,29 @@ const CS = (() => {
     curtain.bezierCurveTo(-3.6, -78, -2.6, -84 + hy, -1.6, -90 + hy);
     curtain.closePath();
     for (const h of [curtain, cap]) shadeIn(h, -98 + hy, -71, C.hair, C.hairMid);
+    // the spot from above hits the crown hardest
+    g.save();
+    g.clip(cap);
+    const crown = g.createRadialGradient(0.2, -98 + hy, 0, 0.2, -98 + hy, 4.2);
+    crown.addColorStop(0, sketch ? 'rgba(255,255,255,0.8)' : 'rgba(250,255,255,0.75)');
+    crown.addColorStop(1, 'rgba(250,255,255,0)');
+    g.fillStyle = crown;
+    g.fillRect(-6, -100 + hy, 12, 8);
+    g.restore();
+    // strands over the back mass and the tucked side, bright tips where the light catches
+    g.lineWidth = 0.22;
+    for (const [x0, x1, y1, n] of [[-3.5, -7, -73, 5], [3.4, 7, -75, 4]]) {
+      for (let k = 0; k < n; k++) {
+        const f = k / n;
+        g.strokeStyle = k % 2 ? C.hairLo : C.hair;
+        g.globalAlpha = 0.45;
+        g.beginPath();
+        g.moveTo(x0 + f * 0.8, -95 + hy);
+        g.bezierCurveTo(x0 * 1.6, -88 + hy, x1 + P.hair * 0.3 - f, -80, x1 + P.hair * 0.5 + f * 1.4 * Math.sign(x0), y1 + f);
+        g.stroke();
+      }
+    }
+    g.globalAlpha = 1;
     // strands following the fall
     g.save();
     g.clip(curtain);
@@ -436,6 +459,15 @@ const CS = (() => {
     g.beginPath(); g.ellipse(hand1[0], hand1[1], 1.5, 1.15, GUITAR.a + 0.6, 0, TAU); g.fill();
     g.fillStyle = C.skinHi;
     g.beginPath(); g.ellipse(hand1[0] - 0.3, hand1[1] - 0.45, 0.8, 0.45, GUITAR.a + 0.6, 0, TAU); g.fill();
+    // curled fingers and the pick between thumb and index
+    g.strokeStyle = C.skin;
+    g.lineWidth = 0.5;
+    g.beginPath();
+    for (let k = 0; k < 3; k++) { const f0 = gpt(-4.2 + k * 0.6, 0.6 + P.strum * 3.4), f1 = gpt(-3.6 + k * 0.6, 1.5 + P.strum * 3.4); g.moveTo(...f0); g.lineTo(...f1); }
+    g.stroke();
+    const pk = gpt(-3.2, -0.2 + P.strum * 3.4);
+    g.fillStyle = sketch ? '#ffffff' : '#d8efe9';
+    g.beginPath(); g.moveTo(pk[0], pk[1] - 0.5); g.lineTo(pk[0] + 0.6, pk[1] + 0.4); g.lineTo(pk[0] - 0.4, pk[1] + 0.5); g.closePath(); g.fill();
 
     // fretting arm: elbow out, hand under the neck, fingers over the fretboard
     const uf = P.fret;
@@ -448,11 +480,20 @@ const CS = (() => {
     g.restore(); g.globalAlpha = 1;
     g.fillStyle = C.skin;
     g.beginPath(); g.ellipse(hand2[0], hand2[1], 1.5, 1.2, GUITAR.a, 0, TAU); g.fill();
+    // fingers curl from under the neck over the fretboard onto the strings
+    g.lineCap = 'round';
     for (let k = 0; k < 4; k++) {
-      const fp = gpt(uf - 1.6 + k * 1.1, -1.2 + Math.abs(k - 1.5) * 0.2);
-      g.fillStyle = k % 2 ? C.skin : C.skinHi;
-      g.beginPath(); g.ellipse(fp[0], fp[1], 0.42, 0.7, GUITAR.a, 0, TAU); g.fill();
+      const du = -1.8 + k * 1.15;
+      const base = gpt(uf + du * 0.6, 2.4), knuckle = gpt(uf + du * 0.9, 1.9), tip = gpt(uf + du, -0.7 + Math.abs(k - 1.5) * 0.25);
+      g.strokeStyle = C.skin;
+      g.lineWidth = 0.75;
+      g.beginPath(); g.moveTo(...base); g.quadraticCurveTo(knuckle[0] - 0.6, knuckle[1] - 1.6, ...tip); g.stroke();
+      g.fillStyle = C.skinHi;
+      g.beginPath(); g.arc(tip[0], tip[1], 0.3, 0, TAU); g.fill();
     }
+    const thumb = gpt(uf - 0.6, -1.7);
+    g.fillStyle = C.skin;
+    g.beginPath(); g.ellipse(thumb[0], thumb[1], 0.45, 0.75, GUITAR.a, 0, TAU); g.fill();
 
     g.restore(); // the stand doesn't sway
 
