@@ -57,13 +57,13 @@ that generates it:
 
 - `submissions/claude-code-session/` (`draw.py`, about 18 dB): drawn entirely by
   eye. No code reads the reference; only the render, heatmap and score were used.
-- `submissions/claude-code-vector/` (`vectorize.py`, about 28 dB): a *semantic*
-  vectorizer that does read the reference. It segments the image into
-  materials and shading levels within each object (bucket, boom, cab, body,
-  tracks, base plate), traces each region as one part, and keeps the parts that
-  remove the most error per byte. The SVG has one group per object and one path
-  per shade within it, so every vector is a real piece of the scene, not
-  free-floating primitives. Needs `pip install opencv-python-headless`.
+- `submissions/claude-code-vector/` (`vectorize.py`, about 30.5 dB, ~146 KB):
+  a *semantic* vectorizer that does read the reference. It segments the image
+  into shading levels within each object (bucket, boom, cab, body, tracks,
+  base plate), traces each region of at least 4 px as one part, and stacks the
+  parts over each object's silhouette. The SVG has one group per object, so
+  every vector is a real piece of the scene, not free-floating primitives. No
+  blur. Needs `pip install opencv-python-headless`.
 
 The leaderboard's Method column (`kind` in `meta.json`) keeps hand-drawn and
 vectorized entries apart.

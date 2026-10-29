@@ -11,10 +11,10 @@ scene, not pixel soup. The pipeline:
    majority filter.
 2. Trace each connected region as one polygon: a face, beam, wheel or gap.
 3. Lay down each object's silhouette (windows and gaps cut out) with a fitted
-   gradient, then keep the parts that remove the most squared error per byte
-   against it, until the 32 KB budget is spent. Within an object, parts of the
-   same shade share one <path>; large parts may get their own linear gradient.
-   Parts with nothing nested inside them are drawn last, so they merge freely.
+   gradient, then add every part that reduces the error against it (if a byte
+   budget is set, the ones that remove the most error per byte first). Large
+   parts may get their own linear gradient. Parts with nothing nested inside
+   them are drawn last; parts of the same colour share one <path>.
 4. Render an ownership map (which part is visible where) and refit each
    shade to the pixels it actually covers.
 
@@ -24,12 +24,14 @@ pixel and every part is stroked in its own colour (via currentColor) to cover
 its edge pixels. Path data is relative, uses h/v for axis-aligned steps and
 lets minus signs act as separators.
 
-The SVG has one <g> per object, one path per shade inside it.
+The SVG has one <g> per object. No blur filter and no byte limit by default
+(BLUR and BUDGET turn them on); parts smaller than MIN_AREA (4 px, about one
+stud shadow) are skipped so the drawing stays parts, not pixels.
 
     python submissions/claude-code-vector/vectorize.py > submissions/claude-code-vector/lego_r19.svg
 
 Needs opencv-python-headless. Every tunable in P can be overridden from the
-environment (e.g. KO=8 BLUR=1.2); the defaults were picked by sweeping them
+environment (e.g. KO=8 BUDGET=32768); the defaults were picked by sweeping them
 against the score.
 """
 
@@ -45,11 +47,14 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 P = {  # tunables, overridable from the environment for experiments
-    "K": 10, "MODE": 1, "MIN_AREA": 4, "EPS": 1.1, "GRAD_AREA": 300, "HOLE_AREA": 60, "BUDGET": 32700, "SHADES": 12, "BLUR": 0.5, "MS_SP": 12, "MS_SR": 30, "KO": 8, "SW": 1.3, "REFIT": 1, "SMOOTH": 1, "LEAVES": 1,
+    "K": 10, "MODE": 1, "MIN_AREA": 4, "EPS": 0.5, "GRAD_AREA": 300, "HOLE_AREA": 60, "BUDGET": 0, "SHADES": 0, "BLUR": 0.0, "MS_SP": 12, "MS_SR": 30, "KO": 12, "SW": 1.3, "REFIT": 1, "SMOOTH": 1, "LEAVES": 1,
 }
 for k in P:
     if k in os.environ:
         P[k] = type(P[k])(os.environ[k])
+# BUDGET 0 = no byte limit; SHADES 0 = every part keeps its own colour; BLUR 0 = no filter
+if P["BUDGET"] <= 0:
+    P["BUDGET"] = float("inf")
 
 img = cv2.imread(str(ROOT / "images" / "lego_r19.png"))
 H, W = img.shape[:2]
@@ -286,7 +291,7 @@ for c in cands:
 for obj in silhouettes:
     mine = [c for c in cands if c["obj"] == obj]
     cols = np.array([c["mean"] for c in mine], np.float32)
-    k = min(P["SHADES"], len(mine))
+    k = min(P["SHADES"] or len(mine), len(mine))
     if k < len(mine):
         _, lab_, pal = cv2.kmeans(cols, k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
         for c, l in zip(mine, lab_.ravel()):
