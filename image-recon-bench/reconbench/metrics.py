@@ -56,7 +56,7 @@ def ssim(ref: np.ndarray, test: np.ndarray) -> float:
     return float(np.mean([_ssim_channel(ref[..., c], test[..., c], k) for c in range(ref.shape[-1])]))
 
 
-def error_heatmap(ref: np.ndarray, test: np.ndarray, gain: float = 4.0) -> np.ndarray:
+def error_heatmap(ref: np.ndarray, test: np.ndarray, gain: float = 2.0) -> np.ndarray:
     """Grayscale |ref - test| averaged over channels and amplified; bright = wrong."""
     err = np.abs(ref.astype(np.int16) - test.astype(np.int16)).mean(axis=2)
     return np.clip(err * gain, 0, 255).astype(np.uint8)

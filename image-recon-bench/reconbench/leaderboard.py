@@ -16,7 +16,7 @@ def to_markdown(results: list[dict]) -> str:
         "# Leaderboard",
         "",
         f"_Generated {date.today().isoformat()} by `python bench.py leaderboard`. "
-        f"Ranked by mean PSNR (dB) over {len(ids)} images; SSIM as tie-breaker. "
+        f"Ranked by mean PSNR (dB) over {len(ids)} image{'s' if len(ids) != 1 else ''}; SSIM as tie-breaker. "
         f"Byte budget: {results[0]['byte_budget'] if results else '-'} bytes per SVG._",
         "",
         "| # | Entry | Model | Mean PSNR | Mean SSIM | Coverage | Avg bytes |",

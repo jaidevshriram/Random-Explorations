@@ -16,7 +16,7 @@ import anthropic
 import numpy as np
 from PIL import Image
 
-from .images import load_reference
+from .images import grid_overlay, load_reference
 from .metrics import error_heatmap
 from .render import DEFAULT_BYTE_BUDGET, InvalidSubmission
 from .scoring import SUBMISSIONS_DIR, score_svg
@@ -79,8 +79,10 @@ def reconstruct(
         "role": "user",
         "content": [
             _png_block(ref),
+            {"type": "text", "text": "The same image with a pixel grid (lines every 50 px) for reading coordinates:"},
+            _png_block(np.asarray(grid_overlay(Image.fromarray(ref)))),
             {"type": "text", "text": (
-                f"Reference image `{image_id}`. Canvas: {w}x{h} pixels. "
+                f"Reference image `{image_id}` (shown first, without the grid). Canvas: {w}x{h} pixels. "
                 f"Byte budget: {byte_budget} bytes. You have up to {max_rounds} rounds. "
                 "Round 1: send your first SVG."
             )},
@@ -142,7 +144,7 @@ def reconstruct(
                 feedback = [
                     {"type": "text", "text": "Your render:"},
                     _png_block(test),
-                    {"type": "text", "text": "Error heatmap (|ref - render|, 4x amplified):"},
+                    {"type": "text", "text": "Error heatmap (|ref - render|, 2x amplified):"},
                     _png_block(error_heatmap(ref, test)),
                     {"type": "text", "text": (
                         f"Round {rnd}: PSNR {scores['psnr']:.2f} dB, SSIM {scores['ssim']:.4f}, "

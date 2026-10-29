@@ -1,0 +1,5 @@
+{
+  "model": "Claude (Claude Code session)",
+  "kind": "hand-drawn",
+  "notes": "Drawn by eye in a Claude Code session via draw.py: shapes and colours read off the gridded reference, then refined using only the render, heatmap and PSNR from `bench.py check` (blur and colours were tuned against the score). No code read the reference pixels."
+}

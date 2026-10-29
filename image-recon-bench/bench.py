@@ -4,7 +4,8 @@
   python bench.py fetch                       # download the reference images
   python bench.py baselines                   # (re)generate non-Claude baseline entries
   python bench.py run --entry my-run          # have Claude reconstruct every image
-  python bench.py check lena path/to/x.svg    # score one SVG, write render + heatmap
+  python bench.py check lego_r19 x.svg        # score one SVG, write render + heatmap
+  python bench.py grid lego_r19               # reference with a pixel grid, for eyeballing coordinates
   python bench.py leaderboard                 # score all submissions -> LEADERBOARD.md
 """
 
@@ -56,6 +57,14 @@ def cmd_check(args):
     print(f"heatmap: {out / f'{args.image}_heatmap.png'}")
 
 
+def cmd_grid(args):
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"{args.image}_grid.png"
+    images.grid_overlay(images.load_reference(args.image)).save(path)
+    print(path)
+
+
 def cmd_leaderboard(args):
     results = scoring.score_all(args.budget)
     path = leaderboard.write(results)
@@ -89,6 +98,11 @@ def main():
     s.add_argument("--out", default="scratch", help="where to write render/heatmap PNGs")
     s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET)
     s.set_defaults(func=cmd_check)
+
+    s = sub.add_parser("grid", help="write the reference with a pixel grid overlay")
+    s.add_argument("image", choices=list(images.REFERENCE_SET))
+    s.add_argument("--out", default="scratch")
+    s.set_defaults(func=cmd_grid)
 
     s = sub.add_parser("leaderboard", help="score every submission and write LEADERBOARD.md")
     s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET)

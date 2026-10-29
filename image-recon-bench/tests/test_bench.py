@@ -9,7 +9,7 @@ from reconbench.images import image_path
 from reconbench.metrics import psnr, ssim
 from reconbench.render import InvalidSubmission, render_svg, validate_svg
 
-needs_images = pytest.mark.skipif(not image_path("lena").exists(), reason="run `python bench.py fetch` first")
+needs_images = pytest.mark.skipif(not image_path("lego_r19").exists(), reason="run `python bench.py fetch` first")
 
 OK = '<svg xmlns="http://www.w3.org/2000/svg">{}</svg>'
 
@@ -93,9 +93,9 @@ class FakeStream:
 @needs_images
 def test_reconstruct_loop(tmp_path):
     replies = iter([
-        "```svg\n<svg xmlns='http://www.w3.org/2000/svg'><rect width='512' height='512' fill='#b46f6a'/></svg>\n```",
+        "```svg\n<svg xmlns='http://www.w3.org/2000/svg'><rect width='800' height='800' fill='#f0e8d8'/></svg>\n```",
         "```svg\n<svg xmlns='http://www.w3.org/2000/svg'><image href='x.png'/></svg>\n```",
-        "```svg\n<svg xmlns='http://www.w3.org/2000/svg'><rect width='512' height='512' fill='#000'/></svg>\n```",
+        "```svg\n<svg xmlns='http://www.w3.org/2000/svg'><rect width='800' height='800' fill='#000'/></svg>\n```",
         "DONE",
     ])
     calls = []
@@ -105,11 +105,11 @@ def test_reconstruct_loop(tmp_path):
         return FakeStream(next(replies))
 
     client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(stream=stream)))
-    log = agent.reconstruct(client, "lena", tmp_path, "m", "high", max_rounds=8)
+    log = agent.reconstruct(client, "lego_r19", tmp_path, "m", "high", max_rounds=8)
 
     assert [r["status"] for r in log["rounds"]] == ["ok", "invalid", "ok", "done"]
-    assert log["best"]["round"] == 1  # the flat skin tone beats solid black
-    assert (tmp_path / "lena.svg").read_text().count("#b46f6a") == 1
+    assert log["best"]["round"] == 1  # near-white beats solid black on a mostly white image
+    assert (tmp_path / "lego_r19.svg").read_text().count("#f0e8d8") == 1
     # history is append-only, alternates user/assistant, and ends on the assistant's DONE
     roles = [m["role"] for m in calls[-1]["messages"]]
     assert roles == ["user", "assistant"] * 4
