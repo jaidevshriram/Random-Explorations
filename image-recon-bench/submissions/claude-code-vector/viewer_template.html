@@ -1,0 +1,374 @@
+<meta charset="utf-8">
+<title>Bulldozer Part Inspector</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: inspection bench. A square stage on the left (zoom/pan), the semantic tree on the right; stacks on phones. */
+:root {
+  --bg: #eef0f2;
+  --panel: #ffffff;
+  --ink: #1b2026;
+  --muted: #5d6773;
+  --line: #d5dae0;
+  --accent: #0a66c2;     /* selection / highlight: blue reads against the yellow model */
+  --stud: #f2b705;       /* technic yellow, used for the score chip only */
+  --stage: #ffffff;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --panel: #1a2027; --ink: #e6eaee; --muted: #94a0ad; --line: #2c343d;
+    --accent: #5aa9ff; --stud: #f2b705; --stage: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --panel: #1a2027; --ink: #e6eaee; --muted: #94a0ad; --line: #2c343d;
+  --accent: #5aa9ff; --stud: #f2b705; --stage: #ffffff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 24px;
+}
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 14px; }
+h1 { font-family: var(--display); font-stretch: 80%; font-weight: 750; font-size: 1.6rem; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 70ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chip.score { border-color: var(--stud); }
+.chip b { font-weight: 500; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 16px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+/* stage */
+.stagewrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: inherit; font-size: 13px; border: 0; background: none; color: var(--ink); padding: 6px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.toolbar label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.toolbar input[type=range] { width: 110px; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage { position: relative; width: min(100%, calc(100vh - 170px)); min-width: min(100%, 320px); aspect-ratio: 1 / 1; max-width: 100%; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; touch-action: none; cursor: grab; }
+.stage.dragging { cursor: grabbing; }
+.canvas { position: absolute; inset: 0; transform-origin: 0 0; }
+.canvas > svg, .canvas > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.canvas > img { pointer-events: none; opacity: 0; image-rendering: pixelated; }
+.zoombtns { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.zoombtns button { font: 500 14px var(--mono); width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font: 12px/1.4 var(--mono); box-shadow: 0 4px 14px rgb(0 0 0 / .15); max-width: 300px; }
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
+
+/* svg states */
+svg.sem path { fill: var(--c) !important; stroke: var(--c) !important; }
+svg.focus path { opacity: .1; }
+svg.focus path.hl { opacity: 1; }
+svg path.hl { stroke: var(--accent) !important; stroke-width: 1.5px !important; vector-effect: non-scaling-stroke; }
+svg.outlines path { stroke: rgb(0 0 0 / .55) !important; stroke-width: .6px !important; vector-effect: non-scaling-stroke; }
+svg path.off { display: none; }
+
+/* tree */
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; max-height: calc(100vh - 120px); overflow: auto; }
+aside h2 { font-family: var(--display); font-stretch: 85%; font-size: 1rem; margin: 0 0 4px; letter-spacing: .02em; text-transform: uppercase; }
+.legend { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+.node { display: grid; grid-template-columns: 18px 14px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+.node:hover, .node.pinned { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.node.pinned { outline: 1px solid var(--accent); }
+.node .tw { border: 0; background: none; color: var(--muted); cursor: pointer; font: 12px var(--mono); padding: 0; width: 18px; }
+.node .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgb(0 0 0 / .2); }
+.node .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .nm small { color: var(--muted); }
+.node .meta { font: 11px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.node input[type=checkbox] { margin: 0; }
+.kids { margin-left: 16px; border-left: 1px dashed var(--line); padding-left: 4px; }
+.lvl-object > .node .nm { font-weight: 650; }
+.more { font: 12px var(--mono); color: var(--accent); background: none; border: 0; cursor: pointer; padding: 4px 22px; }
+.info { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font: 12px/1.5 var(--mono); color: var(--muted); }
+.info b { color: var(--ink); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) { .canvas { transition: transform .05s linear; } }
+</style>
+
+<header>
+  <h1>Bulldozer Part Inspector</h1>
+  <p class="sub">The NeRF Lego bulldozer (train/r_19) rebuilt as semantic vector parts. Hover the image or the tree to see what each region is; click to pin it.</p>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <section class="stagewrap">
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Colouring">
+        <button id="m-render" aria-pressed="true">Reconstruction</button>
+        <button id="m-object" aria-pressed="false">By object</button>
+        <button id="m-material" aria-pressed="false">By material</button>
+        <button id="m-part" aria-pressed="false">By part</button>
+      </div>
+      <label for="refop">Reference <input id="refop" type="range" min="0" max="100" value="0"></label>
+      <label for="outl"><input id="outl" type="checkbox"> Outlines</label>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas">
+<!--__SVG__-->
+        <img id="ref" alt="Reference render of the Lego bulldozer" src="__REF__">
+      </div>
+      <div class="zoombtns">
+        <button id="zin" aria-label="Zoom in">+</button>
+        <button id="zout" aria-label="Zoom out">&minus;</button>
+        <button id="zreset" aria-label="Reset view">1:1</button>
+      </div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="hint">Scroll or pinch to zoom, drag to pan, double-click to reset. Errors are RMSE in 0–255 levels over the pixels a part actually shows.</p>
+  </section>
+
+  <aside>
+    <h2>Semantic tree</h2>
+    <p class="legend">object › material › shade › part. Tick boxes hide or show a branch. RMSE is per visible pixel; share is that branch's part of the total squared error.</p>
+    <div id="tree"></div>
+    <div class="info" id="info">Hover a part to see where it sits in the hierarchy.</div>
+  </aside>
+</main>
+
+<script>
+const DATA = /*__DATA__*/null;
+const svg = document.querySelector("#canvas > svg");
+svg.removeAttribute("width"); svg.removeAttribute("height");
+svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+const OBJ_COLORS = {"base-plate": "#c9a26b", "tracks": "#3a4a5c", "body": "#e8742a", "boom-and-grille": "#2f9e44",
+  "cab": "#7048e8", "bucket": "#d6336c", "red-light": "#f03e3e"};
+const MAT_COLORS = {yellow: "#f2b705", black: "#2b2f36", gray: "#9aa5b1", beige: "#e9d8a6", brown: "#8a5a3b", red: "#e03131"};
+const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+
+// ---- collect the hierarchy from the SVG itself -------------------------------------
+const tree = [];  // objects
+const byId = new Map();
+for (const g of svg.querySelectorAll('g[data-level="object"]')) {
+  const obj = {kind: "object", name: g.id, kids: [], paths: [], el: g};
+  const sil = g.querySelector('path[data-role="silhouette"]');
+  if (sil) {
+    sil.dataset.key = g.id + ":silhouette";
+    obj.kids.push({kind: "silhouette", name: "silhouette (underlay)", paths: [sil], kids: []});
+    obj.paths.push(sil);
+  }
+  const mats = new Map();
+  for (const p of g.querySelectorAll("path[id]")) {
+    const mat = p.parentNode.dataset.material || "?";
+    const shade = p.dataset.shade || "?";
+    p.dataset.key = p.id;
+    if (!mats.has(mat)) mats.set(mat, {kind: "material", name: mat, kids: [], paths: [], shades: new Map()});
+    const m = mats.get(mat);
+    if (!m.shades.has(shade)) { const s = {kind: "shade", name: shade, kids: [], paths: []}; m.shades.set(shade, s); m.kids.push(s); }
+    const part = {kind: "part", name: p.id, paths: [p], kids: [], area: +p.dataset.area};
+    m.shades.get(shade).kids.push(part); m.shades.get(shade).paths.push(p); m.paths.push(p); obj.paths.push(p);
+    byId.set(p.id, {obj: g.id, mat, shade});
+  }
+  for (const m of mats.values()) {
+    m.kids.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+    obj.kids.push(m);
+  }
+  tree.push(obj);
+}
+tree.reverse();  // top-most object first in the list
+
+const partCount = n => n.paths.filter(p => p.id).length;
+const visPx = n => n.paths.reduce((s, p) => s + ((DATA.stats[p.dataset.key] || [0])[0]), 0);
+const sseOf = n => n.paths.reduce((s, p) => s + (DATA.sse[p.dataset.key] || 0), 0);
+const rmseOf = n => { const px = visPx(n); return px ? Math.sqrt(sseOf(n) / px) : 0; };
+
+// ---- header chips --------------------------------------------------------------------
+const nParts = tree.reduce((s, o) => s + partCount(o), 0);
+document.getElementById("chips").innerHTML =
+  `<span class="chip score">PSNR <b>${DATA.psnr.toFixed(2)} dB</b></span>` +
+  `<span class="chip">SSIM <b>${DATA.ssim.toFixed(3)}</b></span>` +
+  `<span class="chip"><b>${tree.length}</b> objects</span>` +
+  `<span class="chip"><b>${nParts.toLocaleString()}</b> parts</span>` +
+  `<span class="chip"><b>${(DATA.bytes / 1024).toFixed(0)} KB</b> SVG</span>`;
+
+// ---- colouring modes -------------------------------------------------------------------
+function hashColor(s) {
+  let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return `hsl(${(h >>> 0) % 360} ${55 + ((h >>> 9) % 30)}% ${42 + ((h >>> 17) % 26)}%)`;
+}
+function shadeOf(hex, f) {  // lighten/darken a hex colour
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const t = f < 0 ? 0 : 255, a = Math.abs(f);
+  return `rgb(${Math.round(r + (t - r) * a)} ${Math.round(g + (t - g) * a)} ${Math.round(b + (t - b) * a)})`;
+}
+const allPaths = [...svg.querySelectorAll("path")];
+function setMode(mode) {
+  for (const b of document.querySelectorAll(".seg button")) b.setAttribute("aria-pressed", String(b.id === "m-" + mode));
+  svg.classList.toggle("sem", mode !== "render");
+  if (mode === "render") return;
+  for (const p of allPaths) {
+    const obj = p.closest('g[data-level="object"]').id;
+    let c;
+    if (p.dataset.role === "silhouette") c = mode === "material" ? "#ffffff" : shadeOf(OBJ_COLORS[obj] || "#888888", .55);
+    else if (mode === "object") {
+      const lvl = parseInt((p.dataset.shade || "x-1").split("-").pop(), 10) || 1;
+      c = shadeOf(OBJ_COLORS[obj] || "#888888", ((lvl % 4) - 1.5) * .18);
+    } else if (mode === "material") c = MAT_COLORS[p.parentNode.dataset.material] || "#888888";
+    else c = hashColor(p.id);
+    p.style.setProperty("--c", c);
+  }
+}
+for (const m of ["render", "object", "material", "part"]) document.getElementById("m-" + m).onclick = () => setMode(m);
+document.getElementById("refop").oninput = e => { document.getElementById("ref").style.opacity = e.target.value / 100; };
+document.getElementById("outl").onchange = e => svg.classList.toggle("outlines", e.target.checked);
+
+// ---- highlight / pin --------------------------------------------------------------------
+let pinned = null, pinnedRow = null;
+function highlight(node) {
+  for (const p of svg.querySelectorAll(".hl")) p.classList.remove("hl");
+  const n = node || pinned;
+  svg.classList.toggle("focus", !!n);
+  if (n) for (const p of n.paths) p.classList.add("hl");
+}
+
+// ---- tree UI ----------------------------------------------------------------------------
+const treeEl = document.getElementById("tree");
+function swatch(n, objName) {
+  if (n.kind === "object") return OBJ_COLORS[n.name] || "#888";
+  if (n.kind === "material") return MAT_COLORS[n.name] || "#888";
+  const p = n.paths[0]; const cs = p && getComputedStyle(p);
+  return cs ? (cs.fill.startsWith("url") ? cs.color : cs.fill) : "#888";
+}
+function row(n, depth, container, objName) {
+  const wrap = document.createElement("div");
+  wrap.className = "lvl-" + n.kind;
+  const r = document.createElement("div");
+  r.className = "node";
+  const hasKids = n.kids.length > 0;
+  const px = visPx(n), share = DATA.totalSSE ? 100 * sseOf(n) / DATA.totalSSE : 0;
+  const label = n.kind === "part" ? `part ${n.name.split(".").pop()} <small>${Math.round(n.area)} px</small>` :
+    n.kind === "shade" ? `shade ${n.name.split("-").pop()} <small>(${n.name.split("-")[0]})</small>` : n.name;
+  const meta = n.kind === "part"
+    ? `${fmt(px)} px · rmse ${rmseOf(n).toFixed(0)}`
+    : `${n.kind === "silhouette" ? "" : fmt(partCount(n)) + " · "}rmse ${rmseOf(n).toFixed(0)} · ${share.toFixed(1)}%`;
+  r.innerHTML = `<button class="tw" aria-label="Expand">${hasKids ? "▸" : ""}</button>` +
+    `<span class="sw" style="background:${swatch(n, objName)}"></span>` +
+    `<span class="nm" title="${n.name}">${label}</span>` +
+    `<span class="meta">${meta} <input type="checkbox" checked aria-label="Show ${n.name}"></span>`;
+  wrap.appendChild(r);
+  const kidsEl = document.createElement("div");
+  kidsEl.className = "kids"; kidsEl.hidden = true;
+  wrap.appendChild(kidsEl);
+  let built = false;
+  const build = () => {
+    if (built) return; built = true;
+    const LIMIT = 150;
+    const kids = n.kind === "shade" ? [...n.kids].sort((a, b) => b.area - a.area) : n.kids;
+    kids.slice(0, LIMIT).forEach(k => row(k, depth + 1, kidsEl, objName));
+    if (kids.length > LIMIT) {
+      const more = document.createElement("button");
+      more.className = "more"; more.textContent = `show ${kids.length - LIMIT} more`;
+      more.onclick = () => { more.remove(); kids.slice(LIMIT).forEach(k => row(k, depth + 1, kidsEl, objName)); };
+      kidsEl.appendChild(more);
+    }
+  };
+  const tw = r.querySelector(".tw");
+  tw.onclick = e => { e.stopPropagation(); if (!hasKids) return; build(); kidsEl.hidden = !kidsEl.hidden; tw.textContent = kidsEl.hidden ? "▸" : "▾"; };
+  const cb = r.querySelector("input");
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { for (const p of n.paths) p.classList.toggle("off", !cb.checked);
+    for (const c of kidsEl.querySelectorAll("input[type=checkbox]")) c.checked = cb.checked; };
+  r.onmouseenter = () => highlight(n);
+  r.onmouseleave = () => highlight(null);
+  r.onclick = () => {
+    if (pinned === n) { pinned = null; r.classList.remove("pinned"); pinnedRow = null; }
+    else { if (pinnedRow) pinnedRow.classList.remove("pinned"); pinned = n; pinnedRow = r; r.classList.add("pinned"); }
+    highlight(null); describe(n);
+  };
+  n.row = r; n.kidsEl = kidsEl; n.build = build; n.tw = tw;
+  container.appendChild(wrap);
+}
+tree.forEach(o => row(o, 0, treeEl, o.name));
+
+const info = document.getElementById("info");
+function describe(n) {
+  if (!n) { info.textContent = "Hover a part to see where it sits in the hierarchy."; return; }
+  const p = n.paths[0];
+  const where = byId.get(p.id);
+  const path = where ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}` : `<b>${p.closest("g").id}</b>`;
+  info.innerHTML = `${path}${n.kind === "part" ? " › part " + p.id.split(".").pop() : n.kind !== "object" ? " (" + n.kind + ")" : ""}<br>` +
+    `${partCount(n) || 1} path${partCount(n) === 1 ? "" : "s"}, ${visPx(n).toLocaleString()} visible px, rmse ${rmseOf(n).toFixed(1)}, ` +
+    `${(100 * sseOf(n) / DATA.totalSSE).toFixed(2)}% of total error`;
+}
+
+// ---- stage: zoom / pan / hover ------------------------------------------------------------
+const stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), tip = document.getElementById("tip");
+let zoom = 1, tx = 0, ty = 0;
+const apply = () => { canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${zoom})`; };
+function zoomAt(f, cx, cy) {
+  const nz = Math.min(24, Math.max(1, zoom * f));
+  tx = cx - (cx - tx) * nz / zoom; ty = cy - (cy - ty) * nz / zoom; zoom = nz;
+  if (zoom === 1) { tx = 0; ty = 0; }
+  apply();
+}
+stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+const ptrs = new Map(); let lastDist = 0, moved = false;
+stage.addEventListener("pointerdown", e => { stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = false; stage.classList.add("dragging"); });
+stage.addEventListener("pointerup", e => { ptrs.delete(e.pointerId); lastDist = 0; stage.classList.remove("dragging");
+  if (!moved && e.pointerType !== "touch") clickAt(e); });
+stage.addEventListener("pointercancel", e => { ptrs.delete(e.pointerId); lastDist = 0; });
+stage.addEventListener("pointermove", e => {
+  if (ptrs.has(e.pointerId)) {
+    const [px, py] = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      const r = stage.getBoundingClientRect();
+      if (lastDist) zoomAt(d / lastDist, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top);
+      lastDist = d; moved = true; return;
+    }
+    if (Math.abs(e.clientX - px) + Math.abs(e.clientY - py) > 0) { if (zoom > 1) { tx += e.clientX - px; ty += e.clientY - py; apply(); } moved = true; }
+    return;
+  }
+  hoverAt(e);
+});
+stage.addEventListener("pointerleave", () => { tip.hidden = true; if (!pinned) highlight(null); });
+stage.addEventListener("dblclick", () => { zoom = 1; tx = 0; ty = 0; apply(); });
+document.getElementById("zin").onclick = () => zoomAt(1.6, stage.clientWidth / 2, stage.clientHeight / 2);
+document.getElementById("zout").onclick = () => zoomAt(1 / 1.6, stage.clientWidth / 2, stage.clientHeight / 2);
+document.getElementById("zreset").onclick = () => { zoom = 1; tx = 0; ty = 0; apply(); };
+for (const id of ["zin", "zout", "zreset"]) document.getElementById(id).addEventListener("pointerdown", e => e.stopPropagation());
+
+function pathAt(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  return el && el.tagName === "path" && el.closest("svg") === svg ? el : null;
+}
+function hoverAt(e) {
+  const p = pathAt(e);
+  if (!p) { tip.hidden = true; if (!pinned) highlight(null); return; }
+  const key = p.dataset.key, st = DATA.stats[key] || [0, 0];
+  const where = byId.get(p.id);
+  tip.innerHTML = where
+    ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}<br>part ${p.id.split(".").pop()} · ${Math.round(+p.dataset.area)} px traced · ${st[0]} px visible · rmse ${st[1]}`
+    : `<b>${p.closest("g").id}</b> silhouette (underlay)<br>${st[0]} px visible · rmse ${st[1]}`;
+  const r = stage.getBoundingClientRect();
+  let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+  tip.hidden = false;
+  if (x + tip.offsetWidth > r.width - 6) x = e.clientX - r.left - tip.offsetWidth - 14;
+  if (y + tip.offsetHeight > r.height - 6) y = e.clientY - r.top - tip.offsetHeight - 14;
+  tip.style.left = Math.max(6, x) + "px"; tip.style.top = Math.max(6, y) + "px";
+  if (!pinned) { for (const q of svg.querySelectorAll(".hl")) q.classList.remove("hl"); p.classList.add("hl"); svg.classList.remove("focus"); }
+}
+function clickAt(e) {
+  const p = pathAt(e);
+  if (!p || !p.id) return;
+  // reveal the part in the tree and pin it
+  const where = byId.get(p.id);
+  const obj = tree.find(o => o.name === where.obj);
+  const mat = obj.kids.find(k => k.name === where.mat);
+  const shade = mat.kids.find(k => k.name === where.shade);
+  for (const n of [obj, mat, shade]) { n.build(); n.kidsEl.hidden = false; n.tw.textContent = "▾"; }
+  let part = shade.kids.find(k => k.name === p.id);
+  if (part && !part.row) { const more = shade.kidsEl.querySelector(".more"); if (more) more.click(); }
+  if (part && part.row) { part.row.click(); part.row.scrollIntoView({block: "nearest"}); }
+}
+</script>
