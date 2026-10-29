@@ -17,6 +17,7 @@
     shirtL: 2.3, fog: 0.38, backLift: 0.12, soffitL: 0.6, fasciaL: 0.95, shadow: 0.6, floorHaze: 0.09, headL: 0.4, crowdTop: 0.55, crowdLight: 1,
   };
   try { Object.assign(TUNE, JSON.parse(new URLSearchParams(location.search).get('tune') || '{}')); } catch (e) {}
+  const CLEAN = new URLSearchParams(location.search).has('clean'); // ?clean: no on-screen captions (a clean feed for editing)
 
   // Fixtures on the orb's inner ring. Angles/half-widths/strengths measured from the
   // reference (screen degrees, clockwise from +x). The bottom can is the follow spot.
@@ -2196,7 +2197,7 @@
     g.globalAlpha = 1;
     if (lasers.length) { drawLasersOccluded(tA); g.globalCompositeOperation = 'lighter'; g.drawImage(laserLayer, 0, 0); g.globalCompositeOperation = 'source-over'; }
     lensFrame(S);
-    if (LX.on && LX.labelA > 0) {
+    if (LX.on && LX.labelA > 0 && !CLEAN) {
       // caption naming the control being exercised
       g.save();
       g.globalAlpha = LX.labelA;
