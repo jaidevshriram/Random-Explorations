@@ -91,6 +91,7 @@
   .readout { font: 500 13px var(--mono); color: var(--muted); text-align: right; min-width: 7.5em; font-variant-numeric: tabular-nums; }
   .readout b { display: block; color: var(--fg); font: 600 15px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
   .take { margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+  #song-status { font: 500 13px var(--mono); color: var(--amber); }
   .btn {
     font: 600 14px/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; cursor: pointer;
@@ -201,7 +202,10 @@
       <div class="seg" id="program" role="group" aria-label="Programme">
         <button type="button" data-prog="main" aria-pressed="true">Full show</button>
         <button type="button" data-prog="beams">Beams &amp; the camera</button>
+        <button type="button" data-prog="song">Your song…</button>
       </div>
+      <input type="file" id="song-file" accept="audio/*" hidden>
+      <span id="song-status"></span>
       <button type="button" class="btn" id="take">Take over from here</button><span>Copies the lights on screen onto the live desk.</span>
     </div>
   </div>
@@ -317,6 +321,7 @@
 <script>window.LIGHT_DESK = true;</script>
 <script src="common.js"></script>
 <script src="arena.js"></script>
+<script src="music.js"></script>
 <script src="console.js"></script>
 </body>
 </html>

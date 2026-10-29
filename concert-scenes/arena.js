@@ -328,7 +328,7 @@
     const u = t - P.t0, r = seg(t, P.t0, P.t0 + 3);
     return [
       (360 * u) / 26 + 35 * Math.sin(u * 0.53) * r,
-      (-20 + 22 * Math.sin(u * 0.61 + 0.4)) * r,
+      (-12 + 18 * Math.sin(u * 0.61 + 0.4)) * r, // mostly inside the follow spot's reach
       (360 * u) / 17,
     ];
   }
@@ -1207,22 +1207,31 @@
   }
   // a fixture's place and aim on the satellite this frame
   function fixture3(f, i = FIX.indexOf(f)) {
-    // ring heads sit on a circle round the ball's face (the painting's ring); back heads on its far side
+    // ring heads sit on a circle round the ball's face (the painting's ring); back heads on its far
+    // side; the follow spot hangs at the bottom pole
     const pe = (f.pe || 0) * D2R, pa = f.pa * D2R;
-    const pb = f.back ? [RS * Math.cos(pa) * Math.cos(pe), RS * Math.sin(pa) * Math.cos(pe), RS * Math.sin(pe)] : [RING3 * Math.cos(pa), RING3 * Math.sin(pa) * 0.94, -CROWN_Z];
-    // roll spins the ring of heads; yaw and pitch turn the whole ball. The follow spot hangs from
-    // the ball's underside, off the ring, so it turns with the ball but not with the ring's spin.
+    const pb = f.spot ? [0, RS, 0] : f.back ? [RS * Math.cos(pa) * Math.cos(pe), RS * Math.sin(pa) * Math.cos(pe), RS * Math.sin(pe)] : [RING3 * Math.cos(pa), RING3 * Math.sin(pa) * 0.94, -CROWN_Z];
+    // roll spins the ring of heads; yaw and pitch turn the whole ball (the spot is off the ring)
     const R3 = f.spot ? rotYP : rot3;
-    const C = add3(O3, R3(pb)), d = R3(aimBody(f, i));
-    if (!f.spot || !LX.spotLock) return { C, d, aimK: 1 };
-    // The follow spot rides the ball like every head. It tracks the performer, but a moving head
-    // only reaches so far from its resting aim: turn the ball too far and the beam slides off her.
-    const want = norm3(sub3(PERF3, C)), ang = Math.acos(CS.clamp(dot3(d, want), -1, 1));
-    let aim = want;
-    if (ang > SPOT_REACH) aim = norm3(axisRot(d, norm3(cross3(d, want)), SPOT_REACH));
+    const C = add3(O3, R3(pb)), n = norm3(R3(pb));
+    // a head throws its light outward: never more than HEAD_REACH from the surface normal where it sits
+    const d = towards(n, R3(aimBody(f, i)), HEAD_REACH);
+    if (!f.spot || !LX.spotLock) return { C, d, n, aimK: 1 };
+    // the follow spot tracks the performer, but only within its reach of straight down from the
+    // pole: turn the ball too far and the beam slides off her
+    const want = norm3(sub3(PERF3, C)), aim = towards(n, want, SPOT_REACH);
     const miss = Math.acos(CS.clamp(dot3(aim, want), -1, 1)) / D2R;
-    return { C, d: aim, aimK: Math.exp(-((miss / 6) ** 2)) };
+    return { C, d: aim, n, aimK: Math.exp(-((miss / 6) ** 2)) };
   }
+  // dir, unless it is more than `reach` from the axis n; then the direction `reach` from n toward it
+  function towards(n, dir, reach) {
+    dir = norm3(dir);
+    const ang = Math.acos(CS.clamp(dot3(n, dir), -1, 1));
+    if (ang <= reach) return dir;
+    const ax = cross3(n, dir), m = Math.hypot(ax[0], ax[1], ax[2]);
+    return m < 1e-6 ? n.slice() : norm3(axisRot(n, ax.map(v => v / m), reach));
+  }
+  const HEAD_REACH = 35 * D2R, LASER_REACH = 45 * D2R;
   const SPOT_REACH = 40 * D2R; // how far the follow spot can swing from straight down on the ball
   // where the follow spot aims: the stage floor at the performer's feet
   const PERF3 = [((PERF.x - CAM.cx) * Z0) / CAM.F, HF, Z0];
@@ -1322,8 +1331,8 @@
       if (lv.laser <= 0 && lv.fan <= 0) return;
       // lasers: their own aim, out of the ring's plane and scanning, so they reach the far stands,
       // the floor and the people right at the camera
-      const ab = f.a * D2R, side = [-Math.sin(ab), Math.cos(ab), 0];
-      const dl = norm3(rot3(aimBody(f, i, LX.laserTilt + LX.laserScan * Math.sin(i * 1.7))));
+      const ab = f.a * D2R, side = [-Math.sin(ab), Math.cos(ab), 0], nrm = norm3(sub3(C, O3));
+      const dl = towards(nrm, rot3(aimBody(f, i, LX.laserTilt + LX.laserScan * Math.sin(i * 1.7))), LASER_REACH);
       const shoot = (dir, k, id) => shootFrom(C, dir, k * I, col, 0.35, id);
       if (lv.laser > 0) shoot(dl, lv.laser, 1000 + i);
       if (lv.fan > 0) {
@@ -1331,7 +1340,7 @@
         // ring's plane, 90 stands it up as a sheet from the far stands to the front rows
         const n = rot3([0, 0, 1]), sw = rot3(side), tw = LX.fanTwist * D2R;
         const axis = norm3(add3(n.map(v => v * Math.cos(tw)), sw, Math.sin(tw)));
-        for (let k = 0; k < 13; k++) shoot(norm3(axisRot(dl, axis, (LX.fanScan + (k / 12 - 0.5) * LX.fanSpread) * D2R)), lv.fan * 0.8, 2000 + i * 16 + k);
+        for (let k = 0; k < 13; k++) shoot(towards(nrm, axisRot(dl, axis, (LX.fanScan + (k / 12 - 0.5) * LX.fanSpread) * D2R), LASER_REACH + 10 * D2R), lv.fan * 0.8, 2000 + i * 16 + k);
       }
     });
     if (LX.on) {
@@ -1456,7 +1465,8 @@
     const tex = LX.projCol ? recolor(beamTex[i], col, projTint[i] || (projTint[i] = CS.canvas(512, 192))) : L.tex;
     ap *= LX.projAlpha;
     const G = goboOf(i), ab = f.a * D2R;
-    const ax = rot3([-Math.sin(ab), Math.cos(ab), 0]), ay = rot3([0, 0, 1]); // the gate's axes ride the satellite
+    // the gate's axes ride the satellite, squared up to the beam's axis
+    const ax0 = rot3([-Math.sin(ab), Math.cos(ab), 0]), ax = norm3(add3(ax0, d, -dot3(ax0, d))), ay = cross3(d, ax);
     const tH = Math.tan(LX.goboZoom * D2R), spin = LX.goboSpin * (i % 2 ? -1 : 1), cs = Math.cos(spin), sn = Math.sin(spin);
     // a prism splits the cone into three turning copies of the pattern
     const copies = LX.prism ? [0, 1, 2].map(k => { const pa = LX.goboSpin * 0.45 + (k * TAU) / 3; return [0.5 * Math.cos(pa), 0.5 * Math.sin(pa), 0.55, 0.5]; }) : [[0, 0, 1, 1]];
@@ -1891,6 +1901,7 @@
     // people go down in batches; each batch is dimmed to this frame's indirect light in one pass
     const flushPeople = () => {
       if (!LX.on) return;
+      pg.drawImage(crowdFrame, 0, 0); // the receiver gets the people undimmed
       if (amb < 1) { cf.globalCompositeOperation = 'source-atop'; cf.fillStyle = `rgba(0,0,0,${1 - amb})`; cf.fillRect(0, 0, W, H); cf.globalCompositeOperation = 'source-over'; }
       g.drawImage(crowdFrame, 0, 0);
       cf.clearRect(0, 0, W, H);
@@ -1898,7 +1909,7 @@
     const person = p => {
       if (!LX.on) { CS.drawBaked(g, p, tA, po); return; }
       CS.drawBaked(cf, p, tA, po, 'base');
-      CS.drawBaked(pg, p, tA, po, 'base');
+      if (p.r < 2.2) return; // too small to carry a visible rim
       rc.globalCompositeOperation = 'destination-out';
       CS.drawBaked(rc, p, tA, po, 'base');
       rc.globalCompositeOperation = 'source-over';
@@ -2004,7 +2015,10 @@
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'source-over';
     (LX.on ? drawOrb3D : drawOrb)(layer, tL, S.intensity * pulse);
-    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot * spotAim : 1, LX.on ? LX.spotCol : undefined, ...perfHaze());
+    // the figure render() just drew this frame, reused (same pose, same light)
+    const pf = CS.drawPerformer.last;
+    if (pf) layer.drawImage(pf.cv, pf.x, pf.y, pf.w, pf.h);
+    else CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot * spotAim : 1, LX.on ? LX.spotCol : undefined, ...perfHaze());
     g.globalAlpha = TUNE.topAlpha;
     g.drawImage(topLayer, 0, 0);
     // the crowd in front of the stage, again but crisp, over its painted copy: keeps the

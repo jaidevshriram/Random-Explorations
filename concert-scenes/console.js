@@ -185,6 +185,7 @@
     $('p-show').hidden = m !== 'show';
     $('p-live').hidden = m !== 'live';
     S.speed.lights = m === 'show' ? (showPlaying ? 1 : 0) : 1;
+    if (m !== 'show') audio.pause();
     if (!fromHash && location.hash !== '#' + HASH[m]) history.replaceState(null, '', '#' + HASH[m]);
     if (m === 'live') { syncAll(); syncColours(); syncGobo(); }
   }
@@ -219,29 +220,73 @@
       b.textContent = name;
       b.style.left = (t / A.SHOW_LENGTH) * 100 + '%';
       if (t / A.SHOW_LENGTH > 0.8) b.classList.add('end'); // label hangs left of its mark near the end
-      b.onclick = () => { S.clocks.lights = t + 0.01; };
+      b.onclick = () => { S.clocks.lights = t + 0.01; if (LX.program === 'song' && audio.src) audio.currentTime = t + 0.01; };
       chapters.append(b);
     });
   }
   buildChapters();
+  // ---------- your song: analyse a dropped audio file, then play it with the lights locked to it ----------
+  const audio = new Audio();
+  audio.preload = 'auto';
+  let songName = '';
+  const pickProgram = p => {
+    A.setProgram(p);
+    $('program').querySelectorAll('button').forEach(x => press(x, x.dataset.prog === p));
+    S.clocks.lights = 0;
+    if (p !== 'song') audio.pause();
+    buildChapters();
+  };
   $('program').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
-    A.setProgram(b.dataset.prog);
-    $('program').querySelectorAll('button').forEach(x => press(x, x === b));
-    S.clocks.lights = 0;
-    buildChapters();
+    if (b.dataset.prog === 'song' && !window.SONG) { $('song-file').click(); return; }
+    pickProgram(b.dataset.prog);
+    if (b.dataset.prog === 'song') playSong(0);
   });
+  $('song-file').addEventListener('change', async () => {
+    const f = $('song-file').files[0];
+    if (!f) return;
+    $('song-status').textContent = 'Analysing ' + f.name + '…';
+    try {
+      const cue = await window.analyzeSong(await f.arrayBuffer());
+      window.SONG = cue;
+      songName = f.name.replace(/\.[^.]+$/, '');
+      if (audio.src) URL.revokeObjectURL(audio.src);
+      audio.src = URL.createObjectURL(f);
+      $('song-status').textContent = `${songName} · ${Math.round(cue.tempo)} BPM · ${Math.floor(cue.duration / 60)}:${String(Math.round(cue.duration % 60)).padStart(2, '0')}`;
+      pickProgram('song');
+      playSong(0);
+    } catch (err) {
+      $('song-status').textContent = 'Could not read that file as audio.';
+    }
+  });
+  function playSong(t) {
+    if (!audio.src) return;
+    audio.currentTime = t;
+    showPlaying = true;
+    $('play').textContent = '❚❚';
+    audio.play().catch(() => {});
+  }
+  // while a song plays, the light clock is the audio clock
+  const songClock = () => {
+    if (A.mode() === 'show' && LX.program === 'song' && audio.src) {
+      S.speed.lights = 0;
+      if (!audio.paused) S.clocks.lights = audio.currentTime;
+    }
+    requestAnimationFrame(songClock);
+  };
+  requestAnimationFrame(songClock);
   $('play').onclick = () => {
     showPlaying = !showPlaying;
     S.speed.lights = showPlaying ? 1 : 0;
+    if (LX.program === 'song' && audio.src) { if (showPlaying) audio.play().catch(() => {}); else audio.pause(); }
     $('play').textContent = showPlaying ? '❚❚' : '▶';
     $('play').setAttribute('aria-label', showPlaying ? 'Pause showcase' : 'Play showcase');
   };
   let scrubbing = false;
   scrub.addEventListener('pointerdown', () => (scrubbing = true));
   window.addEventListener('pointerup', () => (scrubbing = false));
-  scrub.addEventListener('input', () => { S.clocks.lights = +scrub.value; });
+  scrub.addEventListener('input', () => { S.clocks.lights = +scrub.value; if (LX.program === 'song' && audio.src) audio.currentTime = +scrub.value; });
   function tickReadout() {
     if (A.mode() === 'show') {
       const t = ((S.clocks.lights % A.SHOW_LENGTH) + A.SHOW_LENGTH) % A.SHOW_LENGTH;
