@@ -494,6 +494,7 @@ const CS = (() => {
       phone: r > 5 && R() < (opt.phones || 0),
       arm: r > 8 && r < 30 && R() < (opt.arms || 0), // a raised, swaying arm (mid-crowd only)
       arms2: R() < 0.35,               // both arms up
+      armStyle: Math.floor(R() * 3),  // 0 waves side to side, 1 pumps to the beat, 2 held up
       side: R() < 0.5 ? -1 : 1,
       jit: [R(), R(), R(), R()],
       seed: (R() * 1e9) | 0,
@@ -817,18 +818,25 @@ const CS = (() => {
     rimPass(Math.max(2, r * 0.18), lit * 0.16 * k); // soft wrap
     rimPass(Math.max(1.6, r * 0.06), Math.min(1, lit * 1.0 * k), true); // crisp edge
     if (r > 9 && hairType !== 'shaved' && hairType !== 'cap') {
-      // flyaway hairs past the silhouette, lit from behind
-      g.strokeStyle = `rgba(${o.rimColor},${Math.min(1, lit * 0.4 * k)})`;
-      const ext = longHair ? 1.35 : 1;
+      // flyaway hairs leaving the real silhouette (found by marching out through the sprite's alpha)
+      const A = g.getImageData(0, 0, W, H).data;
+      const alphaAt = (x, y) => {
+        const xi = Math.round(ox + x), yi = Math.round(oy + y);
+        return xi < 0 || yi < 0 || xi >= W || yi >= H ? 0 : A[(yi * W + xi) * 4 + 3];
+      };
+      g.strokeStyle = `rgba(${o.rimColor},${Math.min(1, lit * 0.45 * k)})`;
       for (let i = 0; i < r * 0.3; i++) {
-        const a0 = Math.atan2(ly, lx) + rr(-0.8, 0.8);
-        const ex = Math.cos(a0) * hw * (hairType === 'wavy' || hairType === 'curly' ? 1.25 : 1.03);
-        const ey = Math.sin(a0) * r * (Math.sin(a0) > 0 ? ext : 0.97);
-        const len = r * rr(0.03, 0.09);
-        g.lineWidth = Math.max(0.5, r * rr(0.008, 0.02));
+        const a0 = Math.atan2(ly, lx) + rr(-0.9, 0.9);
+        const dx = Math.cos(a0), dy = Math.sin(a0);
+        let d = r * 0.5;
+        while (d < r * 2.4 && alphaAt(dx * d, dy * d) > 20) d += 0.5;
+        if (d >= r * 2.4) continue;
+        const ex = dx * (d - 0.8), ey = dy * (d - 0.8);
+        const len = r * rr(0.04, 0.11);
+        g.lineWidth = Math.max(0.5, r * rr(0.008, 0.018));
         g.beginPath();
         g.moveTo(ex, ey);
-        g.quadraticCurveTo(ex + Math.cos(a0 + 0.4) * len, ey + Math.sin(a0 + 0.4) * len, ex + Math.cos(a0 + rr(-0.3, 0.6)) * len * 1.6, ey + Math.sin(a0) * len * 1.6 + len * 0.3);
+        g.quadraticCurveTo(ex + Math.cos(a0 + 0.35) * len, ey + Math.sin(a0 + 0.35) * len, ex + Math.cos(a0 + rr(-0.3, 0.6)) * len * 1.7, ey + Math.sin(a0) * len * 1.7 + len * 0.25);
         g.stroke();
       }
     }
@@ -849,17 +857,19 @@ const CS = (() => {
       g.lineCap = 'round';
       for (const side of p.arms2 ? [-1, 1] : [p.side]) {
         // arms sway to the beat, the pair slightly out of phase
-        const sway = Math.sin(t * p.f * 1.3 + p.ph + (side > 0 ? 0.6 : 0)) * 0.35;
+        const ph = t * p.f * 1.3 + p.ph + (side > 0 ? 0.6 : 0);
+        const sway = p.armStyle === 0 ? Math.sin(ph) * 0.35 : p.armStyle === 2 ? Math.sin(ph * 0.3) * 0.06 : 0;
+        const pump = p.armStyle === 1 ? Math.max(0, Math.sin(ph * 2.2)) * r * 0.55 : 0;
         const sh = [side * sw * 0.72, r * 1.35];
-        const el = [side * (sw * 0.95 + r * 0.25), r * 0.05];
-        const hand = [side * (sw * 0.55 + r * 0.5) + Math.sin(sway) * r * 1.6, -r * 2.0 + Math.abs(Math.cos(sway)) * r * 0.2];
+        const el = [side * (sw * 0.95 + r * 0.25), r * 0.05 + pump * 0.5];
+        const hand = [side * (sw * 0.55 + r * 0.5) + Math.sin(sway) * r * 1.6, -r * 2.0 + Math.abs(Math.cos(sway)) * r * 0.2 + pump];
         // dark limb, then a lit stripe along the side facing the stage: reads as a rounded arm
         const ls = (p.lside || 1) * r * 0.12;
         g.strokeStyle = p.armDark || p.armC;
         g.lineWidth = r * 0.66;
-        g.beginPath(); g.moveTo(...sh); g.lineTo(...el); g.stroke();
+        g.beginPath(); g.moveTo(...sh); g.quadraticCurveTo(side * (sw + r * 0.1), r * 0.85, ...el); g.stroke();
         g.lineWidth = r * 0.5;
-        g.beginPath(); g.moveTo(...el); g.lineTo(hand[0], hand[1] + r * 0.2); g.stroke();
+        g.beginPath(); g.moveTo(...el); g.quadraticCurveTo(el[0] - side * r * 0.15, (el[1] + hand[1]) / 2, hand[0], hand[1] + r * 0.2); g.stroke();
         g.strokeStyle = p.armC;
         g.lineWidth = r * 0.26;
         g.beginPath(); g.moveTo(sh[0] + ls, sh[1] - r * 0.1); g.lineTo(el[0] + ls, el[1]); g.lineTo(hand[0] + ls * 0.8, hand[1] + r * 0.25); g.stroke();
