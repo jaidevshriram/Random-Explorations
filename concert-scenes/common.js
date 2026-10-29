@@ -192,7 +192,9 @@ const CS = (() => {
     } else {
       // with the follow spot down she falls to a silhouette, rimmed only by the room's haze
       pg.globalCompositeOperation = 'source-atop';
-      pg.fillStyle = `rgba(2,7,11,${0.72 * (1 - light)})`;
+      // and with the room dark too (hazeK low) she goes almost to black
+      const dark = 0.72 * (1 - Math.min(1, light)) + 0.26 * (1 - hazeK) * (1 - Math.min(1, light));
+      pg.fillStyle = `rgba(2,7,11,${dark})`;
       pg.fillRect(0, 0, cw, ch);
       if (light > 0.01) {
         pass(0.15, -1, 2.6, `rgba(${tc},${0.28 * light})`);  // broad spill from the spot above

@@ -71,6 +71,8 @@
   fader('twist', () => LIVE.fanTwist, v => (LIVE.fanTwist = v));
   fader('burst-n', () => LIVE.burstCount, v => (LIVE.burstCount = v));
   fader('burst-w', () => LIVE.burstSpread, v => (LIVE.burstSpread = v));
+  fader('smoke', () => LIVE.smoke, v => (LIVE.smoke = v));
+  fader('disperse', () => LIVE.disperse, v => (LIVE.disperse = v));
   const gp = $('gobo-pick');
   for (const name of [...A.GOBOS, 'mix']) {
     const b = document.createElement('button');
@@ -195,7 +197,8 @@
   $('mode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
   const fromHash = () => {
     const h = location.hash.slice(1);
-    setMode(h === 'live' ? 'live' : h === 'painting' ? 'paint' : 'show', true);
+    // no hash: keep whatever mode the page started in (e.g. ?live=... or ?show)
+    setMode(h === 'live' ? 'live' : h === 'painting' ? 'paint' : h === 'showcase' ? 'show' : A.mode() === 'paint' ? 'show' : A.mode(), true);
   };
   window.addEventListener('hashchange', fromHash);
 
@@ -205,6 +208,7 @@
       yaw: wrap180(LX.yaw), pitch: LX.pitch, rot: wrap180(LX.rot), turn: 0, spin: 0, tumble: 0,
       tilt: LX.tilt, tiltScan: LX.tiltScan, laserTilt: LX.laserTilt, fanTwist: LX.fanTwist,
       gobo: LX.gobo, goboZoom: LX.goboZoom, prism: LX.prism, spot: LX.spot, spotCol: LX.spotCol.slice(), eye: LX.eye, eyeCol: null, rainbow: false,
+      smoke: LX.smoke, disperse: LX.disperse,
     });
     FIX.forEach((f, i) => { if (!f.spot) Object.assign(LIVE.fx[i], { col: LX.col[i].map(v => Math.round(v)), ...LX.lv[i] }); });
     A.resetMotion();
@@ -236,7 +240,7 @@
     A.setProgram(p);
     $('program').querySelectorAll('button').forEach(x => press(x, x.dataset.prog === p));
     S.clocks.lights = 0;
-    if (p !== 'song') audio.pause();
+    if (p !== 'song') { audio.pause(); S.speed.lights = showPlaying ? 1 : 0; } // the song had the clock
     buildChapters();
   };
   $('program').addEventListener('click', e => {

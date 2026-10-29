@@ -273,6 +273,12 @@
         <label class="fader"><span>Burst wander</span><input type="range" id="burst-w" min="0" max="20" step="0.5" value="6" data-unit="°"><output>6°</output></label>
       </div>
       <div class="module">
+        <h2>Atmosphere</h2>
+        <label class="fader"><span>Smoke</span><input type="range" id="smoke" min="0" max="1" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <label class="fader"><span>Prism fringe</span><input type="range" id="disperse" min="0" max="1" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <p class="note">Smoke makes the beams billow and fills the room with haze the lights pick out. Prism fringe adds hairline spectra to beams and lasers.</p>
+      </div>
+      <div class="module">
         <h2>Strobe</h2>
         <div class="row"><button type="button" class="toggle" id="strobe-on" aria-pressed="false">Strobe</button><button type="button" class="btn" id="strobe-burst">Strobe burst</button></div>
         <label class="fader"><span>Rate</span><input type="range" id="strobe-rate" min="1" max="20" step="0.5" value="9" data-unit=" Hz"><output>9.0 Hz</output></label>
