@@ -58,6 +58,7 @@
   const DEFAULT_LV = { beam: 1, proj: 0, laser: 0, fan: 0 };
   const LX = {
     on: new URLSearchParams(location.search).has('show'), rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
+    eye: 1, eyeCol: TEAL.slice(), // the lamp facing the audience on the front of the satellite
     col: FIX.map(() => TEAL.slice()), lv: FIX.map(() => ({ ...DEFAULT_LV })), label: '', labelA: 0,
   };
   const ease = x => x * x * (3 - 2 * x);
@@ -78,6 +79,7 @@
   // Live desk: the console (or ?live={...}) sets these and they are applied every frame.
   const LIVE = {
     rot: 0, spin: 0, spot: 1, spotCol: [120, 210, 218], goboSpeed: 1.8, fanSpread: 26, fanScan: 14, rainbow: false,
+    eye: 1, eyeCol: null, // null: follow the rig's colour
     fx: FIX.map(() => ({ col: TEAL.slice(), beam: 1, proj: 0, laser: 0, fan: 0 })),
   };
   {
@@ -104,8 +106,18 @@
       Object.assign(LX.lv[i], f.spot ? DEFAULT_LV : { beam: F.beam, proj: F.proj, laser: F.laser, fan: F.fan });
       LX.col[i] = f.spot ? spotBeamCol() : LIVE.rainbow ? hsl((t * 60 + i * 50) % 360, 0.95, 0.6) : F.col.slice();
     });
+    LX.eye = LIVE.eye;
+    LX.eyeCol = LIVE.eyeCol ? LIVE.eyeCol.slice() : rigColour();
     LX.label = '';
     LX.labelA = 0;
+  }
+
+  // the blend of what the ring is putting out, weighted by level (the front lamp follows it)
+  function rigColour() {
+    let w = 0;
+    const c = [0, 0, 0];
+    ORDER.forEach(i => { const L2 = LX.lv[i], k = Math.max(L2.beam, L2.proj, L2.laser, L2.fan) + 1e-3; w += k; for (let j = 0; j < 3; j++) c[j] += LX.col[i][j] * k; });
+    return c.map(v => v / w);
   }
 
   // 30-second showcase. The rig turns all the way round across it: everything rides the satellite.
@@ -171,6 +183,8 @@
       LX.spot = 1 - all * 0.5 * (0.5 + 0.5 * Math.cos(beat * TAU));
     }
     LX.col[4] = spotBeamCol();
+    LX.eyeCol = rigColour();
+    LX.eye = 1 - (all > 0 ? 0.35 * all * (0.5 + 0.5 * Math.cos(beat * TAU * 2)) : 0);
     cap('BACK TO THE PAINTING', 28.3, 29.9);
     LX.label = label;
     LX.labelA = la;
@@ -321,14 +335,6 @@
     g.lineTo(x + hr * 0.45, y + hr * 0.95);
     g.quadraticCurveTo(x + sw * 1.02, y + hr * 1.2, x + sw, y + hr * 3.2);
     g.fill();
-    if (R() < 0.04) {
-      // an arm up
-      const sd = R() < 0.5 ? -1 : 1;
-      g.strokeStyle = g.fillStyle;
-      g.lineCap = 'round';
-      g.lineWidth = hr * 0.55;
-      g.beginPath(); g.moveTo(x + sd * sw * 0.7, y + hr * 1.3); g.lineTo(x + sd * (sw * 0.6 + rr(0, 0.6) * hr), y - hr * rr(1.6, 2.4)); g.stroke();
-    }
     const face = navyRGB(L * (R() < 0.25 ? rr(0.3, 0.55) : rr(0.6, 1.15)));
     face[0] += 10 * L; face[2] -= 6 * L; // a little skin warmth
     const fog = CS.clamp(TUNE.fog * (1 - n), 0, 1), h = hazeAt(x, y);
@@ -482,7 +488,7 @@
       for (let x = -50 + rr(0, r); x < W + 50; x += r * 1.95 * rr(0.75, 1.3)) {
         const yy = y + rr(-r * 0.45, r * 0.45);
         if (((x - STAGE.x) / 245) ** 2 + ((yy - 778) / 46) ** 2 < 1) continue;
-        const p = CS.makePerson(R, x, yy, r * rr(0.85, 1.15), { arms: 0.15 });
+        const p = CS.makePerson(R, x, yy, r * rr(0.85, 1.15), { arms: 0 });
         // the crowd around the stage catches its spill; the nearest rows fall toward silhouette
         const n = nearFloor(yy);
         const glow = TUNE.stageGlow * Math.exp(-Math.hypot(x - STAGE.x, (yy - STAGE.y) * 1.8) / 420);
@@ -508,7 +514,7 @@
     for (let k = 0; k < 2 && carriers.length; k++) {
       const c = carriers.splice(Math.floor(R() * carriers.length), 1)[0];
       const p = CS.makePerson(R, c.x + rr(-0.1, 0.1) * c.r, c.y - c.r * 2.7, c.r * 0.82, { arms: 1 });
-      Object.assign(p, { arm: true, arms2: true, armStyle: 0, sortY: c.y - 0.01, turn: 0 });
+      Object.assign(p, { arm: false, sortY: c.y - 0.01, turn: 0 });
       p.L = c.L * 1.3;
       p.lit = Math.min(0.95, c.lit * 1.15);
       p.lside = c.lside; p.armDark = c.armDark; p.armC = c.armC; p.skinC = c.skinC;
@@ -662,26 +668,31 @@
     hs.addColorStop(1, '#03090c');
     g.fillStyle = hs;
     g.beginPath(); g.arc(x, y, 21, 0, TAU); g.fill();
+    // the front lamp, facing the audience: its own colour and level in show/live mode
+    const ec = LX.on ? LX.eyeCol : TEAL, ev = LX.on ? LX.eye : 1;
+    const rgbs = c => c.map(v => Math.min(255, v) | 0).join(',');
     const fl = g.createRadialGradient(x, y, 0, x, y, 15);
-    fl.addColorStop(0, '#f2fffd');
-    fl.addColorStop(0.35, '#a8fbf2');
-    fl.addColorStop(0.8, '#3fd2c8');
-    fl.addColorStop(1, '#1c7f7b');
+    fl.addColorStop(0, `rgba(${rgbs(mixc(ec, [255, 255, 255], 0.9))},${0.25 + 0.75 * ev})`);
+    fl.addColorStop(0.35, `rgba(${rgbs(mixc(ec, [255, 255, 255], 0.55))},${0.25 + 0.75 * ev})`);
+    fl.addColorStop(0.8, `rgba(${rgbs(mixc(ec, [255, 255, 255], 0.1))},${0.3 + 0.7 * ev})`);
+    fl.addColorStop(1, `rgb(${rgbs(ec.map(v => v * 0.45))})`);
     g.fillStyle = fl;
     g.beginPath(); g.arc(x, y, 15, 0, TAU); g.fill();
     g.globalCompositeOperation = 'lighter';
-    g.globalAlpha = CS.clamp(0.9 * I, 0, 1);
-    g.drawImage(glowCyan, x - 50, y - 50, 100, 100);
+    g.globalAlpha = CS.clamp(0.9 * I * ev, 0, 1);
+    g.drawImage(LX.on ? glowFor(ec) : glowCyan, x - 50, y - 50, 100, 100);
     g.globalAlpha = 1;
 
     // glass: fresnel rim, specular arc, small glints
     g.globalCompositeOperation = 'source-over';
+    // glass catches the rig's own colour
+    const gc = LX.on ? mixc([110, 215, 220], rigColour(), 0.6).map(v => v | 0).join(',') : '110,215,220';
     const fr = g.createRadialGradient(x, y, rx * 0.7, x, y, rx);
-    fr.addColorStop(0, 'rgba(80,190,200,0)');
-    fr.addColorStop(1, 'rgba(110,215,220,0.32)');
+    fr.addColorStop(0, `rgba(${gc},0)`);
+    fr.addColorStop(1, `rgba(${gc},0.32)`);
     g.fillStyle = fr;
     g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
-    g.strokeStyle = 'rgba(150,235,232,0.75)';
+    g.strokeStyle = LX.on ? `rgba(${mixc([150, 235, 232], rigColour(), 0.5).map(v => v | 0).join(',')},0.75)` : 'rgba(150,235,232,0.75)';
     g.lineWidth = 1.6;
     g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.stroke();
     g.globalCompositeOperation = 'lighter';
@@ -893,8 +904,9 @@
 
     // halo of scattered light around the orb
     const halo = g.createRadialGradient(ORB.x, ORB.y, 60, ORB.x, ORB.y, 300);
-    halo.addColorStop(0, `rgba(40,170,175,${TUNE.halo * I})`);
-    halo.addColorStop(0.25, `rgba(30,120,130,${TUNE.halo * 0.35 * I})`);
+    const hc = LX.on ? rigColour().map(v => v | 0).join(',') : '40,170,175';
+    halo.addColorStop(0, `rgba(${hc},${(LX.on ? 0.08 : TUNE.halo) * I})`);
+    halo.addColorStop(0.25, `rgba(${hc},${(LX.on ? 0.03 : TUNE.halo * 0.35) * I})`);
     halo.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = halo;
     g.fillRect(ORB.x - 300, ORB.y - 300, 600, 600);

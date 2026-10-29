@@ -531,7 +531,7 @@ const CS = (() => {
     return {
       x, y, r,
       ph: R() * TAU,
-      f: 0.7 + R() * 0.9,
+      f: 0.45 + R() * 1.2,
       hair: R(),
       hw: 0.9 + R() * 0.2,            // head width
       sw: 1.9 + R() * 0.55,           // shoulder half-width (in head radii)
@@ -921,10 +921,13 @@ const CS = (() => {
   // per-frame: bob, sway and tilt the baked sprite; raised arms are drawn live
   // layer: 'c' fully lit (as baked), 'base' unlit, 'lite' the light alone (no arms)
   function drawBaked(g, p, t, o, layer = 'c') {
-    const r = p.r, S = p.sprite;
-    const bob = Math.sin(t * p.f + p.ph) * r * o.bob;
-    const sx = Math.sin(t * p.f * 0.47 + p.ph * 1.7) * r * o.sway;
-    const tilt = p.tilt + Math.sin(t * p.f * 0.31 + p.ph) * 0.04;
+    const r = p.r, S = p.sprite, k = o.energy ?? 1;
+    // uneven sway: each person on their own rate (p.f) with two out-of-step rhythms, so the
+    // crowd never moves in lockstep; o.energy scales how much
+    const t1 = t * p.f, ph = p.ph;
+    const bob = (Math.sin(t1 + ph) * 0.6 + Math.sin(t1 * 1.93 + ph * 2.3) * 0.4) * r * o.bob * k;
+    const sx = (Math.sin(t1 * 0.47 + ph * 1.7) * 0.7 + Math.sin(t1 * 0.81 + ph * 3.1) * 0.3) * r * o.sway * k;
+    const tilt = p.tilt + (Math.sin(t1 * 0.31 + ph) * 0.03 + Math.sin(t1 * 0.57 + ph * 1.3) * 0.015) * k;
     g.save();
     g.translate(p.x + sx, p.y + bob);
     g.rotate(tilt);
@@ -1199,7 +1202,7 @@ const CS = (() => {
     const top = painter ? canvas(scene.W, scene.H) : null;
     const topCtx = top && top.getContext('2d');
     const params = new URLSearchParams(location.search);
-    const state = { bpm: +(params.get('bpm') || scene.bpm || 80), intensity: 1, playing: true, clocks: {}, on: {} };
+    const state = { bpm: +(params.get('bpm') || scene.bpm || 80), intensity: 1, playing: true, clocks: {}, on: {}, speed: {} };
     for (const k of scene.toggles) { state.on[k] = true; state.clocks[k] = +(params.get('t') || 0); }
     const still = params.has('still');
 
@@ -1259,7 +1262,7 @@ const CS = (() => {
     const frame = now => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      if (state.playing && !still) for (const k of scene.toggles) if (state.on[k]) state.clocks[k] += dt;
+      if (state.playing && !still) for (const k of scene.toggles) if (state.on[k]) state.clocks[k] += dt * (state.speed[k] ?? 1);
       if (!still || !drawn) draw();
       drawn = true;
       requestAnimationFrame(frame);
