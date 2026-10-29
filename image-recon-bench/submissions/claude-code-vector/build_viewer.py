@@ -39,9 +39,9 @@ owners = []  # owner name per id colour (index + 1)
 parent = {c: g for g in root.iter() for c in g}
 for p in root.iter(f"{NS}path"):  # every path once, in document order
     g = parent[p]
-    while g.get("data-level") != "object":
+    while g.get("data-level") != "piece":
         g = parent[g]
-    owners.append(p.get("id") or f"{g.get('data-object')}:silhouette")
+    owners.append(p.get("id") or f"{g.get('id')}:base")
     colour = "#%06x" % len(owners)
     for attr in ("fill", "stroke", "color"):
         if attr in p.attrib:

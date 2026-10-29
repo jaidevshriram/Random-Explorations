@@ -1,42 +1,40 @@
-"""Semantic vectorization of lego_r19.
+"""Piece-based semantic vectorization of lego_r19.
 
-Unlike ../claude-code-session (drawn by eye), this entry reads the reference,
-with one constraint: every path is a semantically cohesive piece of the scene
-(a face of a part, a beam, a wheel, a gap), never free-floating primitives or
-pixel-grid tracing. The SVG carries the semantic hierarchy
+The structure comes from a segmentation of the image into LEGO pieces
+(segmentation/pieces.png, made with SAM 2.1 plus prompts I placed by eye; see
+segmentation/README.md). The vectorizer only fills that structure in:
 
     object (bucket, boom, cab, body, tracks, base plate, red light)
-      > material (yellow, black, gray, beige, brown, red)
-        > shade (a shading level of that material within the object)
-          > part (one connected region, one <path>)
+      > piece (one LEGO piece, e.g. a Technic beam, a connector, a gear)
+        > shade (a shading level inside that piece)
+          > part (one connected region of that shade, one <path>)
 
-as nested <g> groups and data-* attributes, so it can be inspected directly
-(see viewer.html, built by build_viewer.py).
+Every piece is one <g data-level="piece"> carrying data-object, data-name,
+data-kind and data-material; its first path is the piece's own outline
+(data-role="base"), the rest are shading regions inside it. Pixels that no piece
+covers are kept as an explicit "unsegmented" piece per object, not hidden.
 
 Pipeline:
 1. Upsample the reference (U x) so outlines can land between pixels.
-2. Give every pixel an object from hand-drawn object regions plus colour rules
-   (plate tones belong to the plate, only red belongs to the red light), then
-   cluster shading levels within each object (k-means in RGB).
-3. Trace each connected region of at least MIN_AREA pixels as one polygon.
-4. Lay down each object's silhouette (windows and gaps cut out) with a fitted
-   gradient, then stack its parts on top, shallowest first, so a part never
-   hides one nested inside it. Parts larger than GRAD_AREA get a fitted linear
-   gradient. A part that a later object's silhouette would cover (the plate seen
-   through the track chain) is drawn right after that silhouette, in a group
-   that still names its own object (data-object, data-seen-through).
-5. Render an ownership map (which part is visible where) and refit every
-   colour/gradient to the pixels it actually covers.
+2. Read the piece map; give each piece an object (majority of hand-drawn object
+   regions) and a material and kind (from its colour and shape; kinds are
+   heuristic guesses unless the piece was named when prompted).
+3. Inside each piece, cluster shading levels (k-means in RGB; up to KP levels,
+   about sqrt(area)/SQRT_K of them) and trace each connected region of at least
+   MIN_AREA pixels as one polygon.
+4. Draw every piece's outline (holes cut) with a fitted gradient, then its
+   shading regions on top; pieces are drawn in nesting order, so a pin sitting in
+   a beam's hole is drawn after the beam.
+5. Render an ownership map and refit every colour/gradient to the pixels it
+   actually covers.
 
 Traced contours run through the centres of boundary pixels, which in SVG sit at
-+0.5, so the drawing is shifted half a (supersampled) pixel and every part is
-stroked in its own colour (via currentColor) to cover its edge pixels.
++0.5, so the drawing is shifted half a (supersampled) pixel and every path is
+stroked in its own colour to cover its edge pixels.
 
     python submissions/claude-code-vector/vectorize.py > submissions/claude-code-vector/lego_r19.svg
 
-Needs opencv-python-headless. Every tunable in P can be overridden from the
-environment (e.g. U=1 KO=8); the defaults were picked by sweeping them against
-the score.
+Needs opencv-python-headless. Tunables in P can be overridden from the environment.
 """
 
 import io
@@ -50,10 +48,11 @@ import numpy as np
 import resvg_py
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[2]
-P = {  # tunables (areas and lengths in original pixels)
-    "U": 2, "KO": 12, "MIN_AREA": 4.0, "EPS": 0.3, "GRAD_AREA": 10.0, "HOLE_AREA": 60.0,
-    "SW": 1.05, "REFIT": 2, "KO_PLATE": 12, "ABSORB": 0, "OBJ_SMOOTH": 1, "SPACE": "rgb",
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+P = {  # areas and lengths in original pixels
+    "U": 2, "KP": 8, "PX_PER_SHADE": 120.0, "MIN_AREA": 4.0, "EPS": 0.3, "GRAD_AREA": 10.0,
+    "HOLE_AREA": 30.0, "SW": 1.05, "REFIT": 2, "SQRT_K": 3.0,
 }
 for k in P:
     if k in os.environ:
@@ -67,13 +66,11 @@ H, W = img.shape[:2]
 yy, xx = np.mgrid[0:H, 0:W]
 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
 flat = rgb.reshape(-1, 3)
-lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB).astype(np.float32)
-feat = lab if P["SPACE"] == "lab" else rgb  # colour space the shades are clustered in
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 background = img.min(axis=2) >= 245
 crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 0.5)
 
-# --- objects (hand-drawn, coarse regions in original pixels; first match wins) -------
+# --- objects: hand-drawn coarse regions (original pixels), first match wins ----------
 OBJECTS = {
     "red-light": [(535, 170), (560, 170), (560, 200), (535, 200)],
     "bucket": [(85, 110), (320, 115), (350, 200), (345, 235), (275, 285), (85, 250)],
@@ -83,35 +80,23 @@ OBJECTS = {
     "boom-and-grille": [(270, 190), (480, 190), (480, 470), (280, 470)],
     "base-plate": [(30, 400), (760, 400), (760, 680), (30, 680)],
 }
-ORDER = ["base-plate", "tracks", "body", "boom-and-grille", "cab", "bucket", "red-light"]  # bottom to top
-
-pix_obj = np.full((H, W), -1, np.int32)
 names = list(OBJECTS)
-for oi, name in reversed(list(enumerate(names))):  # first listed wins
+pix_obj = np.full((H, W), -1, np.int32)
+for oi, name in reversed(list(enumerate(names))):
     m = np.zeros((H, W), np.uint8)
     cv2.fillPoly(m, [np.array(OBJECTS[name]) * U], 1)
     pix_obj[m.astype(bool)] = oi
 pix_obj[(pix_obj < 0) & (yy > 420 * U)] = names.index("base-plate")
 pix_obj[pix_obj < 0] = names.index("boom-and-grille")
-# beige/brown plate tones below the tractor belong to the plate, not whatever box covers them
 warm = (hsv[..., 0] < 22) & (hsv[..., 1] < 140) & (hsv[..., 2] > 60) & (yy > 400 * U)
 pix_obj[warm] = names.index("base-plate")
-# the red light's box also catches some of the cab roof around it
 redbox = pix_obj == names.index("red-light")
-reddish = (rgb[..., 0] > 120) & (rgb[..., 1] < 0.6 * rgb[..., 0])
-pix_obj[redbox & ~reddish] = names.index("cab")
-# the colour tests above are per pixel; a majority filter turns their speckle into
-# region-like object boundaries
-if P["OBJ_SMOOTH"] > 1:
-    k = P["OBJ_SMOOTH"] * U + 1
-    votes = np.stack([cv2.boxFilter((pix_obj == oi).astype(np.float32), -1, (k, k)) for oi in range(len(names))])
-    pix_obj = votes.argmax(axis=0).astype(np.int32)
+pix_obj[redbox & ~((rgb[..., 0] > 120) & (rgb[..., 1] < 0.6 * rgb[..., 0]))] = names.index("cab")
 
 
 def material(c, obj):
-    """Name a colour by material, given the object it belongs to: on the tractor a
-    warm colour is yellow plastic however dark its shading; on the base plate warm
-    colours are beige plate or brown brick."""
+    """Name a colour by material, given its object: on the tractor a warm colour is
+    yellow plastic however dark; on the base plate warm colours are beige or brown."""
     r, g, b = (int(v) for v in c)
     mx, mn = max(r, g, b), min(r, g, b)
     sat = (mx - mn) / max(mx, 1)
@@ -126,28 +111,64 @@ def material(c, obj):
     return "yellow" if r > b + 25 else ("black" if mx < 70 else "gray")
 
 
-# --- shades: k-means within each object ----------------------------------------------
-labels = np.full((H, W), -1, np.int32)
-shade_info = []  # per label: (object, material, shade name)
+def kind_of(mask0, mat):
+    """Heuristic piece kind from material and shape (original-resolution mask)."""
+    area = int(mask0.sum())
+    cs, _ = cv2.findContours(mask0.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    c = max(cs, key=cv2.contourArea)
+    (_, _), (w, h), _ = cv2.minAreaRect(c)
+    elong = max(w, h) / max(min(w, h), 1)
+    per = cv2.arcLength(c, True)
+    roundness = 4 * np.pi * cv2.contourArea(c) / max(per * per, 1)
+    if mat == "gray":
+        if area > 1200 and roundness > 0.5:
+            return "gear or wheel"
+        return "axle or pin" if elong > 2.5 else "connector or pin"
+    if mat == "black":
+        if area > 3000:
+            return "track chain"
+        return "rod or axle" if elong > 2.5 else "round brick"
+    if mat == "yellow":
+        return "beam" if elong > 2.5 else "brick or plate"
+    if mat == "brown":
+        return "brick or plate"
+    if mat == "beige":
+        return "plate"
+    return "light" if mat == "red" else "piece"
+
+
+# --- pieces ----------------------------------------------------------------------------
+seg = HERE / "segmentation"
+pmap0 = cv2.imread(str(seg / "pieces.png"), cv2.IMREAD_UNCHANGED).astype(np.int32)
+pinfo = {p["id"]: p for p in json.load(open(seg / "pieces.json"))["pieces"]}
+pmap = cv2.resize(pmap0, (W, H), interpolation=cv2.INTER_NEAREST) if U > 1 else pmap0.copy()
+pmap[background] = 0
+# pixels no piece covers: one explicit "unsegmented" pseudo-piece per object
 for oi, name in enumerate(names):
-    sel = ~background & (pix_obj == oi)
-    k = min(P["KO_PLATE"] if name == "base-plate" else P["KO"], max(1, int(sel.sum()) // 50))
-    cv2.setRNGSeed(0)
-    _, lb, cen = cv2.kmeans(feat[sel], k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
-    if P["SPACE"] == "lab":
-        crgb = cv2.cvtColor(cen.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_LAB2RGB)[0]
-        light = cen[:, 0]
+    rest = (pmap == 0) & ~background & (pix_obj == oi)
+    if rest.any():
+        pid = 10000 + oi
+        pmap[rest] = pid
+        pinfo[pid] = {"id": pid, "name": f"unsegmented ({name})", "source": "unsegmented", "object": name}
+
+OBJ_FROM_PREFIX = {"plate": "base-plate", "boom": "boom-and-grille", "bucket": "bucket", "cab": "cab", "body": "body"}
+pieces = []
+for pid in sorted(int(v) for v in np.unique(pmap) if v > 0):
+    idx = np.flatnonzero(pmap == pid)
+    info = pinfo[pid]
+    named = "/" in info["name"]
+    obj = info.get("object") or (OBJ_FROM_PREFIX.get(info["name"].split("/")[0]) if named else None) or \
+        names[np.bincount(pix_obj.ravel()[idx], minlength=len(names)).argmax()]
+    mat = material(np.median(flat[idx], axis=0), obj)
+    if info["source"] == "unsegmented":
+        kind, label = "unsegmented", info["name"]
+    elif named:
+        kind = label = info["name"].split("/")[-1]
     else:
-        crgb = np.clip(cen, 0, 255).astype(np.uint8)
-        light = cen @ np.array([0.3, 0.59, 0.11])
-    mats = [material(c, name) for c in crgb]
-    # shades numbered from lightest to darkest within each material of this object
-    rank = {}
-    for j in sorted(range(k), key=lambda j: -light[j]):
-        rank[j] = sum(1 for i in rank if mats[i] == mats[j]) + 1
-    base = len(shade_info)
-    labels[sel] = lb.ravel() + base
-    shade_info += [(name, mats[j], f"{mats[j]}-{rank[j]}") for j in range(k)]
+        kind = kind_of(pmap0 == pid, mat)
+        label = f"{mat} {kind}"
+    pieces.append({"pid": pid, "idx": idx, "obj": obj, "mat": mat, "kind": kind, "name": label,
+                   "source": info["source"]})
 
 
 # --- geometry helpers ------------------------------------------------------------------
@@ -163,8 +184,7 @@ def path_data(c):
 def outline(region, eps):
     cs, _ = cv2.findContours(region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     c = cv2.approxPolyDP(max(cs, key=cv2.contourArea), eps, True).reshape(-1, 2)
-    keep = np.any(c != np.roll(c, 1, axis=0), axis=1)
-    return c[keep]
+    return c[np.any(c != np.roll(c, 1, axis=0), axis=1)]
 
 
 def hexcol(c):
@@ -173,8 +193,7 @@ def hexcol(c):
 
 def linear_gradient(idx, gid):
     """Least-squares colour ~ a + b*x + c*y over pixels idx, as a 2-stop
-    <linearGradient> along the direction of steepest luminance change.
-    Returns (rendered colours at idx, svg) or None."""
+    <linearGradient> along the steepest luminance change: (rendered colours, svg) or None."""
     px, x, y = flat[idx], xx.ravel()[idx] + 0.5, yy.ravel()[idx] + 0.5
     X = np.stack([np.ones(len(idx)), x, y], 1)
     coef, *_ = np.linalg.lstsq(X, px, rcond=None)
@@ -192,7 +211,6 @@ def linear_gradient(idx, gid):
     b = (mx + (p1 - base) * ux, my + (p1 - base) * uy)
     ca, cb = (np.clip(coef[0] + coef[1] * u + coef[2] * v, 0, 255) for u, v in (a, b))
     t = np.clip((proj - p0) / (p1 - p0), 0, 1)[:, None]
-    # coordinates are in the drawing's frame, which is shifted by half a pixel
     svg = (f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{a[0] - .5:.1f}" y1="{a[1] - .5:.1f}" '
            f'x2="{b[0] - .5:.1f}" y2="{b[1] - .5:.1f}"><stop stop-color="{hexcol(ca)}"/>'
            f'<stop offset="1" stop-color="{hexcol(cb)}"/></linearGradient>')
@@ -200,7 +218,6 @@ def linear_gradient(idx, gid):
 
 
 def fill_for(idx, gid, allow_grad):
-    """Best flat or gradient fill for pixels idx: (svg fill value, def or None)."""
     mean = flat[idx].mean(axis=0)
     if allow_grad:
         g = linear_gradient(idx, gid)
@@ -209,149 +226,99 @@ def fill_for(idx, gid, allow_grad):
     return hexcol(mean), None
 
 
-# --- parts -------------------------------------------------------------------------------
+# --- shades and parts inside each piece ------------------------------------------------
 min_area, grad_area = P["MIN_AREA"] * U * U, P["GRAD_AREA"] * U * U
-
-
-def absorb_specks(labels):
-    """Hand every region smaller than min_area to the neighbouring region of the
-    same object it touches most, so no detail falls through to the silhouette
-    and no part is smaller than min_area."""
-    obj_of = np.array([names.index(o) for o, _, _ in shade_info])
-    ker = np.ones((3, 3), np.uint8)
-    for _ in range(4):
-        changed = 0
-        for lbl in range(len(shade_info)):
-            num, comp, stats, _ = cv2.connectedComponentsWithStats((labels == lbl).astype(np.uint8), connectivity=8)
-            for i in np.flatnonzero(stats[1:, cv2.CC_STAT_AREA] < min_area) + 1:
-                x0, y0, w, h = stats[i, :4]
-                win = (slice(max(y0 - 1, 0), y0 + h + 1), slice(max(x0 - 1, 0), x0 + w + 1))
-                m = comp[win] == i
-                ring = cv2.dilate(m.astype(np.uint8), ker).astype(bool) & ~m
-                nb = labels[win][ring]
-                nb = nb[(nb >= 0) & (nb != lbl)]
-                nb = nb[obj_of[nb] == obj_of[lbl]]
-                if len(nb):
-                    labels[win][m] = np.bincount(nb).argmax()
-                    changed += 1
-        if not changed:
-            break
-
-
-if P["ABSORB"]:
-    absorb_specks(labels)
 parts = []
-for lbl, (obj, mat, shade) in enumerate(shade_info):
-    num, comp, stats, _ = cv2.connectedComponentsWithStats((labels == lbl).astype(np.uint8), connectivity=8)
-    for i in range(1, num):
-        if stats[i, cv2.CC_STAT_AREA] < min_area:
-            continue
-        x0, y0, w, h = stats[i, :4]
-        region = (comp[y0:y0 + h, x0:x0 + w] == i).astype(np.uint8)
-        c = outline(region, P["EPS"] * U)
-        if len(c) < 3:
-            continue
-        sub = np.flatnonzero(region)
-        idx = (sub // w + y0) * W + (sub % w + x0)
-        parts.append({"obj": obj, "mat": mat, "shade": shade, "poly": c + (x0, y0), "idx": idx,
-                      "area": int(stats[i, cv2.CC_STAT_AREA])})
+for pc in pieces:
+    idx = pc["idx"]
+    area0 = len(idx) / (U * U)
+    k = int(min(P["KP"], max(1, round(np.sqrt(area0) / P["SQRT_K"]) if P["SQRT_K"] else area0 // P["PX_PER_SHADE"])))
+    if k > 1:
+        cv2.setRNGSeed(0)
+        _, lb, cen = cv2.kmeans(flat[idx], k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
+        lb = lb.ravel()
+        light = cen @ np.array([0.3, 0.59, 0.11])
+        rank = {int(j): r for r, j in enumerate(np.argsort(-light), start=1)}
+    else:
+        lb, rank = np.zeros(len(idx), np.int64), {0: 1}
+    ys, xs = idx // W, idx % W
+    y0, x0 = ys.min(), xs.min()
+    h, w = ys.max() - y0 + 1, xs.max() - x0 + 1
+    for j in range(k):
+        region = np.zeros((h, w), np.uint8)
+        sel = lb == j
+        region[ys[sel] - y0, xs[sel] - x0] = 1
+        num, comp, stats, _ = cv2.connectedComponentsWithStats(region, connectivity=8)
+        for i in range(1, num):
+            if stats[i, cv2.CC_STAT_AREA] < min_area:
+                continue
+            bx, by, bw, bh = stats[i, :4]
+            sub = (comp[by:by + bh, bx:bx + bw] == i).astype(np.uint8)
+            c = outline(sub, P["EPS"] * U)
+            if len(c) < 3:
+                continue
+            sidx = np.flatnonzero(sub)
+            pidx = (sidx // bw + by + y0) * W + (sidx % bw + bx + x0)
+            parts.append({"piece": pc["pid"], "shade": f"shade-{rank[j]}", "d": path_data(c + (bx + x0, by + y0)),
+                          "idx": pidx, "area": int(stats[i, cv2.CC_STAT_AREA])})
 
-# Nesting depth: how many other parts' filled outlines cover this part. Parts are
-# drawn shallowest first, so a part never hides one nested inside it.
+# piece outlines (holes cut) and nesting order between pieces
 cover = np.zeros((H, W), np.int16)
-for p in parts:
-    m = np.zeros((H, W), np.uint8)
-    cv2.fillPoly(m, [p["poly"]], 1)
-    cover += m
-for p in parts:
-    p["depth"] = int(np.median(cover.ravel()[p["idx"]])) - 1
-
-# --- object underlays: silhouette with holes, gradient-filled ---------------------------
-underlays = {}
-for obj in ORDER:
-    # every pixel of the object, including specks too small to be parts of their own
-    mask = (~background & (pix_obj == names.index(obj))).astype(np.uint8)
-    if not mask.any():
-        continue
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+for pc in pieces:
+    mask = np.zeros(H * W, np.uint8)
+    mask[pc["idx"]] = 1
+    mask = cv2.morphologyEx(mask.reshape(H, W), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     cs, _ = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    cs = [cv2.approxPolyDP(c, 1.5 * U, True).reshape(-1, 2) for c in cs
+    cs = [cv2.approxPolyDP(c, P["EPS"] * U, True).reshape(-1, 2) for c in cs
           if abs(cv2.contourArea(c)) >= P["HOLE_AREA"] * U * U]
-    drawn = np.zeros((H, W), np.uint8)
-    for c in cs:  # even-odd: every contour toggles coverage
-        m = np.zeros((H, W), np.uint8)
-        cv2.fillPoly(m, [c], 1)
-        drawn ^= m
-    underlays[obj] = {"d": "".join(path_data(c) for c in cs), "idx": np.flatnonzero(mask),
-                      "drawn": drawn.ravel().astype(bool)}
-
-# A part that a later object's silhouette would paint over (the plate seen
-# through gaps in the track chain, say) is drawn right after that silhouette,
-# in a group that still names its own object.
-for p in parts:
-    p["host"] = p["obj"]
-    for later in ORDER[ORDER.index(p["obj"]) + 1:]:
-        if later in underlays and underlays[later]["drawn"][p["idx"]].mean() > 0.5:
-            p["host"] = later
-
-for n, p in enumerate(parts):
-    p["id"] = f"{p['obj']}.{p['shade']}.{n}"
-    p["d"] = path_data(p["poly"])
-for p in parts:
-    p["paint"] = fill_for(p["idx"], f"g{p['id']}", p["area"] >= grad_area)
-for obj, u in underlays.items():
-    u["paint"] = fill_for(u["idx"], f"u{obj}", True)
+    pc["d"] = "".join(path_data(c) for c in cs if len(c) >= 3)
+    filled = np.zeros((H, W), np.uint8)
+    cs_out, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.fillPoly(filled, cs_out, 1)
+    cover += filled
+for pc in pieces:
+    pc["depth"] = int(np.median(cover.ravel()[pc["idx"]])) - 1
+for n, pt in enumerate(parts):
+    pt["id"] = f"p{pt['piece']}-{n}"
+    pt["paint"] = fill_for(pt["idx"], f"g{pt['id']}", pt["area"] >= grad_area)
+for pc in pieces:
+    pc["paint"] = fill_for(pc["idx"], f"b{pc['pid']}", True)
+draw_order = sorted(pieces, key=lambda pc: (pc["depth"], -len(pc["idx"])))
+parts_of = {pc["pid"]: [] for pc in pieces}
+for n, pt in enumerate(parts):
+    pt["n"] = n
+    parts_of[pt["piece"]].append(pt)
+for lst in parts_of.values():
+    lst.sort(key=lambda pt: -pt["area"])  # within a piece, enclosed regions come after their surroundings
 
 
 # --- emit -------------------------------------------------------------------------------
-def paint_attr(paint, label_code=None):
-    if label_code is not None:
-        return f'color="#{label_code:06x}"'
+def paint_attr(paint, code=None):
+    if code is not None:
+        return f'color="#{code:06x}"'
     fill, _ = paint
     return f'fill="{fill}" stroke="{fill}"' if fill.startswith("url") else f'color="{fill}"'
 
 
 def render(label=False):
-    """The SVG. With label=True every part and underlay is painted in a unique
-    id colour without antialiasing: an ownership map of who is visible where."""
+    """The SVG. With label=True every path is painted in a unique id colour without
+    antialiasing: an ownership map of who is visible where."""
     defs, body = [], []
-    for oi, obj in enumerate(ORDER):
-        if obj not in underlays:
-            continue
-        u = underlays[obj]
-        code = 0xFF0000 + oi if label else None
-        if not label and u["paint"][1]:
-            defs.append(u["paint"][1])
-        out = [f'<g id="{obj}" data-level="object" data-object="{obj}">',
-               f'<path data-role="silhouette" d="{u["d"]}" fill-rule="evenodd" {paint_attr(u["paint"], code)}/>']
-        guests = [o for o in ORDER if o != obj and any(p["host"] == obj and p["obj"] == o for p in parts)]
-        for owner in [obj] + guests:
-            mine = [n for n, p in enumerate(parts) if p["host"] == obj and p["obj"] == owner]
-            mine.sort(key=lambda n: (parts[n]["depth"], -parts[n]["area"]))
-            if owner != obj:
-                out.append(f'<g data-level="object" data-object="{owner}" data-seen-through="{obj}">')
-            # consecutive parts of the same material share a <g data-level="material">
-            cur = None
-            for n in mine:
-                p = parts[n]
-                if p["mat"] != cur:
-                    if cur is not None:
-                        out.append("</g>")
-                    out.append(f'<g data-level="material" data-material="{p["mat"]}">')
-                    cur = p["mat"]
-                if not label and p["paint"][1]:
-                    defs.append(p["paint"][1])
-                out.append(f'<path id="{p["id"]}" data-shade="{p["shade"]}" data-area="{p["area"] / U / U:g}" d="{p["d"]}" '
-                           f'{paint_attr(p["paint"], n + 1 if label else None)}/>')
-            if cur is not None:
-                out.append("</g>")
-            if owner != obj:
-                out.append("</g>")
+    for pc in draw_order:
+        mine = parts_of[pc["pid"]]
+        if not label:
+            defs += [x for x in [pc["paint"][1]] + [pt["paint"][1] for pt in mine] if x]
+        out = [f'<g id="piece-{pc["pid"]}" data-level="piece" data-object="{pc["obj"]}" data-name="{pc["name"]}" '
+               f'data-kind="{pc["kind"]}" data-material="{pc["mat"]}" data-source="{pc["source"]}">',
+               f'<path data-role="base" d="{pc["d"]}" fill-rule="evenodd" '
+               f'{paint_attr(pc["paint"], 0xF00000 + pc["pid"] if label else None)}/>']
+        for pt in mine:
+            out.append(f'<path id="{pt["id"]}" data-shade="{pt["shade"]}" data-area="{pt["area"] / U / U:g}" '
+                       f'd="{pt["d"]}" {paint_attr(pt["paint"], pt["n"] + 1 if label else None)}/>')
         out.append("</g>")
         body.append("".join(out))
     head = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}">'
             f'<defs>{"".join(defs)}</defs><rect width="{W}" height="{H}" fill="#fff"/>')
-    # half-pixel shift + self-coloured stroke: see the module docstring
     open_g = (f'<g transform="translate(.5 .5)" fill="currentColor" stroke="currentColor" '
               f'stroke-width="{P["SW"] * U}" stroke-linejoin="round"'
               + (' shape-rendering="crispEdges">' if label else ">"))
@@ -370,19 +337,15 @@ for _ in range(P["REFIT"]):
         lo, hi = np.searchsorted(ids, [code, code + 1])
         return order[lo:hi]
 
-    for n, p in enumerate(parts):
-        px = owned(n + 1)
+    for pt in parts:
+        px = owned(pt["n"] + 1)
         if len(px) >= 3:
-            p["paint"] = fill_for(px, f"g{p['id']}", p["area"] >= grad_area)
-    for oi, obj in enumerate(ORDER):
-        if obj in underlays:
-            px = owned(0xFF0000 + oi)
-            if len(px) >= 3:
-                underlays[obj]["paint"] = fill_for(px, f"u{obj}", True)
+            pt["paint"] = fill_for(px, f"g{pt['id']}", pt["area"] >= grad_area)
+    for pc in pieces:
+        px = owned(0xF00000 + pc["pid"])
+        if len(px) >= 3:
+            pc["paint"] = fill_for(px, f"b{pc['pid']}", True)
 
 svg = render()
 sys.stdout.write(svg)
-print(f"{len(parts)} parts, {sum(1 for p in parts if p['paint'][1])} gradients, {len(svg.encode())} bytes",
-      file=sys.stderr)
-if os.environ.get("META"):  # hierarchy summary for the viewer
-    json.dump({"U": U, "shades": shade_info}, open(os.environ["META"], "w"))
+print(f"{len(pieces)} pieces, {len(parts)} shading regions, {len(svg.encode())} bytes", file=sys.stderr)

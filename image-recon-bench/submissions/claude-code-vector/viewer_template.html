@@ -83,6 +83,9 @@ aside h2 { font-family: var(--display); font-stretch: 85%; font-size: 1rem; marg
 .node .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgb(0 0 0 / .2); }
 .node .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node .nm small { color: var(--muted); }
+.badge { font: 10px var(--mono); padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); margin-left: 4px; }
+.badge.prompted { border-color: var(--accent); color: var(--accent); }
+.badge.unsegmented { border-color: #c92a2a; color: #c92a2a; }
 .node .meta { font: 11px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .node input[type=checkbox] { margin: 0; }
 .kids { margin-left: 16px; border-left: 1px dashed var(--line); padding-left: 4px; }
@@ -95,7 +98,7 @@ aside h2 { font-family: var(--display); font-stretch: 85%; font-size: 1rem; marg
 
 <header>
   <h1>Bulldozer Part Inspector</h1>
-  <p class="sub">The NeRF Lego bulldozer (train/r_19) rebuilt as semantic vector parts. Hover the image or the tree to see what each region is; click to pin it.</p>
+  <p class="sub">The NeRF Lego bulldozer (train/r_19) rebuilt from LEGO pieces: each piece is one SVG group with its shading inside. Pieces come from SAM 2.1 masks plus prompts placed by eye. Hover to see what a region is, click to pin it, and use “By piece” to check the segmentation.</p>
   <div class="chips" id="chips"></div>
 </header>
 
@@ -104,6 +107,7 @@ aside h2 { font-family: var(--display); font-stretch: 85%; font-size: 1rem; marg
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Colouring">
         <button id="m-render" aria-pressed="true">Reconstruction</button>
+        <button id="m-piece" aria-pressed="false">By piece</button>
         <button id="m-object" aria-pressed="false">By object</button>
         <button id="m-material" aria-pressed="false">By material</button>
         <button id="m-part" aria-pressed="false">By part</button>
@@ -128,7 +132,7 @@ aside h2 { font-family: var(--display); font-stretch: 85%; font-size: 1rem; marg
 
   <aside>
     <h2>Semantic tree</h2>
-    <p class="legend">object › material › shade › part. Tick boxes hide or show a branch. RMSE is per visible pixel; share is that branch's part of the total squared error.</p>
+    <p class="legend">object › piece › shade › part. Badges: <span class="badge">sam</span> automatic SAM mask, <span class="badge prompted">prompted</span> mask from a prompt placed by eye, <span class="badge unsegmented">unsegmented</span> pixels no piece covers. Kinds like “beam” on SAM pieces are guesses from colour and shape. Tick boxes hide or show a branch. RMSE is per visible pixel; share is that branch's part of the total squared error.</p>
     <div id="tree"></div>
     <div class="info" id="info">Hover a part to see where it sits in the hierarchy.</div>
   </aside>
@@ -149,37 +153,35 @@ const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
 const tree = [];  // objects
 const byId = new Map();
 const objNodes = new Map();
-const objOf = el => el.closest('g[data-level="object"]').dataset.object;
-for (const g of svg.querySelectorAll('g[data-level="object"]')) {
+const pieceOf = el => el.closest('g[data-level="piece"]');
+const objOf = el => pieceOf(el).dataset.object;
+for (const g of svg.querySelectorAll('g[data-level="piece"]')) {
   const name = g.dataset.object;
-  if (!objNodes.has(name)) {
-    const node = {kind: "object", name, kids: [], paths: [], mats: new Map()};
-    objNodes.set(name, node); tree.push(node);
-  }
+  if (!objNodes.has(name)) { const node = {kind: "object", name, kids: [], paths: []}; objNodes.set(name, node); tree.push(node); }
   const obj = objNodes.get(name);
-  // only paths that belong to this group, not to a group nested inside it
-  const own = [...g.querySelectorAll("path")].filter(p => p.closest('g[data-level="object"]') === g);
-  for (const p of own) {
-    if (p.dataset.role === "silhouette") {
-      p.dataset.key = name + ":silhouette";
-      obj.kids.unshift({kind: "silhouette", name: "silhouette (underlay)", paths: [p], kids: []});
-      obj.paths.push(p);
+  const piece = {kind: "piece", name: g.dataset.name, pkind: g.dataset.kind, source: g.dataset.source,
+                 material: g.dataset.material, id: g.id, kids: [], paths: [], shades: new Map(), g};
+  obj.kids.push(piece);
+  for (const p of g.querySelectorAll("path")) {
+    if (p.dataset.role === "base") {
+      p.dataset.key = g.id + ":base";
+      piece.kids.unshift({kind: "base", name: "piece outline (base fill)", paths: [p], kids: []});
+      piece.paths.push(p); obj.paths.push(p);
       continue;
     }
-    const mat = p.parentNode.dataset.material || "?";
-    const shade = p.dataset.shade || "?";
     p.dataset.key = p.id;
-    if (!obj.mats.has(mat)) { const m = {kind: "material", name: mat, kids: [], paths: [], shades: new Map()}; obj.mats.set(mat, m); obj.kids.push(m); }
-    const m = obj.mats.get(mat);
-    if (!m.shades.has(shade)) { const sh = {kind: "shade", name: shade, kids: [], paths: []}; m.shades.set(shade, sh); m.kids.push(sh); }
-    const through = g.dataset.seenThrough || null;
-    const part = {kind: "part", name: p.id, paths: [p], kids: [], area: +p.dataset.area, through};
-    m.shades.get(shade).kids.push(part); m.shades.get(shade).paths.push(p); m.paths.push(p); obj.paths.push(p);
-    byId.set(p.id, {obj: name, mat, shade, through});
+    const shade = p.dataset.shade || "?";
+    if (!piece.shades.has(shade)) { const sh = {kind: "shade", name: shade, kids: [], paths: []}; piece.shades.set(shade, sh); piece.kids.push(sh); }
+    const part = {kind: "part", name: p.id, paths: [p], kids: [], area: +p.dataset.area};
+    piece.shades.get(shade).kids.push(part); piece.shades.get(shade).paths.push(p); piece.paths.push(p); obj.paths.push(p);
+    byId.set(p.id, {piece, shade});
   }
+  piece.kids.sort((a, b) => (a.kind === "base" ? -1 : b.kind === "base" ? 1 : a.name.localeCompare(b.name, undefined, {numeric: true})));
 }
-for (const o of tree) for (const m of o.mats.values()) m.kids.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
-tree.reverse();  // top-most object first in the list
+for (const o of tree) o.kids.sort((a, b) => b.paths.length - a.paths.length);
+const ORDER = ["red-light", "bucket", "cab", "boom-and-grille", "body", "tracks", "base-plate"];
+tree.sort((a, b) => ORDER.indexOf(a.name) - ORDER.indexOf(b.name));
+  // top-most object first in the list
 
 const partCount = n => n.paths.filter(p => p.id).length;
 const visPx = n => n.paths.reduce((s, p) => s + ((DATA.stats[p.dataset.key] || [0])[0]), 0);
@@ -188,11 +190,13 @@ const rmseOf = n => { const px = visPx(n); return px ? Math.sqrt(sseOf(n) / px) 
 
 // ---- header chips --------------------------------------------------------------------
 const nParts = tree.reduce((s, o) => s + partCount(o), 0);
+const nPieces = tree.reduce((s, o) => s + o.kids.filter(k => k.source !== "unsegmented").length, 0);
 document.getElementById("chips").innerHTML =
   `<span class="chip score">PSNR <b>${DATA.psnr.toFixed(2)} dB</b></span>` +
   `<span class="chip">SSIM <b>${DATA.ssim.toFixed(3)}</b></span>` +
   `<span class="chip"><b>${tree.length}</b> objects</span>` +
-  `<span class="chip"><b>${nParts.toLocaleString()}</b> parts</span>` +
+  `<span class="chip"><b>${nPieces}</b> pieces</span>` +
+  `<span class="chip"><b>${nParts.toLocaleString()}</b> shading regions</span>` +
   `<span class="chip"><b>${(DATA.bytes / 1024).toFixed(0)} KB</b> SVG</span>`;
 
 // ---- colouring modes -------------------------------------------------------------------
@@ -211,18 +215,18 @@ function setMode(mode) {
   svg.classList.toggle("sem", mode !== "render");
   if (mode === "render") return;
   for (const p of allPaths) {
-    const obj = objOf(p);
+    const g = pieceOf(p), obj = g.dataset.object;
     let c;
-    if (p.dataset.role === "silhouette") c = mode === "material" ? "#ffffff" : shadeOf(OBJ_COLORS[obj] || "#888888", .55);
+    if (mode === "piece") c = g.dataset.source === "unsegmented" ? "#ff00aa" : hashColor(g.id + "x");
     else if (mode === "object") {
       const lvl = parseInt((p.dataset.shade || "x-1").split("-").pop(), 10) || 1;
-      c = shadeOf(OBJ_COLORS[obj] || "#888888", ((lvl % 4) - 1.5) * .18);
-    } else if (mode === "material") c = MAT_COLORS[p.parentNode.dataset.material] || "#888888";
-    else c = hashColor(p.id);
+      c = shadeOf(OBJ_COLORS[obj] || "#888888", p.dataset.role === "base" ? 0.35 : ((lvl % 4) - 1.5) * .18);
+    } else if (mode === "material") c = MAT_COLORS[g.dataset.material] || "#888888";
+    else c = p.dataset.role === "base" ? "#ffffff" : hashColor(p.id);
     p.style.setProperty("--c", c);
   }
 }
-for (const m of ["render", "object", "material", "part"]) document.getElementById("m-" + m).onclick = () => setMode(m);
+for (const m of ["render", "piece", "object", "material", "part"]) document.getElementById("m-" + m).onclick = () => setMode(m);
 document.getElementById("refop").oninput = e => { document.getElementById("ref").style.opacity = e.target.value / 100; };
 document.getElementById("outl").onchange = e => svg.classList.toggle("outlines", e.target.checked);
 
@@ -239,7 +243,7 @@ function highlight(node) {
 const treeEl = document.getElementById("tree");
 function swatch(n, objName) {
   if (n.kind === "object") return OBJ_COLORS[n.name] || "#888";
-  if (n.kind === "material") return MAT_COLORS[n.name] || "#888";
+  if (n.kind === "piece") return n.source === "unsegmented" ? "#ff00aa" : hashColor(n.id + "x");
   const p = n.paths[0]; const cs = p && getComputedStyle(p);
   return cs ? (cs.fill.startsWith("url") ? cs.color : cs.fill) : "#888";
 }
@@ -250,11 +254,14 @@ function row(n, depth, container, objName) {
   r.className = "node";
   const hasKids = n.kids.length > 0;
   const px = visPx(n), share = DATA.totalSSE ? 100 * sseOf(n) / DATA.totalSSE : 0;
-  const label = n.kind === "part" ? `part ${n.name.split(".").pop()} <small>${Math.round(n.area)} px${n.through ? " · seen through " + n.through : ""}</small>` :
-    n.kind === "shade" ? `shade ${n.name.split("-").pop()} <small>(${n.name.split("-")[0]})</small>` : n.name;
+  const badge = n.kind === "piece" ? `<span class="badge ${n.source === "prompted" ? "prompted" : n.source === "unsegmented" ? "unsegmented" : ""}">${n.source === "sam-auto" ? "sam" : n.source}</span>` : "";
+  const label = n.kind === "part" ? `region ${n.name.split("-").pop()} <small>${Math.round(n.area)} px</small>` :
+    n.kind === "shade" ? `shade ${n.name.split("-").pop()}` :
+    n.kind === "piece" ? `${n.name}${badge}` : n.name;
   const meta = n.kind === "part"
     ? `${fmt(px)} px · rmse ${rmseOf(n).toFixed(0)}`
-    : `${n.kind === "silhouette" ? "" : fmt(partCount(n)) + " · "}rmse ${rmseOf(n).toFixed(0)} · ${share.toFixed(1)}%`;
+    : n.kind === "piece" ? `${fmt(px)} px · rmse ${rmseOf(n).toFixed(0)} · ${share.toFixed(1)}%`
+    : `${n.kind === "base" ? "" : fmt(partCount(n)) + " · "}rmse ${rmseOf(n).toFixed(0)} · ${share.toFixed(1)}%`;
   r.innerHTML = `<button class="tw" aria-label="Expand">${hasKids ? "▸" : ""}</button>` +
     `<span class="sw" style="background:${swatch(n, objName)}"></span>` +
     `<span class="nm" title="${n.name}">${label}</span>` +
@@ -297,12 +304,13 @@ tree.forEach(o => row(o, 0, treeEl, o.name));
 const info = document.getElementById("info");
 function describe(n) {
   if (!n) { info.textContent = "Hover a part to see where it sits in the hierarchy."; return; }
-  const p = n.paths[0];
-  const where = byId.get(p.id);
-  const path = where ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}` : `<b>${objOf(p)}</b>`;
-  info.innerHTML = `${path}${n.kind === "part" ? " › part " + p.id.split(".").pop() : n.kind !== "object" ? " (" + n.kind + ")" : ""}<br>` +
-    `${partCount(n) || 1} path${partCount(n) === 1 ? "" : "s"}, ${visPx(n).toLocaleString()} visible px, rmse ${rmseOf(n).toFixed(1)}, ` +
-    `${(100 * sseOf(n) / DATA.totalSSE).toFixed(2)}% of total error`;
+  const g = pieceOf(n.paths[0]);
+  const head = n.kind === "object" ? `<b>${n.name}</b>` :
+    `<b>${g.dataset.object}</b> › ${g.dataset.name} <small>(${g.dataset.kind}; ${g.dataset.material}; ${g.dataset.source})</small>` +
+    (n.kind === "shade" || n.kind === "part" ? ` › ${byId.get(n.paths[0].id)?.shade || ""}` : "") +
+    (n.kind === "part" ? ` › region ${n.name.split("-").pop()}` : "");
+  info.innerHTML = `${head}<br>${n.paths.length} path${n.paths.length === 1 ? "" : "s"}, ${visPx(n).toLocaleString()} visible px, ` +
+    `rmse ${rmseOf(n).toFixed(1)}, ${(100 * sseOf(n) / DATA.totalSSE).toFixed(2)}% of total error`;
 }
 
 // ---- stage: zoom / pan / hover ------------------------------------------------------------
@@ -351,11 +359,10 @@ function hoverAt(e) {
   const p = pathAt(e);
   if (!p) { tip.hidden = true; if (!pinned) highlight(null); return; }
   const key = p.dataset.key, st = DATA.stats[key] || [0, 0];
-  const where = byId.get(p.id);
-  tip.innerHTML = where
-    ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}<br>part ${p.id.split(".").pop()} · ${Math.round(+p.dataset.area)} px traced · ${st[0]} px visible · rmse ${st[1]}` +
-      (where.through ? `<br>seen through ${where.through}` : "")
-    : `<b>${objOf(p)}</b> silhouette (underlay)<br>${st[0]} px visible · rmse ${st[1]}`;
+  const g = pieceOf(p);
+  tip.innerHTML = `<b>${g.dataset.object}</b> › ${g.dataset.name}<br><small>${g.dataset.kind} · ${g.dataset.material} · ${g.dataset.source}</small><br>` +
+    (p.dataset.role === "base" ? "piece outline (base fill)" : `${p.dataset.shade} · region ${p.id.split("-").pop()} · ${Math.round(+p.dataset.area)} px`) +
+    ` · ${st[0]} px visible · rmse ${st[1]}`;
   const r = stage.getBoundingClientRect();
   let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
   tip.hidden = false;
@@ -366,15 +373,12 @@ function hoverAt(e) {
 }
 function clickAt(e) {
   const p = pathAt(e);
-  if (!p || !p.id) return;
-  // reveal the part in the tree and pin it
-  const where = byId.get(p.id);
-  const obj = tree.find(o => o.name === where.obj);
-  const mat = obj.kids.find(k => k.name === where.mat);
-  const shade = mat.kids.find(k => k.name === where.shade);
-  for (const n of [obj, mat, shade]) { n.build(); n.kidsEl.hidden = false; n.tw.textContent = "▾"; }
-  let part = shade.kids.find(k => k.name === p.id);
-  if (part && !part.row) { const more = shade.kidsEl.querySelector(".more"); if (more) more.click(); }
-  if (part && part.row) { part.row.click(); part.row.scrollIntoView({block: "nearest"}); }
+  if (!p) return;
+  const g = pieceOf(p);
+  const obj = tree.find(o => o.name === g.dataset.object);
+  const piece = obj.kids.find(k => k.id === g.id);
+  obj.build(); obj.kidsEl.hidden = false; obj.tw.textContent = "▾";
+  if (!piece.row) { const more = obj.kidsEl.querySelector(".more"); if (more) more.click(); }
+  if (piece.row) { piece.row.click(); piece.row.scrollIntoView({block: "nearest"}); }
 }
 </script>

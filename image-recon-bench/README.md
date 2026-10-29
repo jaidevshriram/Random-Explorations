@@ -57,14 +57,14 @@ that generates it:
 
 - `submissions/claude-code-session/` (`draw.py`, about 18 dB): drawn entirely by
   eye. No code reads the reference; only the render, heatmap and score were used.
-- `submissions/claude-code-vector/` (`vectorize.py`, about 32.6 dB): a *semantic*
-  vectorizer that does read the reference. Every path is one part, organised
-  as object (bucket, boom and grille, cab, body, tracks, base plate, red light)
-  > material (yellow, black, gray, beige, brown, red) > shade > part, both as
-  nested SVG groups and as `data-*` attributes. It works at 2x so outlines land
-  between pixels, draws no part smaller than 4 px, and uses no blur.
-  `build_viewer.py` writes `viewer.html`, an inspector for that hierarchy with
-  per-part error. Needs `pip install opencv-python-headless`.
+- `submissions/claude-code-vector/` (`vectorize.py`, about 32.3 dB): reads the
+  reference, but its structure comes from a segmentation into LEGO pieces
+  (`segmentation/`: SAM 2.1 masks plus prompts I placed by eye, 124 pieces
+  covering 91% of the model; the rest is marked unsegmented). Each piece is one
+  SVG group (object > piece > shade > part) holding the piece's outline and the
+  shading regions inside it; no blur, no part under 4 px. `build_viewer.py`
+  writes `viewer.html` to inspect every piece. Needs
+  `pip install opencv-python-headless`.
 
 The leaderboard's Method column (`kind` in `meta.json`) keeps hand-drawn and
 vectorized entries apart.
