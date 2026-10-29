@@ -50,10 +50,13 @@
   fader('spin', () => LIVE.spin, v => (LIVE.spin = v));
   fader('tumble', () => LIVE.tumble, v => (LIVE.tumble = v));
   $('square').onclick = () => {
-    Object.assign(LIVE, { yaw: 0, pitch: 0, rot: 0, turn: 0, spin: 0, tumble: 0 });
+    Object.assign(LIVE, { yaw: 0, pitch: 0, rot: 0, turn: 0, spin: 0, tumble: 0, autoRot: 0 });
     A.resetMotion();
     syncAll();
   };
+  // auto-rotate keeps its speed while off, so switching it back on resumes at the same pace
+  let autoSpeed = 1;
+  fader('auto-speed', () => autoSpeed, v => { autoSpeed = v; if (LIVE.autoRot > 0) LIVE.autoRot = v; });
 
   // ---------- aim, gobos, lasers ----------
   fader('tilt', () => LIVE.tilt, v => (LIVE.tilt = v));
@@ -94,6 +97,23 @@
     faders.push(t);
   };
   toggle('prism', () => LIVE.prism > 0, on => (LIVE.prism = on ? 3 : 0));
+  toggle('auto-rot', () => LIVE.autoRot > 0, on => (LIVE.autoRot = on ? autoSpeed : 0));
+  // strobe: the rate fader remembers its value while the strobe is off
+  let strobeRate = 9;
+  toggle('strobe-on', () => LIVE.strobe > 0, on => (LIVE.strobe = on ? strobeRate : 0));
+  fader('strobe-rate', () => strobeRate, v => { strobeRate = v; if (LIVE.strobe > 0) LIVE.strobe = v; });
+  fader('strobe-duty', () => LIVE.strobeDuty, v => (LIVE.strobeDuty = v));
+  toggle('strobe-white', () => LIVE.strobeWhite, on => (LIVE.strobeWhite = on));
+  toggle('strobe-reaim', () => LIVE.strobeReaim, on => (LIVE.strobeReaim = on));
+  toggle('strobe-vary', () => LIVE.strobeVary, on => (LIVE.strobeVary = on));
+  toggle('strobe-all', () => LIVE.strobeAll, on => (LIVE.strobeAll = on));
+  $('strobe-burst').onclick = () => {
+    // a ready-made look: every head on the burst only, white, strobing, the rig drifting
+    ORDER.forEach(i => Object.assign(LIVE.fx[i], { beam: 0, proj: 0, laser: 0, fan: 0, burst: 1.2 }));
+    Object.assign(LIVE, { strobe: strobeRate, strobeWhite: true, strobeReaim: true, burstCount: Math.max(LIVE.burstCount, 64), burstSpread: 12 });
+    if (!(LIVE.autoRot > 0)) LIVE.autoRot = autoSpeed;
+    syncAll();
+  };
   toggle('spot-lock', () => LIVE.spotLock, on => (LIVE.spotLock = on));
 
   // ---------- colours ----------

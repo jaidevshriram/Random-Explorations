@@ -89,6 +89,10 @@
   // Live desk: the console (or ?live={...}) sets these and they are applied every frame.
   const LIVE = {
     rot: 0, spin: 0, yaw: 0, turn: 0, pitch: 0, tumble: 0, spotLock: true,
+    autoRot: 0, // auto-rotate speed (0 = off): the rig drifts round in all three axes on its own
+    // strobe (rate 0 = off): gates the heads on and off; options for white flashes, re-aiming the
+    // burst every flash, varying its density per flash, and flashing the spot and front lamp too
+    strobe: 0, strobeDuty: 0.45, strobeWhite: true, strobeReaim: true, strobeVary: true, strobeAll: false,
     spot: 1, spotCol: [120, 210, 218], goboSpeed: 1.8, gobo: 'dots', goboZoom: 17, prism: 0, fanSpread: 26, fanScan: 14, rainbow: false,
     laserTilt: 0, laserScan: 20, fanTwist: 0, tilt: 0, tiltScan: 0, tiltSpeed: 0.8, burstCount: 44, burstSpread: 6, burstSpeed: 1,
     eye: 1, eyeCol: null, // null: follow the rig's colour
@@ -101,7 +105,7 @@
       LX.mode = 'live';
       try {
         const o = JSON.parse(q || '{}');
-        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed']) if (k in o) LIVE[k] = o[k];
+        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll']) if (k in o) LIVE[k] = o[k];
         if ('crowd' in o) LX.crowd = o.crowd;
         for (const k in CAMERA) if (k in o) CAMERA[k] = o[k];
         LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan', 'burst']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
@@ -110,7 +114,7 @@
   }
   // Speeds (spin, turn, gobo wheel, drifts) accumulate frame by frame, so moving a speed fader never
   // makes the rig jump.
-  const ACC = { t: null, spin: 0, turn: 0, gobo: 0, tilt: 0, burst: 0 };
+  const ACC = { t: null, spin: 0, turn: 0, gobo: 0, tilt: 0, burst: 0, auto: 0, strobe: 0 };
   function liveAt(t) {
     const dt = ACC.t === null ? 0 : CS.clamp(t - ACC.t, 0, 0.2);
     ACC.t = t;
@@ -119,10 +123,14 @@
     ACC.gobo += LIVE.goboSpeed * dt;
     ACC.tilt += LIVE.tiltSpeed * dt;
     ACC.burst += LIVE.burstSpeed * dt;
-    LX.rot = LIVE.rot + ACC.spin;
+    ACC.auto += LIVE.autoRot * dt;
+    ACC.strobe += LIVE.strobe * dt;
+    // auto-rotate: turning, nodding and rolling at once, at uneven rates so it never repeats exactly
+    const au = ACC.auto, auto = LIVE.autoRot > 0 || au !== 0;
+    LX.rot = LIVE.rot + ACC.spin + (auto ? 14 * au : 0);
     // tumble: a slow, uneven drift in yaw and pitch on top of the set orientation
-    LX.yaw = LIVE.yaw + ACC.turn + LIVE.tumble * (Math.sin(t * 0.37) * 0.8 + Math.sin(t * 0.13 + 1) * 0.4);
-    LX.pitch = LIVE.pitch + LIVE.tumble * (Math.sin(t * 0.29 + 2) * 0.6 + Math.sin(t * 0.11) * 0.3);
+    LX.yaw = LIVE.yaw + ACC.turn + (auto ? 22 * au + 18 * Math.sin(au * 0.31) : 0) + LIVE.tumble * (Math.sin(t * 0.37) * 0.8 + Math.sin(t * 0.13 + 1) * 0.4);
+    LX.pitch = LIVE.pitch + (auto ? 32 * Math.sin(au * 0.53) + 12 * Math.sin(au * 1.37 + 1) : 0) + LIVE.tumble * (Math.sin(t * 0.29 + 2) * 0.6 + Math.sin(t * 0.11) * 0.3);
     LX.spotLock = LIVE.spotLock;
     LX.spot = LIVE.spot;
     LX.spotCol = LIVE.spotCol;
@@ -148,6 +156,20 @@
     });
     LX.eye = LIVE.eye;
     LX.eyeCol = LIVE.eyeCol ? LIVE.eyeCol.slice() : rigColour();
+    if (LIVE.strobe > 0) {
+      // the strobe gates the heads; each flash can re-aim the burst and pick its own density
+      const n = Math.floor(ACC.strobe), on = ACC.strobe - n < LIVE.strobeDuty;
+      const r = Math.sin(n * 91.7) * 43758.5453, rn = r - Math.floor(r);
+      if (LIVE.strobeReaim) LX.burstPh = ACC.burst + n * 3.7;
+      if (LIVE.strobeVary) LX.burstCount = Math.max(6, Math.round(LIVE.burstCount * (0.3 + 1.4 * rn)));
+      FIX.forEach((f, i) => {
+        if (f.spot) return;
+        if (!on) Object.assign(LX.lv[i], { beam: 0, proj: 0, laser: 0, fan: 0, burst: 0 });
+        else if (LIVE.strobeWhite) LX.col[i] = [240, 246, 255];
+      });
+      if (LIVE.strobeAll) { LX.spot *= on ? 1 : 0.06; LX.eye *= on ? 1 : 0; }
+      if (!LIVE.eyeCol) LX.eyeCol = rigColour(); // a lamp following the rig follows the flashes
+    }
     LX.label = '';
     LX.labelA = 0;
   }
@@ -768,7 +790,7 @@
     PROGRAMS: Object.keys(PROGRAMS),
     setProgram(p) { if (PROGRAMS[p]) LX.program = p; },
     // forget accumulated spin/turn (after "square on" or taking over from the showcase)
-    resetMotion() { ACC.spin = 0; ACC.turn = 0; },
+    resetMotion() { ACC.spin = 0; ACC.turn = 0; ACC.auto = 0; },
     debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, canvases: () => ({ lightCv, rcvCv, pplCv }) },
     get crowd() { return crowdOpts; },
     setMode(m) { LX.on = m !== 'paint'; LX.mode = m === 'live' ? 'live' : 'show'; },

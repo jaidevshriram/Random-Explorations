@@ -216,7 +216,8 @@
         <label class="fader"><span>Turn</span><input type="range" id="turn" min="-90" max="90" step="1" value="0" data-unit="°/s"><output>0°/s</output></label>
         <label class="fader"><span>Spin</span><input type="range" id="spin" min="-90" max="90" step="1" value="0" data-unit="°/s"><output>0°/s</output></label>
         <label class="fader"><span>Tumble</span><input type="range" id="tumble" min="0" max="70" step="1" value="0" data-unit="°"><output>0°</output></label>
-        <div class="row"><button type="button" class="btn" id="square">Square on</button></div>
+        <div class="row"><button type="button" class="toggle" id="auto-rot" aria-pressed="false">Auto-rotate</button><button type="button" class="btn" id="square">Square on</button></div>
+        <label class="fader"><span>Auto speed</span><input type="range" id="auto-speed" min="0.1" max="3" step="0.05" value="1" data-unit="×"><output>1.0×</output></label>
         <p class="note">Or grab the ball on the monitor: drag sideways to turn it, up and down to tip it, shift-drag to roll it.</p>
       </div>
       <div class="module">
@@ -260,6 +261,19 @@
         <label class="fader"><span>Fan plane</span><input type="range" id="twist" min="0" max="90" step="1" value="0" data-unit="°"><output>0°</output></label>
         <label class="fader"><span>Burst beams</span><input type="range" id="burst-n" min="8" max="96" step="1" value="44" data-unit=""><output>44</output></label>
         <label class="fader"><span>Burst wander</span><input type="range" id="burst-w" min="0" max="20" step="0.5" value="6" data-unit="°"><output>6°</output></label>
+      </div>
+      <div class="module">
+        <h2>Strobe</h2>
+        <div class="row"><button type="button" class="toggle" id="strobe-on" aria-pressed="false">Strobe</button><button type="button" class="btn" id="strobe-burst">Strobe burst</button></div>
+        <label class="fader"><span>Rate</span><input type="range" id="strobe-rate" min="1" max="20" step="0.5" value="9" data-unit=" Hz"><output>9.0 Hz</output></label>
+        <label class="fader"><span>Flash length</span><input type="range" id="strobe-duty" min="0.1" max="0.9" step="0.01" value="0.45" data-unit="%"><output>45%</output></label>
+        <div class="row">
+          <button type="button" class="toggle" id="strobe-white" aria-pressed="true">White flash</button>
+          <button type="button" class="toggle" id="strobe-reaim" aria-pressed="true">Re-aim each flash</button>
+          <button type="button" class="toggle" id="strobe-vary" aria-pressed="true">Vary density</button>
+          <button type="button" class="toggle" id="strobe-all" aria-pressed="false">Spot &amp; lamp too</button>
+        </div>
+        <p class="note">Strobe burst: every head throws the burst in white, flashing at the rate above. Raise Burst beams under Laser effects for denser flashes.</p>
       </div>
       <div class="module">
         <h2>Stage</h2>
