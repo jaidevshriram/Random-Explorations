@@ -51,7 +51,7 @@
   const TEAL = [40, 215, 205];
   const DEFAULT_LV = { beam: 1, proj: 0, laser: 0, fan: 0, burst: 0 };
   const LX = {
-    on: new URLSearchParams(location.search).has('show'), rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
+    on: new URLSearchParams(location.search).has('show'), program: new URLSearchParams(location.search).get('show') === 'beams' ? 'beams' : 'main', rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
     eye: 1, eyeCol: TEAL.slice(), // the lamp facing the audience on the front of the satellite
     yaw: 0, pitch: 0, spotLock: true,   // 3D orientation (with rot = roll); the follow spot can keep tracking the stage
     gobo: 'dots', goboZoom: 17, prism: 0, // projector stencil ('mix': a different one per fixture), cone half-angle, 3-facet prism
@@ -164,8 +164,113 @@
   // in yaw, tips and tumbles, and its heads tilt out of the ring: everything rides it in 3D.
   // amplitudes of the showcase's moves, tuned so heads cross the lens at chosen moments
   const SHOWP = { beamYaw: 85, beamPitch: -30, turnPitch: 18 };
+  // Two programmes. 'main' is the full show (with a white strobe cut in before the finale);
+  // 'beams' is beams only, choreographed to keep crossing the camera's lens.
+  const STROBE = { at: 24.5, len: 4.5 };
+  const PROGRAMS = { main: 30 + STROBE.len, beams: 20 };
   function showAt(t) {
-    t = ((t % 30) + 30) % 30;
+    if (LX.program === 'beams') { beamsAt(t); return; }
+    const L = PROGRAMS.main;
+    t = ((t % L) + L) % L;
+    const inStrobe = t >= STROBE.at && t < STROBE.at + STROBE.len;
+    mainAt(t < STROBE.at ? t : inStrobe ? STROBE.at : t - STROBE.len);
+    if (inStrobe) strobeAt(t - STROBE.at);
+  }
+
+  // White strobe: every head throws the burst in white and flashes, faster and faster; each flash
+  // re-aims the whole spray and the density climbs in steps, the rig snapping round on the beat.
+  const STROBE_DENSITY = [10, 24, 48, 96, 160];
+  function strobeAt(u) {
+    const beats = (u * 84) / 60;
+    // flash rate: sixteenths, then sixteenth triplets, then thirty-seconds
+    const div = u < 1.2 ? 4 : u < 3 ? 6 : 8, ph = beats * div, n = Math.floor(ph), on = ph - n < 0.5;
+    const step = Math.min(STROBE_DENSITY.length - 1, Math.floor(u / 0.9));
+    const R1 = Math.sin(n * 91.7) * 43758.5453, r1 = R1 - Math.floor(R1);
+    LX.burstCount = Math.round(STROBE_DENSITY[step] * (0.75 + 0.5 * r1));
+    LX.burstSpread = 14;
+    LX.burstPh = n * 3.7;
+    const env = seg(u, 0, 0.15) * (1 - seg(u, STROBE.len - 0.15, STROBE.len));
+    ORDER.forEach(i => {
+      Object.assign(LX.lv[i], { beam: 0, proj: 0, laser: 0, fan: 0, burst: on ? 1.3 * env : 0 });
+      LX.col[i] = [240, 246, 255];
+    });
+    // the rig snaps to a new orientation on every eighth note and holds there
+    const b8 = beats * 2, k8 = Math.floor(b8), snap = ease(Math.min(1, (b8 - k8) * 3));
+    LX.yaw = 45 * (k8 + snap);
+    LX.pitch = 25 * Math.sin(k8 * 2.1) * (1 - snap) + 25 * Math.sin((k8 + 1) * 2.1) * snap;
+    LX.tilt = 0;
+    LX.tiltScan = 0;
+    LX.spot = on ? 0.7 : 0.08;
+    LX.spotCol = [235, 240, 255];
+    LX.col[4] = spotBeamCol();
+    LX.eye = on ? 1 : 0;
+    LX.eyeCol = [240, 246, 255];
+    LX.label = 'WHITE STROBE  \u00b7  dense lasers, density climbing';
+    LX.labelA = win(u, 0.1, STROBE.len - 0.1, 0.3);
+  }
+
+  // Second programme: only the haze beams, swung so they cross the lens again and again; the
+  // camera flares, veils, stops down, recovers. Keys are (time, yaw, pitch); each crossing is
+  // placed mid-move, where it is fastest (orientations found with the lens search).
+  const BEAM_KEYS = [
+    [0, 0, 0], [2.0, 0, 0], [2.9, 10, -67], [4.0, 62, -67], [5.6, -70, -64], [6.4, -110, -20], [7.4, -135, 8],
+    [8.8, -175, 8], [9.8, -215, 8], [10.6, -250, -10], [14.0, -330, -25], [17.4, -400, 10], [20, -360, 0],
+  ];
+  const BEAM_SPOT = [
+    [0, [200, 225, 255], 1], [2.0, [200, 225, 255], 1], [2.8, [255, 226, 180], 1.25], [5.6, [255, 226, 180], 1.2],
+    [6.4, [255, 140, 70], 0.6], [9.8, [255, 140, 70], 0.7], [10.6, [130, 160, 255], 1], [13.8, [130, 160, 255], 1],
+    [14.4, [255, 120, 200], 1.2], [17.2, [255, 120, 200], 1.1], [18.4, [120, 210, 218], 1], [20, [120, 210, 218], 1],
+  ];
+  const keyed = (keys, t) => {
+    let k = 0;
+    while (k < keys.length - 2 && t > keys[k + 1][0]) k++;
+    const a = keys[k], b = keys[k + 1], u = ease(CS.clamp((t - a[0]) / (b[0] - a[0]), 0, 1));
+    return a.slice(1).map((v, j) => (Array.isArray(v) ? mixc(v, b[j + 1], u) : v + (b[j + 1] - v) * u));
+  };
+  function beamsAt(t) {
+    const L = PROGRAMS.beams;
+    t = ((t % L) + L) % L;
+    let label = '', la = 0;
+    const cap = (txt, a, b) => { if (t >= a && t < b) { label = txt; la = win(t, a, b); } };
+    const [yaw, pitch] = keyed(BEAM_KEYS, t);
+    const tum = win(t, 14, 17.4, 0.6);
+    LX.yaw = yaw + 25 * Math.sin(t * 2.3) * tum;
+    LX.pitch = pitch + 30 * Math.sin(t * 1.7 + 1) * tum;
+    LX.rot = 360 * seg(t, 10.6, 19.6);
+    LX.tilt = 30 * win(t, 10.6, 14, 0.6);
+    LX.tiltScan = 18 * win(t, 10.6, 17.4, 0.6);
+    LX.tiltPh = t * 1.5;
+    LX.spotLock = true;
+    const [sc, sl] = keyed(BEAM_SPOT, t);
+    LX.spotCol = sc;
+    LX.spot = sl;
+    const beat = (t * 84) / 60;
+    for (let i = 0; i < FIX.length; i++) { LX.col[i] = TEAL.slice(); Object.assign(LX.lv[i], DEFAULT_LV); }
+    const warm = win(t, 2.0, 5.8, 0.6), turn = win(t, 5.6, 10.2, 0.6), rake = win(t, 10.2, 14.2, 0.6), all = win(t, 14, 17.8, 0.6);
+    ORDER.forEach((i, k) => {
+      let c = TEAL.slice();
+      c = mixc(c, k % 2 ? [255, 175, 70] : [255, 225, 160], warm);
+      c = mixc(c, FIX[i].back ? [215, 235, 255] : [255, 80, 190], turn);
+      c = mixc(c, k % 2 ? [120, 100, 255] : [80, 150, 255], rake);
+      c = mixc(c, hsl(((t - 14) * 110 + k * 36) % 360, 0.95, 0.6), all);
+      LX.col[i] = c;
+      const pk = 0.5 + 0.5 * Math.cos((beat + k / ORDER.length) * TAU);
+      LX.lv[i].beam = 1 - (rake + all) * 0.6 * (1 - pk * pk);
+    });
+    LX.col[4] = spotBeamCol();
+    LX.eyeCol = rigColour();
+    LX.eye = 1;
+    cap('BEAMS AND THE CAMERA', 0.2, 1.9);
+    cap('INTO THE LENS  \u00b7  flare, veil, exposure pulling down', 2.1, 5.7);
+    cap('FROM BEHIND  \u00b7  the back heads find the camera', 5.9, 9.9);
+    cap('RAKING THE CROWD  \u00b7  heads tilted toward us', 10.1, 13.9);
+    cap('TUMBLE', 14.1, 17.3);
+    cap('BACK TO THE PAINTING', 17.6, 19.9);
+    LX.label = label;
+    LX.labelA = la;
+  }
+
+  function mainAt(t) {
     let label = '', la = 0;
     const cap = (txt, a, b) => { if (t >= a && t < b) { label = txt; la = win(t, a, b); } };
     for (let i = 0; i < FIX.length; i++) { LX.col[i] = TEAL.slice(); Object.assign(LX.lv[i], DEFAULT_LV); }
@@ -651,12 +756,17 @@
     Object.assign(TUNE, saved);
     return c;
   }
-  const CHAPTERS = [
-    ['Intro', 0], ['Beams', 2.6], ['Full turn', 6.7], ['Gobos', 10.6], ['Lasers', 15.6], ['Fans', 19.7], ['Everything', 24.6], ['Home', 28.3],
-  ];
+  const CHAPTERS = {
+    main: [['Intro', 0], ['Beams', 2.6], ['Full turn', 6.7], ['Gobos', 10.6], ['Lasers', 15.6], ['Fans', 19.7], ['Strobe', 24.5], ['Everything', 29.1], ['Home', 32.8]],
+    beams: [['Intro', 0], ['Into the lens', 2.1], ['From behind', 5.9], ['Raking', 10.1], ['Tumble', 14.1], ['Home', 17.6]],
+  };
   // hooks for the light desk (console.js) and the optimisation harness
   window.__arena = {
-    TUNE, rebuild, LX, LIVE, FIX, ORDER, CHAPTERS, SHOW_LENGTH: 30, CAMERA, ORB, get GOBOS() { return GOBO_NAMES; },
+    TUNE, rebuild, LX, LIVE, FIX, ORDER, CAMERA, ORB, get GOBOS() { return GOBO_NAMES; },
+    get CHAPTERS() { return CHAPTERS[LX.program]; },
+    get SHOW_LENGTH() { return PROGRAMS[LX.program]; },
+    PROGRAMS: Object.keys(PROGRAMS),
+    setProgram(p) { if (PROGRAMS[p]) LX.program = p; },
     // forget accumulated spin/turn (after "square on" or taking over from the showcase)
     resetMotion() { ACC.spin = 0; ACC.turn = 0; },
     debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, canvases: () => ({ lightCv, rcvCv, pplCv }) },
@@ -951,7 +1061,8 @@
     const h = hit3(C, dir), P0 = add3(C, dir, start), P1 = h.P;
     lasers.push({ P0, P1, s0: proj(P0), s1: proj(P1), col, a: k, surf: h.surf, toward: Math.max(0, -dir[2]) });
     const tl = offLens(C, dir);
-    if (tl < 4) glare.push({ C, k: k * 3.2 * Math.exp(-((tl / 0.9) ** 2)), col, size: 0.008, laser: true });
+    // straight down the lens a laser blinds; a few degrees off, the haze round its line still flares
+    if (tl < 7) glare.push({ C, k: k * (3.2 * Math.exp(-((tl / 0.9) ** 2)) + 0.18 * Math.exp(-((tl / 3.5) ** 2))), col, size: 0.008, laser: true });
   }
   // The burst: single beams spread evenly over the whole sphere (a Fibonacci lattice in the
   // satellite's frame), each leaving the glass along its own direction and wandering a little.
@@ -1769,6 +1880,11 @@
     // veiling glare: light scattered inside the lens lifts the whole frame in the source's colour
     const veil = [0, 0, 0];
     for (const q of top) for (let j = 0; j < 3; j++) veil[j] += (q.col[j] / 255) * q.k * 0.06;
+    // a dense spray fills the haze between us and the rig: the whole frame lifts for that flash
+    let lp = 0;
+    const lc = [0, 0, 0];
+    for (const l of lasers) { lp += l.a; for (let j = 0; j < 3; j++) lc[j] += l.col[j] * l.a; }
+    if (lp > 0) { const hk = Math.min(0.22, lp * 0.0014) * CAMERA.glare; for (let j = 0; j < 3; j++) veil[j] += (lc[j] / lp / 255) * hk; }
     const fl = CAMERA.flare;
     S.lens = { src: top, expo: aeExpo, veil, bloom: CAMERA.bloom * (0.4 + 0.6 * Math.min(2, total)), ca: Math.min(1.5, total * 0.8), dirt: CAMERA.dirt, ghost: fl, star: fl, streak: fl * 0.6 };
   }

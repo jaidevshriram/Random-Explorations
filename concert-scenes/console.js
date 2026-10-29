@@ -188,14 +188,27 @@
 
   // ---------- showcase transport ----------
   const scrub = $('scrub'), chapters = $('chapters');
-  A.CHAPTERS.forEach(([name, t]) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = name;
-    b.style.left = (t / A.SHOW_LENGTH) * 100 + '%';
-    if (t / A.SHOW_LENGTH > 0.8) b.classList.add('end'); // label hangs left of its mark near the end
-    b.onclick = () => { S.clocks.lights = t + 0.01; };
-    chapters.append(b);
+  function buildChapters() {
+    chapters.textContent = '';
+    scrub.max = A.SHOW_LENGTH;
+    A.CHAPTERS.forEach(([name, t]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = name;
+      b.style.left = (t / A.SHOW_LENGTH) * 100 + '%';
+      if (t / A.SHOW_LENGTH > 0.8) b.classList.add('end'); // label hangs left of its mark near the end
+      b.onclick = () => { S.clocks.lights = t + 0.01; };
+      chapters.append(b);
+    });
+  }
+  buildChapters();
+  $('program').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    A.setProgram(b.dataset.prog);
+    $('program').querySelectorAll('button').forEach(x => press(x, x === b));
+    S.clocks.lights = 0;
+    buildChapters();
   });
   $('play').onclick = () => {
     showPlaying = !showPlaying;
