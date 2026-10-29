@@ -19,13 +19,14 @@ def to_markdown(results: list[dict]) -> str:
         f"Ranked by mean PSNR (dB) over {len(ids)} image{'s' if len(ids) != 1 else ''}; SSIM as tie-breaker. "
         f"Byte budget: {results[0]['byte_budget'] if results else '-'} bytes per SVG._",
         "",
-        "| # | Entry | Model | Mean PSNR | Mean SSIM | Coverage | Avg bytes |",
-        "|---|-------|-------|----------:|----------:|:--------:|----------:|",
+        "| # | Entry | Model | Method | Mean PSNR | Mean SSIM | Coverage | Avg bytes |",
+        "|---|-------|-------|--------|----------:|----------:|:--------:|----------:|",
     ]
     for i, r in enumerate(results, 1):
         model = r["meta"].get("model", "-")
+        kind = r["meta"].get("kind", "-")
         lines.append(
-            f"| {i} | {r['entry']} | {model} | {r['mean_psnr']:.2f} | {r['mean_ssim']:.4f} "
+            f"| {i} | {r['entry']} | {model} | {kind} | {r['mean_psnr']:.2f} | {r['mean_ssim']:.4f} "
             f"| {r['coverage']} | {r['mean_bytes']} |"
         )
 

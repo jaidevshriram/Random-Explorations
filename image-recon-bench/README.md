@@ -52,8 +52,21 @@ something like:
 > Drawing tools and code are fine, but don't read or vectorize the reference's
 > pixels. Rules: max 32768 bytes, no `<image>`, `<text>`, `data:` URIs or external refs.
 
-`submissions/claude-code-session/` is one such run, with its generator script
-`draw.py`.
+Two entries were made this way in a Claude Code session, each with the script
+that generates it:
+
+- `submissions/claude-code-session/` (`draw.py`, about 18 dB): drawn entirely by
+  eye. No code reads the reference; only the render, heatmap and score were used.
+- `submissions/claude-code-vector/` (`vectorize.py`, about 26 dB): a *semantic*
+  vectorizer that does read the reference. It segments the image into
+  materials and shading levels within each object (bucket, boom, cab, body,
+  tracks, base plate), traces each region as one part, and keeps the parts that
+  remove the most error per byte. The SVG has one group per object and one path
+  per shade within it, so every vector is a real piece of the scene, not
+  free-floating primitives. Needs `pip install opencv-python-headless`.
+
+The leaderboard's Method column (`kind` in `meta.json`) keeps hand-drawn and
+vectorized entries apart.
 
 ## The reference set
 
