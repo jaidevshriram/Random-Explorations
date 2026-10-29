@@ -24,10 +24,10 @@
   // `?tune={...}` overrides them for experiments.
   const TUNE = {
     beamGain: 1.3, beamScatter: 0.18, beamHalf: 1.14, halo: 0.03, pool: 0.85, overlay: 1, twinkle: 1.2,
-    lightBase: 0.08, lightFill: 0.12, lightBeam: 0.3, tierL: 1.45, slabL: 1, farL: 1.1, nearL: 0.62,
-    frontDark: 0.75, rampR: 0.75, rampG: 0.98, rampB: 1.05, liftR: 1, liftG: 4, liftB: 17, topAlpha: 0.9,
+    lightBase: 0.08, lightFill: 0.12, lightBeam: 0.3, tierL: 1.45, slabL: 1, farL: 1.1, nearL: 0.75,
+    frontDark: 0.62, rampR: 0.75, rampG: 0.98, rampB: 1.05, liftR: 1, liftG: 4, liftB: 17, topAlpha: 0.9,
     rim: 0.75, b0: 0.93, b1: 0.4, b2: 1.135, b3: 0.83, b4: 1.36, b5: 1.25, b6: 0.775, stageGlow: 0.35,
-    shirtL: 1.6, fog: 0.38, backLift: 0.22, soffitL: 0.6, fasciaL: 0.95, shadow: 0.6, floorHaze: 0.09, headL: 0.4,
+    shirtL: 2.3, fog: 0.38, backLift: 0.22, soffitL: 0.6, fasciaL: 0.95, shadow: 0.6, floorHaze: 0.09, headL: 0.4, crowdTop: 0.55,
   };
   try { Object.assign(TUNE, JSON.parse(new URLSearchParams(location.search).get('tune') || '{}')); } catch (e) {}
 
@@ -145,6 +145,14 @@
     return rgb([CS.lerp(c[0], h[0], fog), CS.lerp(c[1], h[1], fog), CS.lerp(c[2], h[2], fog)]);
   }
 
+  // palette colour with a little warmth (skin, auburn hair) and the haze of distance
+  function tone(L, warm, n, x, y) {
+    const c = navyRGB(L), h = hazeAt(x, y), fog = CS.clamp(TUNE.fog * (1 - n), 0, 1);
+    c[0] += warm * L * 45; c[1] += warm * L * 10; c[2] -= warm * L * 25;
+    return rgb([CS.lerp(c[0], h[0], fog), CS.lerp(c[1], h[1], fog), CS.lerp(c[2], h[2], fog)]);
+  }
+  const LIGHT = { x: STAGE.x, y: STAGE.y - 120 };
+
   function band(g, top, bot) {
     g.beginPath();
     for (let x = 0; x <= W; x += 12) g.lineTo(x, top(x));
@@ -156,13 +164,15 @@
   // light where a beam or the haze catches the head and shoulders
   function dabPerson(g, x, y, hr, L, n) {
     g.fillStyle = shade(L * 0.22, n, x, y, L * 0.45);
-    g.beginPath(); g.ellipse(x, y + hr * 1.75, hr * 1.45, hr * 1.2, rr(-0.3, 0.3), 0, TAU); g.fill();
-    g.beginPath(); g.ellipse(x, y, hr * 0.78, hr * 0.95, rr(-0.2, 0.2), 0, TAU); g.fill();
-    if (R() < 0.6) {
-      g.fillStyle = shade(L * rr(1.0, 1.7), n, x, y, L * 0.45);
-      g.globalAlpha = 0.8;
-      g.beginPath(); g.ellipse(x - hr * 0.25, y - hr * 0.55, hr * 0.45, hr * 0.28, -0.3, 0, TAU); g.fill();
-      g.beginPath(); g.ellipse(x - hr * 0.75, y + hr * 0.95, hr * 0.6, hr * 0.24, -0.35, 0, TAU); g.fill();
+    g.beginPath(); g.ellipse(x, y + hr * 1.7, hr * 1.8, hr * 1.25, rr(-0.2, 0.2), 0, TAU); g.fill();
+    g.beginPath(); g.ellipse(x, y, hr * 0.8, hr * 0.95, rr(-0.2, 0.2), 0, TAU); g.fill();
+    if (R() < 0.5) {
+      // light catching the top of the head and the shoulder line
+      g.strokeStyle = shade(L * rr(1.0, 1.6), n, x, y, L * 0.45);
+      g.globalAlpha = 0.6;
+      g.lineWidth = Math.max(0.7, hr * 0.28);
+      g.beginPath(); g.ellipse(x, y, hr * 0.78, hr * 0.92, 0, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+      g.beginPath(); g.ellipse(x, y + hr * 1.7, hr * 1.75, hr * 1.2, 0, Math.PI * 1.2, Math.PI * 1.55); g.stroke();
       g.globalAlpha = 1;
     }
   }
@@ -306,19 +316,28 @@
   function buildPeople() {
     for (let y = 742; y < 1090; ) {
       const r = floorR(y);
-      for (let x = -50 + rr(0, r); x < W + 50; x += r * 1.9 * rr(0.7, 1.3)) {
+      for (let x = -50 + rr(0, r); x < W + 50; x += r * 1.95 * rr(0.75, 1.3)) {
         const yy = y + rr(-r * 0.45, r * 0.45);
         if (((x - STAGE.x) / 245) ** 2 + ((yy - 778) / 46) ** 2 < 1) continue;
-        const p = CS.makePerson(R, x, yy, r * rr(0.85, 1.15), { arms: 0.035 });
+        const p = CS.makePerson(R, x, yy, r * rr(0.85, 1.15), { arms: 0.15 });
         // the crowd around the stage catches its spill; the nearest rows fall toward silhouette
         const n = nearFloor(yy);
         const glow = TUNE.stageGlow * Math.exp(-Math.hypot(x - STAGE.x, (yy - STAGE.y) * 1.8) / 420);
         const L = (lightAt(x, yy - r) + glow) * rr(0.45, 0.9) * TUNE.nearL * (1 - TUNE.frontDark * CS.smooth(800, 1000, yy));
-        p.body = shade(L * TUNE.shirtL * rr(0.7, 1.2), n, x, yy, L);
-        p.head = shade(L * TUNE.headL, n, x, yy, L);
+        p.L = L;
+        p.lit = Math.min(0.95, TUNE.rim * Math.exp(-Math.hypot(LIGHT.x - x, (LIGHT.y - yy) * 1.6) / 900) + 0.08);
+        // raised arms catch the stage and haze light, so they read lighter than backs
+        p.lside = Math.sign(LIGHT.x - x) || 1;
+        p.armDark = tone(0.12 + L * 1.2, 0.15, n, x, yy);
+        p.armC = tone(0.3 + 0.6 * p.lit + L, 0.2, n, x, yy);
+        p.skinC = tone(0.4 + 0.7 * p.lit + L, 0.7, n, x, yy);
+        p.sprite = CS.bakePerson(p, {
+          lx: LIGHT.x, ly: LIGHT.y, rim: TUNE.rim, rimMin: 0.08, falloff: 900, rimColor: '120,210,218', sheen: Math.min(1.4, p.lit * 2.2),
+          headL: TUNE.headL / 0.4, shirtL: TUNE.shirtL, tone: (l, w = 0) => tone(l, w, n, x, yy),
+        });
         people.push(p);
       }
-      y += r * 1.0;
+      y += r * 1.12;
     }
     people.sort((a, b) => a.y - b.y);
   }
@@ -574,18 +593,15 @@
 
     drawOrb(g, tL, I * pulse);
 
-    const po = {
-      lx: ORB.x, ly: STAGE.y - 120, rim: TUNE.rim, rimMin: 0.06, falloff: 650, rimW: 0.07,
-      rimColor: '95,170,190', bob: 0.05, sway: 0.08,
-    };
+    const po = crowdOpts;
     let i = 0;
-    for (; i < people.length && people[i].y < STAGE.y + 4; i++) CS.drawPerson(g, people[i], tA, po);
+    for (; i < people.length && people[i].y < STAGE.y + 4; i++) CS.drawBaked(g, people[i], tA, po);
 
     drawStage(g, I);
     CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit');
 
 
-    for (; i < people.length; i++) CS.drawPerson(g, people[i], tA, po);
+    for (; i < people.length; i++) CS.drawBaked(g, people[i], tA, po);
 
     // stage spill washing over the nearest heads around it
     g.globalCompositeOperation = 'lighter';
@@ -633,9 +649,17 @@
     CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit');
     g.globalAlpha = TUNE.topAlpha;
     g.drawImage(topLayer, 0, 0);
+    // the crowd in front of the stage, again but crisp, over its painted copy: keeps the
+    // rim light, hair edges and raised arms the paint filter would smear away
+    const cl = crowdLayer.getContext('2d');
+    cl.clearRect(0, 0, W, H);
+    for (const p of people) if (p.y >= STAGE.y + 4) CS.drawBaked(cl, p, tA, crowdOpts);
+    g.globalAlpha = TUNE.crowdTop;
+    g.drawImage(crowdLayer, 0, 0);
     g.globalAlpha = 1;
   }
-  const topLayer = CS.canvas(W, H);
+  const topLayer = CS.canvas(W, H), crowdLayer = CS.canvas(W, H);
+  const crowdOpts = { rimColor: '120,210,218', bob: 0.05, sway: 0.08 };
 
   CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 4, wobble: 1.8 }, init, render, renderTop });
 })();

@@ -283,16 +283,18 @@ const CS = (() => {
       ph: R() * TAU,
       f: 0.7 + R() * 0.9,
       hair: R(),
-      hw: 0.85 + R() * 0.25,          // head width
-      sw: 1.55 + R() * 0.55,          // shoulder half-width (in head radii)
+      hw: 0.9 + R() * 0.2,            // head width
+      sw: 1.9 + R() * 0.55,           // shoulder half-width (in head radii)
       tilt: (R() - 0.5) * 0.3,
       warm: R() < (opt.warm || 0),
       body: `rgb(${L * 0.45 | 0},${L * 1.15 | 0},${L * 1.3 | 0})`,
       head: `rgb(${L * 0.5 | 0},${L * 1.1 | 0},${L * 1.25 | 0})`,
       phone: r > 5 && R() < (opt.phones || 0),
-      arm: r > 6 && r < 22 && R() < (opt.arms || 0), // a raised, swaying arm (mid-crowd only)
+      arm: r > 8 && r < 30 && R() < (opt.arms || 0), // a raised, swaying arm (mid-crowd only)
+      arms2: R() < 0.35,               // both arms up
       side: R() < 0.5 ? -1 : 1,
       jit: [R(), R(), R(), R()],
+      seed: (R() * 1e9) | 0,
     };
   }
 
@@ -393,6 +395,287 @@ const CS = (() => {
       g.fillRect(-sw * 1.1, r * 0.85, sw * 2.2, r * 1.3);
       g.restore();
     }
+    g.restore();
+  }
+
+  // ---------- crowd: baked person sprites ----------
+  // A near spectator seen from behind, painted once into its own canvas with the stage's
+  // rim light baked in for where they stand. Per frame it is only moved, tilted and bobbed.
+  //
+  // o.tone(L, warm) → css colour in the scene's palette; o.lx/o.ly: where the light comes from;
+  // o.rim/o.rimMin/o.falloff: rim strength; o.rimColor: 'r,g,b'.
+  const HAIR = ['bun', 'curly', 'cap', 'ponytail', 'short', 'short', 'short', 'short', 'short', 'short', 'long', 'long', 'shaved', 'wavy'];
+
+  // closed wobbly outline around an ellipse: radius modulated by a few random sine octaves
+  function blob(path, cx, cy, rx, ry, amp, R, a0 = 0, a1 = TAU, close = true) {
+    const ph = [R() * TAU, R() * TAU, R() * TAU, R() * TAU];
+    const N = Math.max(18, Math.ceil(rx * 1.5));
+    for (let i = 0; i <= N; i++) {
+      const a = a0 + (a1 - a0) * (i / N);
+      const k = 1 + amp * (0.5 * Math.sin(3 * a + ph[0]) + 0.3 * Math.sin(5 * a + ph[1]) + 0.2 * Math.sin(9 * a + ph[2]) + 0.12 * Math.sin(15 * a + ph[3]));
+      const x = cx + Math.cos(a) * rx * k, y = cy + Math.sin(a) * ry * k;
+      i ? path.lineTo(x, y) : path.moveTo(x, y);
+    }
+    if (close) path.closePath();
+    return path;
+  }
+
+  function bakePerson(p, o) {
+    const r = p.r, R = rng(p.seed || 1);
+    const rr = (a, b) => a + (b - a) * R();
+    const big = r > 11;
+    const sw = r * p.sw;
+    const hairType = HAIR[Math.floor(p.hair * HAIR.length)];
+    const longHair = hairType === 'long' || hairType === 'wavy' || hairType === 'curly';
+    const hoodie = R() < 0.16;
+    const W = Math.ceil(sw * 2.4 + r * 1.6), H = Math.ceil(r * 5.4);
+    const ox = W / 2, oy = r * 1.45;
+    const c = canvas(W, H), g = c.getContext('2d');
+    g.translate(ox, oy);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+
+    // palette for this person
+    const L = p.L;
+    const hairL = L * (hairType === 'shaved' ? 0.75 : [0.3, 0.42, 0.55, 0.75, 1.4][Math.floor(R() * 5)]) * (o.headL || 1);
+    const hairWarm = R() < 0.25 ? rr(0.4, 1) : 0;
+    const clothL = L * (o.shirtL || 1) * [0.45, 0.7, 0.9, 1.2, 1.7][Math.floor(R() * 5)] * rr(0.85, 1.15);
+    const hairC = o.tone(hairL, hairWarm), hairHi = o.tone(hairL * 1.6, hairWarm), hairLo = o.tone(hairL * 0.55, hairWarm);
+    const skinC = o.tone(L * 0.85, 0.7), skinLo = o.tone(L * 0.55, 0.6);
+    const clothC = o.tone(clothL), clothLo = o.tone(clothL * 0.6), clothHi = o.tone(clothL * 1.35);
+    // direction the stage light arrives from (biased upward: it's above the crowd)
+    const dxl = o.lx - p.x, dyl = o.ly - p.y, dl = Math.hypot(dxl, dyl) || 1;
+    let lx = (dxl / dl) * 0.75, ly = (dyl / dl) * 0.75 - 0.55;
+    const ln = Math.hypot(lx, ly); lx /= ln; ly /= ln;
+    const lit = Math.min(0.95, o.rim * Math.exp(-Math.hypot(dxl, dyl * 1.6) / o.falloff) + o.rimMin);
+
+    // torso: neck base → trapezius slope → round deltoids → down past the frame
+    const lean = rr(-0.08, 0.08) * r, asym = rr(-0.1, 0.1);
+    const torso = new Path2D();
+    torso.moveTo(-sw * 1.03, r * 4.2);
+    torso.bezierCurveTo(-sw * 1.06, r * 2.6, -sw * 1.02, r * 1.75 * (1 + asym), -sw * 0.8, r * 1.38 * (1 + asym));
+    torso.bezierCurveTo(-sw * 0.55, r * 1.12, -r * 0.6, r * 1.02, -r * 0.36 + lean, r * 0.92);
+    torso.lineTo(r * 0.36 + lean, r * 0.92);
+    torso.bezierCurveTo(r * 0.6, r * 1.02, sw * 0.55, r * 1.12, sw * 0.8, r * 1.38 * (1 - asym));
+    torso.bezierCurveTo(sw * 1.02, r * 1.75 * (1 - asym), sw * 1.06, r * 2.6, sw * 1.03, r * 4.2);
+    torso.closePath();
+    g.fillStyle = clothC;
+    g.fill(torso);
+    if (big) {
+      // folds and the shoulder-blade valley
+      g.save();
+      g.clip(torso);
+      g.strokeStyle = clothLo;
+      g.lineWidth = Math.max(1, r * 0.08);
+      g.globalAlpha = 0.6;
+      g.beginPath();
+      g.moveTo(rr(-0.2, 0.2) * r, r * 1.4); g.quadraticCurveTo(rr(-0.3, 0.3) * r, r * 2.6, rr(-0.2, 0.2) * r, r * 4);
+      for (let k = 0; k < 3; k++) {
+        const fx = rr(-0.8, 0.8) * sw, fy = rr(1.8, 3.4) * r;
+        g.moveTo(fx, fy); g.quadraticCurveTo(fx + rr(-0.3, 0.3) * r, fy + r * 0.4, fx + rr(-0.5, 0.5) * r, fy + r * 0.9);
+      }
+      g.stroke();
+      g.restore();
+      g.globalAlpha = 1;
+    }
+    if (hoodie) {
+      // the hood bunched at the back of the neck
+      g.fillStyle = clothLo;
+      g.beginPath(); g.ellipse(lean, r * 1.08, r * 0.95, r * 0.42, 0, 0, TAU); g.fill();
+      g.strokeStyle = clothHi;
+      g.lineWidth = Math.max(0.7, r * 0.05);
+      g.globalAlpha = 0.5;
+      g.beginPath(); g.ellipse(lean, r * 1.0, r * 0.8, r * 0.3, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+      g.globalAlpha = 1;
+    } else if (!longHair) {
+      g.fillStyle = skinLo;
+      g.beginPath(); g.roundRect(-r * 0.34 + lean * 0.5, r * 0.45, r * 0.68, r * 0.62, r * 0.2); g.fill();
+      g.strokeStyle = clothLo; // t-shirt collar
+      g.lineWidth = Math.max(0.8, r * 0.07);
+      g.beginPath(); g.ellipse(lean, r * 0.98, r * 0.42, r * 0.12, 0, 0, Math.PI); g.stroke();
+    }
+
+    // head
+    const hw = r * 0.86 * p.hw;
+    const head = new Path2D();
+    head.ellipse(0, 0, hw, r * 0.92, 0, 0, TAU);
+    const showEars = hairType !== 'long' && hairType !== 'wavy' && hairType !== 'curly';
+    if (showEars) {
+      g.fillStyle = skinC;
+      for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(sd * hw * 0.98, r * 0.12, r * 0.14, r * 0.25, sd * 0.2, 0, TAU); g.fill(); }
+    }
+    g.fillStyle = hairType === 'shaved' ? skinC : hairC;
+    g.fill(head);
+
+    // hair mass for this style
+    const hair = new Path2D();
+    const amp = big ? 0.07 : 0.055;
+    if (hairType === 'long') {
+      blob(hair, 0, r * 0.75, hw * 1.12, r * 1.85, amp, R);
+      blob(hair, 0, -r * 0.05, hw * 1.05, r * 1.04, amp * 0.6, R);
+    } else if (hairType === 'wavy') {
+      blob(hair, 0, r * 0.65, hw * 1.32, r * 1.75, amp * 2.2, R);
+      blob(hair, 0, -r * 0.05, hw * 1.15, r * 1.08, amp * 1.6, R);
+    } else if (hairType === 'curly') {
+      blob(hair, 0, -r * 0.05, hw * 1.35, r * 1.22, amp * 3, R);
+    } else if (hairType === 'bun') {
+      blob(hair, 0, -r * 0.08, hw * 1.04, r * 0.98, amp * 0.6, R);
+      blob(hair, rr(-0.2, 0.2) * r, -r * 0.95, r * 0.42, r * 0.38, amp * 2, R);
+    } else if (hairType === 'ponytail') {
+      blob(hair, 0, -r * 0.08, hw * 1.04, r * 0.98, amp * 0.6, R);
+      blob(hair, rr(-0.1, 0.1) * r, r * 1.2, r * 0.3, r * 0.95, amp * 2, R);
+    } else if (hairType === 'cap') {
+      hair.moveTo(-hw * 1.1, -r * 0.05);
+      hair.bezierCurveTo(-hw * 1.15, -r * 1.25, hw * 1.15, -r * 1.25, hw * 1.1, -r * 0.05);
+      hair.lineTo(hw * 0.9, r * 0.15);
+      hair.lineTo(-hw * 0.9, r * 0.15);
+      hair.closePath();
+    } else if (hairType === 'short') {
+      // covers the crown and back of the head down to a hairline above the neck
+      blob(hair, 0, -r * 0.12, hw * 1.04, r * 0.96, amp, R, Math.PI * 0.92, Math.PI * 2.08, false);
+      hair.quadraticCurveTo(hw * 0.5, r * 0.75, 0, r * 0.8);
+      hair.quadraticCurveTo(-hw * 0.5, r * 0.75, -hw * 1.0, r * 0.18);
+      hair.closePath();
+    }
+    if (hairType !== 'shaved') {
+      g.fillStyle = hairType === 'cap' ? clothLo : hairC;
+      g.fill(hair);
+      if (big && hairType !== 'cap') {
+        // strands flowing from the crown
+        g.save();
+        g.clip(hair);
+        const n = Math.round(r * (r > 25 ? 2.2 : 1.3));
+        for (let k = 0; k < n; k++) {
+          const a = rr(-1.3, 1.3);
+          const x0 = Math.sin(a) * hw * 0.25, y0 = -r * 0.7;
+          const len = longHair ? r * rr(1.6, 2.6) : r * rr(0.9, 1.4);
+          // strands on the side facing the light pick it up
+          const towards = Math.sin(a) * lx > 0;
+          g.strokeStyle = towards && R() < 0.7 ? hairHi : hairLo;
+          g.globalAlpha = rr(0.35, 0.8);
+          g.lineWidth = Math.max(0.8, r * rr(0.03, r > 25 ? 0.07 : 0.09));
+          g.beginPath();
+          g.moveTo(x0, y0);
+          g.bezierCurveTo(x0 + Math.sin(a) * hw * 1.2, y0 + len * 0.3, x0 + Math.sin(a) * hw * 1.3 + rr(-0.2, 0.2) * r, y0 + len * 0.7, x0 + Math.sin(a) * hw * rr(0.9, 1.4), y0 + len);
+          g.stroke();
+        }
+        g.restore();
+        g.globalAlpha = 1;
+      }
+    }
+
+    // light from the stage: a sheen across the crown, the tops of the shoulders, then a crisp rim
+    if (hairType !== 'shaved') {
+      g.save();
+      g.clip(hairType === 'cap' ? hair : head);
+      const sx0 = lx * hw * 0.7, sy0 = -r * 0.45 + ly * r * 0.4;
+      const sh = g.createRadialGradient(sx0, sy0, 0, sx0, sy0, r * 0.8);
+      sh.addColorStop(0, `rgba(${o.rimColor},${0.08 * (o.sheen ?? 1)})`);
+      sh.addColorStop(1, `rgba(${o.rimColor},0)`);
+      g.fillStyle = sh;
+      g.fillRect(-r * 2, -r * 2, r * 4, r * 2.5);
+      g.restore();
+    }
+    g.save();
+    g.clip(torso);
+    const tg = g.createLinearGradient(0, r * 0.9, 0, r * 2.2);
+    tg.addColorStop(0, `rgba(${o.rimColor},${lit * 0.35})`);
+    tg.addColorStop(1, `rgba(${o.rimColor},0)`);
+    g.fillStyle = tg;
+    g.fillRect(-sw * 1.2, r * 0.8, sw * 2.4, r * 1.5);
+    g.restore();
+
+    // rim = silhouette minus itself shifted away from the light, tinted, laid back on top
+    const rimPass = (w, a, broken) => {
+      const m = canvas(W, H), mg = m.getContext('2d');
+      mg.drawImage(c, 0, 0);
+      mg.globalCompositeOperation = 'destination-out';
+      mg.drawImage(c, -lx * w, -ly * w);
+      if (broken && r > 9) {
+        // soft, large-scale unevenness so the rim isn't a uniform outline
+        for (let k = 0; k < 4; k++) {
+          const a0 = rr(-Math.PI, 0), px = ox + Math.cos(a0) * r, py = oy + Math.sin(a0) * r;
+          const eg = mg.createRadialGradient(px, py, 0, px, py, r * rr(0.3, 0.6));
+          eg.addColorStop(0, 'rgba(0,0,0,0.7)');
+          eg.addColorStop(1, 'rgba(0,0,0,0)');
+          mg.fillStyle = eg;
+          mg.fillRect(0, 0, W, H);
+        }
+      }
+      mg.globalCompositeOperation = 'source-in';
+      mg.fillStyle = `rgba(${o.rimColor},${a})`;
+      mg.fillRect(0, 0, W, H);
+      g.save();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'source-atop';
+      g.drawImage(m, 0, 0);
+      g.restore();
+    };
+    const k = rr(0.55, 1.15); // not everyone stands in a clean line of sight to the stage
+    rimPass(Math.max(2, r * 0.18), lit * 0.16 * k); // soft wrap
+    rimPass(Math.max(1.6, r * 0.06), Math.min(1, lit * 1.0 * k), true); // crisp edge
+    if (r > 9 && hairType !== 'shaved' && hairType !== 'cap') {
+      // flyaway hairs past the silhouette, lit from behind
+      g.strokeStyle = `rgba(${o.rimColor},${Math.min(1, lit * 0.4 * k)})`;
+      const ext = longHair ? 1.35 : 1;
+      for (let i = 0; i < r * 0.3; i++) {
+        const a0 = Math.atan2(ly, lx) + rr(-0.8, 0.8);
+        const ex = Math.cos(a0) * hw * (hairType === 'wavy' || hairType === 'curly' ? 1.25 : 1.03);
+        const ey = Math.sin(a0) * r * (Math.sin(a0) > 0 ? ext : 0.97);
+        const len = r * rr(0.03, 0.09);
+        g.lineWidth = Math.max(0.5, r * rr(0.008, 0.02));
+        g.beginPath();
+        g.moveTo(ex, ey);
+        g.quadraticCurveTo(ex + Math.cos(a0 + 0.4) * len, ey + Math.sin(a0 + 0.4) * len, ex + Math.cos(a0 + rr(-0.3, 0.6)) * len * 1.6, ey + Math.sin(a0) * len * 1.6 + len * 0.3);
+        g.stroke();
+      }
+    }
+    return { c, ox, oy, sw };
+  }
+
+  // per-frame: bob, sway and tilt the baked sprite; raised arms are drawn live
+  function drawBaked(g, p, t, o) {
+    const r = p.r, S = p.sprite;
+    const bob = Math.sin(t * p.f + p.ph) * r * o.bob;
+    const sx = Math.sin(t * p.f * 0.47 + p.ph * 1.7) * r * o.sway;
+    const tilt = p.tilt + Math.sin(t * p.f * 0.31 + p.ph) * 0.04;
+    g.save();
+    g.translate(p.x + sx, p.y + bob);
+    g.rotate(tilt);
+    if (p.arm && !o.noArms) {
+      const sw = S.sw;
+      g.lineCap = 'round';
+      for (const side of p.arms2 ? [-1, 1] : [p.side]) {
+        // arms sway to the beat, the pair slightly out of phase
+        const sway = Math.sin(t * p.f * 1.3 + p.ph + (side > 0 ? 0.6 : 0)) * 0.35;
+        const sh = [side * sw * 0.72, r * 1.35];
+        const el = [side * (sw * 0.95 + r * 0.25), r * 0.05];
+        const hand = [side * (sw * 0.55 + r * 0.5) + Math.sin(sway) * r * 1.6, -r * 2.0 + Math.abs(Math.cos(sway)) * r * 0.2];
+        // dark limb, then a lit stripe along the side facing the stage: reads as a rounded arm
+        const ls = (p.lside || 1) * r * 0.12;
+        g.strokeStyle = p.armDark || p.armC;
+        g.lineWidth = r * 0.66;
+        g.beginPath(); g.moveTo(...sh); g.lineTo(...el); g.stroke();
+        g.lineWidth = r * 0.5;
+        g.beginPath(); g.moveTo(...el); g.lineTo(hand[0], hand[1] + r * 0.2); g.stroke();
+        g.strokeStyle = p.armC;
+        g.lineWidth = r * 0.26;
+        g.beginPath(); g.moveTo(sh[0] + ls, sh[1] - r * 0.1); g.lineTo(el[0] + ls, el[1]); g.lineTo(hand[0] + ls * 0.8, hand[1] + r * 0.25); g.stroke();
+        // hand: palm with a thumb, tipped with the sway
+        g.save();
+        g.translate(hand[0], hand[1]);
+        g.rotate(sway * 0.8 + side * 0.15);
+        g.fillStyle = p.armDark || p.armC;
+        g.beginPath(); g.ellipse(0, -r * 0.08, r * 0.24, r * 0.32, 0, 0, TAU); g.fill();
+        g.beginPath(); g.ellipse(side * -r * 0.2, r * 0.05, r * 0.08, r * 0.16, side * 0.6, 0, TAU); g.fill();
+        g.fillStyle = p.skinC || p.armC;
+        g.globalAlpha *= 0.75;
+        g.beginPath(); g.ellipse((p.lside || 1) * r * 0.1, -r * 0.14, r * 0.1, r * 0.2, 0, 0, TAU); g.fill();
+        g.globalAlpha /= 0.75;
+        g.restore();
+      }
+    }
+    g.drawImage(S.c, -S.ox, -S.oy);
     g.restore();
   }
 
@@ -722,5 +1005,5 @@ const CS = (() => {
     mr.start(250);
   }
 
-  return { TAU, rng, clamp, smooth, lerp, canvas, noise2, fbm, glow, paintOverlay, drawPerformer, makePerson, drawPerson, phoneSprite, run };
+  return { TAU, rng, clamp, smooth, lerp, canvas, noise2, fbm, glow, paintOverlay, drawPerformer, makePerson, drawPerson, bakePerson, drawBaked, phoneSprite, run };
 })();
