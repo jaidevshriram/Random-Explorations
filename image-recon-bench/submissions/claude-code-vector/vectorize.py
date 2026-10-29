@@ -15,12 +15,16 @@ as nested <g> groups and data-* attributes, so it can be inspected directly
 
 Pipeline:
 1. Upsample the reference (U x) so outlines can land between pixels.
-2. Give every pixel an object from hand-drawn object regions, then cluster
-   shading levels within each object (k-means in Lab).
+2. Give every pixel an object from hand-drawn object regions plus colour rules
+   (plate tones belong to the plate, only red belongs to the red light), then
+   cluster shading levels within each object (k-means in RGB).
 3. Trace each connected region of at least MIN_AREA pixels as one polygon.
 4. Lay down each object's silhouette (windows and gaps cut out) with a fitted
    gradient, then stack its parts on top, shallowest first, so a part never
-   hides one nested inside it. Larger parts get a fitted linear gradient.
+   hides one nested inside it. Parts larger than GRAD_AREA get a fitted linear
+   gradient. A part that a later object's silhouette would cover (the plate seen
+   through the track chain) is drawn right after that silhouette, in a group
+   that still names its own object (data-object, data-seen-through).
 5. Render an ownership map (which part is visible where) and refit every
    colour/gradient to the pixels it actually covers.
 
@@ -48,8 +52,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 P = {  # tunables (areas and lengths in original pixels)
-    "U": 2, "KO": 12, "MIN_AREA": 4.0, "EPS": 0.3, "GRAD_AREA": 40.0, "HOLE_AREA": 60.0,
-    "SW": 1.3, "REFIT": 2,
+    "U": 2, "KO": 12, "MIN_AREA": 4.0, "EPS": 0.3, "GRAD_AREA": 10.0, "HOLE_AREA": 60.0,
+    "SW": 1.05, "REFIT": 2, "KO_PLATE": 12, "ABSORB": 0, "OBJ_SMOOTH": 1, "SPACE": "rgb",
 }
 for k in P:
     if k in os.environ:
@@ -64,6 +68,7 @@ yy, xx = np.mgrid[0:H, 0:W]
 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
 flat = rgb.reshape(-1, 3)
 lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB).astype(np.float32)
+feat = lab if P["SPACE"] == "lab" else rgb  # colour space the shades are clustered in
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 background = img.min(axis=2) >= 245
 crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 0.5)
@@ -86,16 +91,27 @@ for oi, name in reversed(list(enumerate(names))):  # first listed wins
     m = np.zeros((H, W), np.uint8)
     cv2.fillPoly(m, [np.array(OBJECTS[name]) * U], 1)
     pix_obj[m.astype(bool)] = oi
-tracks = pix_obj == names.index("tracks")
 pix_obj[(pix_obj < 0) & (yy > 420 * U)] = names.index("base-plate")
 pix_obj[pix_obj < 0] = names.index("boom-and-grille")
 # beige/brown plate tones below the tractor belong to the plate, not whatever box covers them
-warm = (hsv[..., 0] < 22) & (hsv[..., 1] < 140) & (hsv[..., 2] > 60) & (yy > 400 * U) & ~tracks
+warm = (hsv[..., 0] < 22) & (hsv[..., 1] < 140) & (hsv[..., 2] > 60) & (yy > 400 * U)
 pix_obj[warm] = names.index("base-plate")
+# the red light's box also catches some of the cab roof around it
+redbox = pix_obj == names.index("red-light")
+reddish = (rgb[..., 0] > 120) & (rgb[..., 1] < 0.6 * rgb[..., 0])
+pix_obj[redbox & ~reddish] = names.index("cab")
+# the colour tests above are per pixel; a majority filter turns their speckle into
+# region-like object boundaries
+if P["OBJ_SMOOTH"] > 1:
+    k = P["OBJ_SMOOTH"] * U + 1
+    votes = np.stack([cv2.boxFilter((pix_obj == oi).astype(np.float32), -1, (k, k)) for oi in range(len(names))])
+    pix_obj = votes.argmax(axis=0).astype(np.int32)
 
 
-def material(c):
-    """Name a colour by material."""
+def material(c, obj):
+    """Name a colour by material, given the object it belongs to: on the tractor a
+    warm colour is yellow plastic however dark its shading; on the base plate warm
+    colours are beige plate or brown brick."""
     r, g, b = (int(v) for v in c)
     mx, mn = max(r, g, b), min(r, g, b)
     sat = (mx - mn) / max(mx, 1)
@@ -103,9 +119,11 @@ def material(c):
         return "red"
     if sat < 0.18:
         return "black" if mx < 70 else "gray"
-    if (r > 150 and g > 110 and sat > 0.55) or (sat > 0.75 and r > 120):
-        return "yellow"
-    return "beige" if mx > 180 else "brown"
+    if obj == "base-plate":
+        if r > 150 and g > 110 and sat > 0.6:
+            return "yellow"
+        return "beige" if mx > 180 else "brown"
+    return "yellow" if r > b + 25 else ("black" if mx < 70 else "gray")
 
 
 # --- shades: k-means within each object ----------------------------------------------
@@ -113,14 +131,19 @@ labels = np.full((H, W), -1, np.int32)
 shade_info = []  # per label: (object, material, shade name)
 for oi, name in enumerate(names):
     sel = ~background & (pix_obj == oi)
-    k = min(P["KO"], max(1, int(sel.sum()) // 50))
+    k = min(P["KO_PLATE"] if name == "base-plate" else P["KO"], max(1, int(sel.sum()) // 50))
     cv2.setRNGSeed(0)
-    _, lb, cen = cv2.kmeans(lab[sel], k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
-    crgb = cv2.cvtColor(cen.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_LAB2RGB)[0]
-    mats = [material(c) for c in crgb]
+    _, lb, cen = cv2.kmeans(feat[sel], k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
+    if P["SPACE"] == "lab":
+        crgb = cv2.cvtColor(cen.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_LAB2RGB)[0]
+        light = cen[:, 0]
+    else:
+        crgb = np.clip(cen, 0, 255).astype(np.uint8)
+        light = cen @ np.array([0.3, 0.59, 0.11])
+    mats = [material(c, name) for c in crgb]
     # shades numbered from lightest to darkest within each material of this object
     rank = {}
-    for j in sorted(range(k), key=lambda j: -cen[j][0]):
+    for j in sorted(range(k), key=lambda j: -light[j]):
         rank[j] = sum(1 for i in rank if mats[i] == mats[j]) + 1
     base = len(shade_info)
     labels[sel] = lb.ravel() + base
@@ -188,6 +211,35 @@ def fill_for(idx, gid, allow_grad):
 
 # --- parts -------------------------------------------------------------------------------
 min_area, grad_area = P["MIN_AREA"] * U * U, P["GRAD_AREA"] * U * U
+
+
+def absorb_specks(labels):
+    """Hand every region smaller than min_area to the neighbouring region of the
+    same object it touches most, so no detail falls through to the silhouette
+    and no part is smaller than min_area."""
+    obj_of = np.array([names.index(o) for o, _, _ in shade_info])
+    ker = np.ones((3, 3), np.uint8)
+    for _ in range(4):
+        changed = 0
+        for lbl in range(len(shade_info)):
+            num, comp, stats, _ = cv2.connectedComponentsWithStats((labels == lbl).astype(np.uint8), connectivity=8)
+            for i in np.flatnonzero(stats[1:, cv2.CC_STAT_AREA] < min_area) + 1:
+                x0, y0, w, h = stats[i, :4]
+                win = (slice(max(y0 - 1, 0), y0 + h + 1), slice(max(x0 - 1, 0), x0 + w + 1))
+                m = comp[win] == i
+                ring = cv2.dilate(m.astype(np.uint8), ker).astype(bool) & ~m
+                nb = labels[win][ring]
+                nb = nb[(nb >= 0) & (nb != lbl)]
+                nb = nb[obj_of[nb] == obj_of[lbl]]
+                if len(nb):
+                    labels[win][m] = np.bincount(nb).argmax()
+                    changed += 1
+        if not changed:
+            break
+
+
+if P["ABSORB"]:
+    absorb_specks(labels)
 parts = []
 for lbl, (obj, mat, shade) in enumerate(shade_info):
     num, comp, stats, _ = cv2.connectedComponentsWithStats((labels == lbl).astype(np.uint8), connectivity=8)
@@ -217,17 +269,30 @@ for p in parts:
 # --- object underlays: silhouette with holes, gradient-filled ---------------------------
 underlays = {}
 for obj in ORDER:
-    mask = np.zeros((H, W), np.uint8)
-    for p in parts:
-        if p["obj"] == obj:
-            mask.ravel()[p["idx"]] = 1
+    # every pixel of the object, including specks too small to be parts of their own
+    mask = (~background & (pix_obj == names.index(obj))).astype(np.uint8)
     if not mask.any():
         continue
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     cs, _ = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    d = "".join(path_data(cv2.approxPolyDP(c, 1.5 * U, True).reshape(-1, 2))
-                for c in cs if abs(cv2.contourArea(c)) >= P["HOLE_AREA"] * U * U)
-    underlays[obj] = {"d": d, "idx": np.flatnonzero(mask)}
+    cs = [cv2.approxPolyDP(c, 1.5 * U, True).reshape(-1, 2) for c in cs
+          if abs(cv2.contourArea(c)) >= P["HOLE_AREA"] * U * U]
+    drawn = np.zeros((H, W), np.uint8)
+    for c in cs:  # even-odd: every contour toggles coverage
+        m = np.zeros((H, W), np.uint8)
+        cv2.fillPoly(m, [c], 1)
+        drawn ^= m
+    underlays[obj] = {"d": "".join(path_data(c) for c in cs), "idx": np.flatnonzero(mask),
+                      "drawn": drawn.ravel().astype(bool)}
+
+# A part that a later object's silhouette would paint over (the plate seen
+# through gaps in the track chain, say) is drawn right after that silhouette,
+# in a group that still names its own object.
+for p in parts:
+    p["host"] = p["obj"]
+    for later in ORDER[ORDER.index(p["obj"]) + 1:]:
+        if later in underlays and underlays[later]["drawn"][p["idx"]].mean() > 0.5:
+            p["host"] = later
 
 for n, p in enumerate(parts):
     p["id"] = f"{p['obj']}.{p['shade']}.{n}"
@@ -257,25 +322,31 @@ def render(label=False):
         code = 0xFF0000 + oi if label else None
         if not label and u["paint"][1]:
             defs.append(u["paint"][1])
-        out = [f'<g id="{obj}" data-level="object">',
+        out = [f'<g id="{obj}" data-level="object" data-object="{obj}">',
                f'<path data-role="silhouette" d="{u["d"]}" fill-rule="evenodd" {paint_attr(u["paint"], code)}/>']
-        mine = [n for n, p in enumerate(parts) if p["obj"] == obj]
-        mine.sort(key=lambda n: (parts[n]["depth"], -parts[n]["area"]))
-        # consecutive parts of the same material share a <g data-level="material">
-        cur = None
-        for n in mine:
-            p = parts[n]
-            if p["mat"] != cur:
-                if cur is not None:
-                    out.append("</g>")
-                out.append(f'<g data-level="material" data-material="{p["mat"]}">')
-                cur = p["mat"]
-            if not label and p["paint"][1]:
-                defs.append(p["paint"][1])
-            out.append(f'<path id="{p["id"]}" data-shade="{p["shade"]}" data-area="{p["area"] / U / U:g}" d="{p["d"]}" '
-                       f'{paint_attr(p["paint"], n + 1 if label else None)}/>')
-        if cur is not None:
-            out.append("</g>")
+        guests = [o for o in ORDER if o != obj and any(p["host"] == obj and p["obj"] == o for p in parts)]
+        for owner in [obj] + guests:
+            mine = [n for n, p in enumerate(parts) if p["host"] == obj and p["obj"] == owner]
+            mine.sort(key=lambda n: (parts[n]["depth"], -parts[n]["area"]))
+            if owner != obj:
+                out.append(f'<g data-level="object" data-object="{owner}" data-seen-through="{obj}">')
+            # consecutive parts of the same material share a <g data-level="material">
+            cur = None
+            for n in mine:
+                p = parts[n]
+                if p["mat"] != cur:
+                    if cur is not None:
+                        out.append("</g>")
+                    out.append(f'<g data-level="material" data-material="{p["mat"]}">')
+                    cur = p["mat"]
+                if not label and p["paint"][1]:
+                    defs.append(p["paint"][1])
+                out.append(f'<path id="{p["id"]}" data-shade="{p["shade"]}" data-area="{p["area"] / U / U:g}" d="{p["d"]}" '
+                           f'{paint_attr(p["paint"], n + 1 if label else None)}/>')
+            if cur is not None:
+                out.append("</g>")
+            if owner != obj:
+                out.append("</g>")
         out.append("</g>")
         body.append("".join(out))
     head = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}">'

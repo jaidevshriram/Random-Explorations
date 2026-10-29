@@ -148,32 +148,37 @@ const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
 // ---- collect the hierarchy from the SVG itself -------------------------------------
 const tree = [];  // objects
 const byId = new Map();
+const objNodes = new Map();
+const objOf = el => el.closest('g[data-level="object"]').dataset.object;
 for (const g of svg.querySelectorAll('g[data-level="object"]')) {
-  const obj = {kind: "object", name: g.id, kids: [], paths: [], el: g};
-  const sil = g.querySelector('path[data-role="silhouette"]');
-  if (sil) {
-    sil.dataset.key = g.id + ":silhouette";
-    obj.kids.push({kind: "silhouette", name: "silhouette (underlay)", paths: [sil], kids: []});
-    obj.paths.push(sil);
+  const name = g.dataset.object;
+  if (!objNodes.has(name)) {
+    const node = {kind: "object", name, kids: [], paths: [], mats: new Map()};
+    objNodes.set(name, node); tree.push(node);
   }
-  const mats = new Map();
-  for (const p of g.querySelectorAll("path[id]")) {
+  const obj = objNodes.get(name);
+  // only paths that belong to this group, not to a group nested inside it
+  const own = [...g.querySelectorAll("path")].filter(p => p.closest('g[data-level="object"]') === g);
+  for (const p of own) {
+    if (p.dataset.role === "silhouette") {
+      p.dataset.key = name + ":silhouette";
+      obj.kids.unshift({kind: "silhouette", name: "silhouette (underlay)", paths: [p], kids: []});
+      obj.paths.push(p);
+      continue;
+    }
     const mat = p.parentNode.dataset.material || "?";
     const shade = p.dataset.shade || "?";
     p.dataset.key = p.id;
-    if (!mats.has(mat)) mats.set(mat, {kind: "material", name: mat, kids: [], paths: [], shades: new Map()});
-    const m = mats.get(mat);
-    if (!m.shades.has(shade)) { const s = {kind: "shade", name: shade, kids: [], paths: []}; m.shades.set(shade, s); m.kids.push(s); }
-    const part = {kind: "part", name: p.id, paths: [p], kids: [], area: +p.dataset.area};
+    if (!obj.mats.has(mat)) { const m = {kind: "material", name: mat, kids: [], paths: [], shades: new Map()}; obj.mats.set(mat, m); obj.kids.push(m); }
+    const m = obj.mats.get(mat);
+    if (!m.shades.has(shade)) { const sh = {kind: "shade", name: shade, kids: [], paths: []}; m.shades.set(shade, sh); m.kids.push(sh); }
+    const through = g.dataset.seenThrough || null;
+    const part = {kind: "part", name: p.id, paths: [p], kids: [], area: +p.dataset.area, through};
     m.shades.get(shade).kids.push(part); m.shades.get(shade).paths.push(p); m.paths.push(p); obj.paths.push(p);
-    byId.set(p.id, {obj: g.id, mat, shade});
+    byId.set(p.id, {obj: name, mat, shade, through});
   }
-  for (const m of mats.values()) {
-    m.kids.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
-    obj.kids.push(m);
-  }
-  tree.push(obj);
 }
+for (const o of tree) for (const m of o.mats.values()) m.kids.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 tree.reverse();  // top-most object first in the list
 
 const partCount = n => n.paths.filter(p => p.id).length;
@@ -206,7 +211,7 @@ function setMode(mode) {
   svg.classList.toggle("sem", mode !== "render");
   if (mode === "render") return;
   for (const p of allPaths) {
-    const obj = p.closest('g[data-level="object"]').id;
+    const obj = objOf(p);
     let c;
     if (p.dataset.role === "silhouette") c = mode === "material" ? "#ffffff" : shadeOf(OBJ_COLORS[obj] || "#888888", .55);
     else if (mode === "object") {
@@ -245,7 +250,7 @@ function row(n, depth, container, objName) {
   r.className = "node";
   const hasKids = n.kids.length > 0;
   const px = visPx(n), share = DATA.totalSSE ? 100 * sseOf(n) / DATA.totalSSE : 0;
-  const label = n.kind === "part" ? `part ${n.name.split(".").pop()} <small>${Math.round(n.area)} px</small>` :
+  const label = n.kind === "part" ? `part ${n.name.split(".").pop()} <small>${Math.round(n.area)} px${n.through ? " · seen through " + n.through : ""}</small>` :
     n.kind === "shade" ? `shade ${n.name.split("-").pop()} <small>(${n.name.split("-")[0]})</small>` : n.name;
   const meta = n.kind === "part"
     ? `${fmt(px)} px · rmse ${rmseOf(n).toFixed(0)}`
@@ -294,7 +299,7 @@ function describe(n) {
   if (!n) { info.textContent = "Hover a part to see where it sits in the hierarchy."; return; }
   const p = n.paths[0];
   const where = byId.get(p.id);
-  const path = where ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}` : `<b>${p.closest("g").id}</b>`;
+  const path = where ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}` : `<b>${objOf(p)}</b>`;
   info.innerHTML = `${path}${n.kind === "part" ? " › part " + p.id.split(".").pop() : n.kind !== "object" ? " (" + n.kind + ")" : ""}<br>` +
     `${partCount(n) || 1} path${partCount(n) === 1 ? "" : "s"}, ${visPx(n).toLocaleString()} visible px, rmse ${rmseOf(n).toFixed(1)}, ` +
     `${(100 * sseOf(n) / DATA.totalSSE).toFixed(2)}% of total error`;
@@ -348,8 +353,9 @@ function hoverAt(e) {
   const key = p.dataset.key, st = DATA.stats[key] || [0, 0];
   const where = byId.get(p.id);
   tip.innerHTML = where
-    ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}<br>part ${p.id.split(".").pop()} · ${Math.round(+p.dataset.area)} px traced · ${st[0]} px visible · rmse ${st[1]}`
-    : `<b>${p.closest("g").id}</b> silhouette (underlay)<br>${st[0]} px visible · rmse ${st[1]}`;
+    ? `<b>${where.obj}</b> › ${where.mat} › ${where.shade}<br>part ${p.id.split(".").pop()} · ${Math.round(+p.dataset.area)} px traced · ${st[0]} px visible · rmse ${st[1]}` +
+      (where.through ? `<br>seen through ${where.through}` : "")
+    : `<b>${objOf(p)}</b> silhouette (underlay)<br>${st[0]} px visible · rmse ${st[1]}`;
   const r = stage.getBoundingClientRect();
   let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
   tip.hidden = false;

@@ -35,19 +35,19 @@ scores, _ = score_svg("lego_r19", svg_text)
 
 # --- ownership render: who is visible at each pixel -----------------------------
 root = ET.fromstring(svg_text)
-codes, owners = {}, []  # code -> (kind, name)
-for g in root.iter(f"{NS}g"):
-    if g.get("data-level") != "object":
-        continue
-    for p in g.iter(f"{NS}path"):
-        code = len(owners) + 1
-        owners.append(p.get("id") or f"{g.get('id')}:silhouette")
-        colour = "#%06x" % code
-        for attr in ("fill", "stroke", "color"):
-            if attr in p.attrib:
-                p.set(attr, colour)
-        if "color" not in p.attrib:
-            p.set("color", colour)
+owners = []  # owner name per id colour (index + 1)
+parent = {c: g for g in root.iter() for c in g}
+for p in root.iter(f"{NS}path"):  # every path once, in document order
+    g = parent[p]
+    while g.get("data-level") != "object":
+        g = parent[g]
+    owners.append(p.get("id") or f"{g.get('data-object')}:silhouette")
+    colour = "#%06x" % len(owners)
+    for attr in ("fill", "stroke", "color"):
+        if attr in p.attrib:
+            p.set(attr, colour)
+    if "color" not in p.attrib:
+        p.set("color", colour)
 for g in root.iter(f"{NS}g"):
     if g.get("transform"):
         g.set("shape-rendering", "crispEdges")
