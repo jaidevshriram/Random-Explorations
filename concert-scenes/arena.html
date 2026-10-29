@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arena Spotlight</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><a href="index.html">Scenes</a><a class="on" href="arena.html">Arena</a><a href="standing.html">Still Standing</a></nav>
+<div class="stage"><canvas id="c"></canvas></div>
+<div id="ui"></div>
+<script src="common.js"></script>
+<script>
+(() => {
+  const W = 1536, H = 1024, TAU = CS.TAU, D2R = Math.PI / 180;
+  const ORB = { x: 763, y: 219, rx: 84, ry: 77, ring: 66 };
+  const STAGE = { x: 766, y: 770, rx: 221, ry: 13, d: 32 };
+  const PERF = { x: 760, y: 772, s: 1.25 };
+  let R = CS.rng(11);
+  const rr = (a, b) => a + (b - a) * R();
+
+  // Calibration knobs, tuned by hill-climbing SSIM against the reference painting.
+  // `?tune={...}` overrides them for experiments.
+  const TUNE = {
+    beamGain: 0.99, beamScatter: 0.258, beamHalf: 1.258, halo: 0.031, pool: 0.8, overlay: 0.741, twinkle: 0.5,
+    lightBase: 0.063, lightFill: 0.061, lightBeam: 0.33, tierL: 0.945, slabL: 1.75, farL: 1.295, nearL: 0.48,
+    frontDark: 1, rampR: 0.888, rampG: 1.141, rampB: 1.204, liftR: 2.4, liftG: 4, liftB: 14.62, topAlpha: 0.9,
+    rim: 0, b0: 0.903, b1: 0.257, b2: 0.876, b3: 0.666, b4: 1.019, b5: 1.15, b6: 0.438, stageGlow: 0.3,
+    shirtL: 2.166,
+  };
+  try { Object.assign(TUNE, JSON.parse(new URLSearchParams(location.search).get('tune') || '{}')); } catch (e) {}
+
+  // Fixtures on the orb's inner ring. Angles/half-widths/strengths measured from the
+  // reference (screen degrees, clockwise from +x). The bottom can is the follow spot.
+  // pa = where the can sits on the ring, a = where its beam points.
+  // gain/p: beam brightness ≈ gain·(r/100)^-p, fitted to profiles along each reference beam.
+  const FIX = [
+    { pa: -150.7, a: -150, half: 6, len: 520, gain: 0.532, p: 1.093 },
+    { pa: -26.6, a: -38.5, half: 8.5, len: 450, gain: 1.600, p: 1.500 },
+    { pa: 17.4, a: 9, half: 6, len: 860, gain: 0.763, p: 1.190 },
+    { pa: 41.5, a: 55.5, half: 9.5, len: 660, gain: 1.049, p: 1.500 },
+    { pa: 90, a: 90, half: 10.5, len: 560, gain: 0.489, p: 0.614, spot: true },
+    { pa: 139.3, a: 131, half: 6.5, len: 690, gain: 0.803, p: 1.500 },
+    { pa: 164, a: 177, half: 5.5, len: 840, gain: 0.913, p: 1.196 },
+    { pa: -90, a: -90, half: 4, len: 0 }, // top can, unlit
+  ];
+
+  // ---------- palette ----------
+  // navy ramp sampled from the painting: shadow → lit crowd → beam-lit haze
+  const RAMP = [[0, [2, 6, 14]], [0.3, [7, 20, 34]], [0.6, [20, 48, 66]], [1, [52, 100, 116]], [1.6, [90, 160, 170]]];
+  function navy(L, k = 1) {
+    L = CS.clamp(L, 0, 1.6);
+    let i = 0;
+    while (i < RAMP.length - 2 && L > RAMP[i + 1][0]) i++;
+    const [l0, c0] = RAMP[i], [l1, c1] = RAMP[i + 1];
+    const t = (L - l0) / (l1 - l0);
+    return `rgb(${CS.lerp(c0[0], c1[0], t) * k * TUNE.rampR | 0},${CS.lerp(c0[1], c1[1], t) * k * TUNE.rampG | 0},${CS.lerp(c0[2], c1[2], t) * k * TUNE.rampB | 0})`;
+  }
+
+  // light reaching a point: soft room fill + the beams raking across the bowl
+  function lightAt(x, y) {
+    const dx = x - ORB.x, dy = y - ORB.y, r = Math.hypot(dx, dy) + 1;
+    let L = TUNE.lightBase + TUNE.lightFill * Math.exp(-(((x - 768) / 650) ** 2 + ((y - 520) / 380) ** 2));
+    const ang = Math.atan2(dy, dx) / D2R;
+    for (const f of FIX) {
+      if (!f.len) continue;
+      let da = Math.abs(((ang - f.a + 540) % 360) - 180);
+      const reach = r < f.len * 1.05 ? 1 : Math.exp(-(r - f.len) / 120);
+      L += TUNE.lightBeam * Math.exp(-((da / (f.half * 1.6)) ** 2)) * reach * (f.spot ? 1.2 : 0.8);
+    }
+    return L;
+  }
+
+  // ---------- arena architecture ----------
+  // balcony lines drop toward the centre, steeper near the camera-side edges
+  const line = (yl, yc, yr) => x => {
+    const u = (x - ORB.x) / ORB.x;
+    return u < 0 ? yc + (yl - yc) * Math.pow(-u, 1.1) : yc + (yr - yc) * Math.pow(u, 1.1);
+  };
+  const L_ = {
+    t1Top: line(62, 150, 80), t1Bot: line(140, 262, 195), t2Top: line(255, 318, 290),
+    t2Bot: line(385, 452, 420), t3Top: line(445, 482, 470), t3Bot: line(540, 590, 580), floor: line(600, 615, 610),
+  };
+  const TIERS = [
+    { top: L_.t1Top, bot: L_.t1Bot, hr: 3.3 },
+    { top: L_.t2Top, bot: L_.t2Bot, hr: 3.8 },
+    { top: L_.t3Top, bot: L_.t3Bot, hr: 4.3 },
+  ];
+  const SLABS = [[L_.t1Bot, L_.t2Top], [L_.t2Bot, L_.t3Top], [L_.t3Bot, L_.floor]];
+  const floorR = y => {
+    const u = Math.max(0, (y - 610) / 410);
+    return 1.6 + 50 * u ** 2.1 + 25 * u ** 6; // the nearest heads balloon, as in the painting
+  };
+
+  let arena, overlay, beamTex = {}, glowCyan, glowWarm, glowSoft, twinkles = [], dust = [], people = [];
+
+  // Beam texture for one fixture. Brightness falls with absolute distance from the
+  // lamp (fitted to the reference): side beams ~(1+r/90)^-1.6, the spot ~(1+r/400)^-1.2.
+  function makeBeam(seed, f) {
+    const w = 512, h = 192, c = CS.canvas(w, h), g = c.getContext('2d');
+    const id = g.createImageData(w, h), d = id.data, n = CS.noise2(seed);
+    for (let x = 0; x < w; x++) {
+      const t = x / w, r = t * f.len + 65;
+      const half = (0.06 + 0.94 * t) * h / 2;
+      let along = (f.gain / 0.81) * Math.pow(Math.max(r, 60) / 100, -f.p);
+      along *= CS.smooth(0, 0.02, t) * (1 - CS.smooth(f.spot ? 0.9 : 0.8, 1, t));
+      for (let y = 0; y < h; y++) {
+        const v = (y - h / 2) / half, av = Math.abs(v);
+        if (av > 1.15) continue;
+        const edge = 1 - CS.smooth(0.8, 1.06, av);
+        // streaks run along the rays; haze breaks them up in patches
+        const streak = 0.6 + 0.55 * CS.fbm(n, v * 4 + 7, t * 1.4, 3);
+        const haze = 0.7 + 0.45 * CS.fbm(n, x * 0.02 + 40, y * 0.035, 4);
+        const core = Math.exp(-v * v / 0.25);
+        const a = CS.clamp(edge * streak * haze * along * (0.85 + 0.25 * core), 0, 1);
+        const i = (y * w + x) * 4;
+        const wht = CS.clamp(a * 1.6 - 0.35, 0, 1); // hottest parts bleach toward white
+        d[i] = 10 + 170 * wht;
+        d[i + 1] = 196 + 50 * wht;
+        d[i + 2] = 192 + 50 * wht;
+        d[i + 3] = a * 255;
+      }
+    }
+    g.putImageData(id, 0, 0);
+    return c;
+  }
+
+  function band(g, top, bot) {
+    g.beginPath();
+    for (let x = 0; x <= W; x += 12) g.lineTo(x, top(x));
+    for (let x = W; x >= 0; x -= 12) g.lineTo(x, bot(x));
+    g.closePath();
+  }
+
+  // a painterly person dab: body, head and a lit cap
+  function dabPerson(g, x, y, hr, L) {
+    g.fillStyle = navy(L * 0.7);
+    g.beginPath(); g.ellipse(x, y + hr * 1.7, hr * 1.5, hr * 1.25, rr(-0.3, 0.3), 0, TAU); g.fill();
+    g.fillStyle = navy(L * 0.85);
+    g.beginPath(); g.ellipse(x, y, hr * 0.8, hr, 0, 0, TAU); g.fill();
+    if (R() < 0.65) {
+      g.fillStyle = navy(L * rr(1.15, 1.6));
+      g.globalAlpha = 0.7;
+      g.beginPath(); g.ellipse(x - hr * 0.25, y - hr * 0.35, hr * 0.5, hr * 0.42, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(x - hr * 0.6, y + hr * 1.2, hr * 0.7, hr * 0.4, -0.4, 0, TAU); g.fill();
+      g.globalAlpha = 1;
+    }
+  }
+
+  function buildArena() {
+    const c = CS.canvas(W, H), g = c.getContext('2d');
+    // roof / far wall
+    const bg = g.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#020812');
+    bg.addColorStop(0.5, '#05111d');
+    bg.addColorStop(1, '#030912');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, W, H);
+    // painterly mottling over the dark structure
+    for (let i = 0; i < 9000; i++) {
+      const x = rr(0, W), y = rr(0, 640);
+      g.fillStyle = navy(lightAt(x, y) * rr(0.35, 0.8));
+      g.globalAlpha = 0.35;
+      g.save(); g.translate(x, y); g.rotate(rr(-0.6, 0.6));
+      g.fillRect(-rr(6, 18), -rr(2, 5), rr(12, 36), rr(4, 10));
+      g.restore();
+    }
+    g.globalAlpha = 1;
+
+    // crowds in the stands
+    TIERS.forEach((T, ti) => {
+      band(g, T.top, T.bot);
+      g.fillStyle = navy(0.18);
+      g.fill();
+      // seat rows follow the balcony curve; draw back (top) rows first so the
+      // row in front hides the bodies behind it
+      const hc = T.bot(ORB.x) - T.top(ORB.x);
+      const rows = Math.max(3, Math.floor(hc / (T.hr * 2.2)));
+      for (let k = 0; k < rows; k++) {
+        const s = (k + 0.5) / rows;
+        for (let x = -6; x < W + 6; ) {
+          const u = Math.abs(x - ORB.x) / ORB.x;
+          const hr = T.hr * (1 + 0.7 * u);
+          const y = CS.lerp(T.top(x), T.bot(x), s) + rr(-0.5, 0.5) * hr;
+          if (R() < 0.9) dabPerson(g, x, y, hr * rr(0.85, 1.15), lightAt(x, y) * rr(0.5, 1.15) * TUNE.tierL);
+          if (R() < 0.02) twinkles.push({ x: x + rr(-2, 2), y: y + rr(-1, 4), s: 4 + hr * 1.6, ph: rr(0, TAU), sp: rr(0.4, 2), warm: true });
+          x += hr * 1.85 * rr(0.8, 1.25);
+        }
+      }
+    });
+
+    // balcony slabs: lit fascia lip, dark underside
+    SLABS.forEach(([top, bot], si) => {
+      band(g, top, bot);
+      const y0 = top(ORB.x), y1 = bot(ORB.x);
+      const gr = g.createLinearGradient(0, y0 - 40, 0, y1 + 10);
+      gr.addColorStop(0, '#0d2333');
+      gr.addColorStop(0.3, '#061420');
+      gr.addColorStop(1, '#030a13');
+      g.fillStyle = gr;
+      g.fill();
+      for (let i = 0; i < 1600; i++) {
+        const x = rr(0, W), t = R(), y = CS.lerp(top(x), bot(x), t);
+        g.fillStyle = navy(lightAt(x, y) * rr(0.25, 0.55) * (1.2 - t) * TUNE.slabL);
+        g.globalAlpha = 0.5;
+        g.save(); g.translate(x, y); g.rotate(Math.atan2(top(x + 10) - top(x), 10));
+        g.fillRect(-rr(8, 20), -rr(1, 3), rr(16, 40), rr(2, 6));
+        g.restore();
+      }
+      g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(70,130,155,0.35)';
+      g.lineWidth = 2;
+      g.beginPath();
+      for (let x = 0; x <= W; x += 12) g.lineTo(x, top(x) + 1);
+      g.stroke();
+    });
+
+    // suites: warm lit windows tucked under the balconies
+    const suites = [[270, 0], [140, 0], [1350, 0], [405, 1], [455, 1], [960, 1], [1230, 1], [240, 2], [180, 2], [1340, 2], [1440, 2], [1065, 1]];
+    for (const [sx, ti] of suites) {
+      const sy = TIERS[ti].top(sx) + 4;
+      const w = rr(14, 22), h = rr(12, 16);
+      const sg = g.createLinearGradient(0, sy, 0, sy + h);
+      sg.addColorStop(0, 'rgba(170,150,120,0.32)');
+      sg.addColorStop(1, 'rgba(90,75,60,0.2)');
+      g.fillStyle = sg;
+      g.fillRect(sx, sy, w, h);
+      // a couple of silhouettes against the window
+      g.fillStyle = 'rgba(6,12,20,0.6)';
+      for (let k = 0; k < 2; k++) { g.beginPath(); g.ellipse(sx + w * (0.3 + 0.4 * k), sy + h * 0.7, w * 0.12, h * 0.35, 0, 0, TAU); g.fill(); }
+      twinkles.push({ x: sx + w * 0.7, y: sy + h * 0.4, s: 8, ph: rr(0, TAU), sp: 0.5, warm: true });
+    }
+
+    // the far floor, too small to animate
+    for (let y = 600; y < 742; y += Math.max(1.6, floorR(y) * 1.05)) {
+      const r = floorR(y);
+      for (let x = -4; x < W + 4; x += r * 1.9 * rr(0.8, 1.25)) {
+        const yy = y + rr(-r * 0.3, r * 0.3);
+        if (((x - STAGE.x) / 240) ** 2 + ((yy - 778) / 44) ** 2 < 1) continue;
+        dabPerson(g, x, yy, r * rr(0.85, 1.15), lightAt(x, yy) * rr(0.4, 0.95) * TUNE.farL);
+        if (R() < 0.03) twinkles.push({ x, y: yy - r * 1.2, s: 4 + r * 1.4, ph: rr(0, TAU), sp: rr(0.4, 1.6), warm: true });
+      }
+    }
+    return c;
+  }
+
+  function buildPeople() {
+    for (let y = 742; y < 1090; ) {
+      const r = floorR(y);
+      for (let x = -50; x < W + 50; x += r * 1.95 * rr(0.82, 1.2)) {
+        const yy = y + rr(-r * 0.25, r * 0.25);
+        if (((x - STAGE.x) / 245) ** 2 + ((yy - 778) / 46) ** 2 < 1) continue;
+        const p = CS.makePerson(R, x, yy, r * rr(0.88, 1.12));
+        // the crowd around the stage catches its spill; the nearest rows fall back into silhouette
+        const glow = TUNE.stageGlow * Math.exp(-Math.hypot(x - STAGE.x, (yy - STAGE.y) * 1.8) / 420);
+        const L = (lightAt(x, yy - r) + glow) * rr(0.4, 0.85) * TUNE.nearL * (1 - TUNE.frontDark * CS.smooth(800, 1000, yy));
+        p.body = navy(L * TUNE.shirtL * rr(0.7, 1.2));
+        p.head = navy(L * 0.6);
+        people.push(p);
+      }
+      y += r * 1.0;
+    }
+    people.sort((a, b) => a.y - b.y);
+  }
+
+  function init() {
+    FIX.forEach((f, i) => { if (f.len) beamTex[i] = makeBeam(3 + i * 7, f); });
+    beamTex.wash = makeBeam(91, FIX[4]);
+    glowCyan = CS.glow(90, 230, 220, 128);
+    glowSoft = CS.glow(70, 200, 200, 128, 0.4);
+    glowWarm = CS.glow(255, 180, 110, 32, 0.2);
+    rebuild();
+    overlay = CS.paintOverlay(W, H, 5, { strokes: 30000, strength: 0.8, vignette: 0.55 });
+    for (let i = 0; i < 420; i++) dust.push({ u: R(), v: R() * 2 - 1, s: 0.6 + R() * 1.5, ph: R() * TAU, sp: 0.01 + R() * 0.03 });
+  }
+
+  // static layers depend on TUNE; rebuilt deterministically (same seed) when it changes
+  function rebuild() {
+    R = CS.rng(11);
+    twinkles = [];
+    people = [];
+    arena = buildArena();
+    buildPeople();
+  }
+  window.__arena = { TUNE, rebuild };
+
+  // ---------- orb ----------
+  const ringRot = t => Math.sin(t * 0.23) * 3.5 + Math.sin(t * 0.071) * 2; // degrees, gentle rocking
+  function fixturePos(f, t) {
+    const rot = f.spot ? 0 : ringRot(t);
+    const pa = (f.pa + rot) * D2R, ba = (f.a + rot) * D2R;
+    const x = ORB.x + Math.cos(pa) * ORB.ring, y = ORB.y + Math.sin(pa) * ORB.ring * 0.94;
+    // aim at a far point on the ray from the orb centre, so the beam lines up with the reference
+    const tx = ORB.x + Math.cos(ba) * 700, ty = ORB.y + Math.sin(ba) * 700;
+    return { a: Math.atan2(ty - y, tx - x), x, y };
+  }
+
+  function drawBeam(g, tex, ox, oy, ang, len, half, alpha, widthMul = 1) {
+    const w = 2 * len * Math.tan(half * D2R) * widthMul;
+    g.save();
+    g.translate(ox, oy);
+    g.rotate(ang);
+    g.globalAlpha = CS.clamp(alpha, 0, 1);
+    g.drawImage(tex, 0, -w / 2, len, w);
+    g.restore();
+  }
+
+  function drawOrb(g, t, I) {
+    const { x, y, rx, ry } = ORB;
+    // hanging truss
+    g.strokeStyle = '#0f2733';
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(x - 3, 0); g.lineTo(x - 3, y - ry - 8); g.moveTo(x + 3, 0); g.lineTo(x + 3, y - ry - 8);
+    for (let yy = 4; yy < y - ry - 10; yy += 8) { g.moveTo(x - 3, yy); g.lineTo(x + 3, yy + 6); }
+    g.stroke();
+    g.fillStyle = '#0b1c26';
+    g.beginPath(); g.moveTo(x - 9, y - ry + 2); g.lineTo(x - 4, y - ry - 10); g.lineTo(x + 4, y - ry - 10); g.lineTo(x + 9, y - ry + 2); g.fill();
+
+    // glass interior: dark, but lets the beams behind show through a little
+    const inner = g.createRadialGradient(x - rx * 0.15, y - ry * 0.1, rx * 0.15, x, y, rx);
+    inner.addColorStop(0, 'rgba(3,12,20,0.85)');
+    inner.addColorStop(0.75, 'rgba(6,22,32,0.75)');
+    inner.addColorStop(1, 'rgba(30,90,105,0.7)');
+    g.fillStyle = inner;
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+
+    // back half of the ring truss (seen through the glass)
+    const rot = ringRot(t) * D2R;
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.strokeStyle = '#03080c';
+    g.lineWidth = 7;
+    g.beginPath(); g.ellipse(0, 0, ORB.ring - 4, (ORB.ring - 4) * 0.93, 0, 0, TAU); g.stroke();
+    g.strokeStyle = 'rgba(190,110,60,0.35)';
+    g.lineWidth = 1;
+    g.beginPath(); g.ellipse(0, 0, ORB.ring - 7, (ORB.ring - 7) * 0.93, 0, 0.3, 1.4); g.stroke();
+    g.beginPath(); g.ellipse(0, 0, ORB.ring - 7, (ORB.ring - 7) * 0.93, 0, 3.4, 4.2); g.stroke();
+    g.strokeStyle = 'rgba(80,150,170,0.25)';
+    g.beginPath(); g.ellipse(0, 0, ORB.ring - 1, (ORB.ring - 1) * 0.93, 0, 0, TAU); g.stroke();
+    g.restore();
+
+    // cans: short cylinders pointing outward, lens at the outer end
+    for (const f of FIX) {
+      const p = fixturePos(f, t);
+      const dx = Math.cos(p.a), dy = Math.sin(p.a);
+      g.save();
+      g.translate(p.x, p.y);
+      g.rotate(p.a);
+      const body = g.createLinearGradient(0, -8, 0, 8);
+      body.addColorStop(0, '#15303a');
+      body.addColorStop(0.35, '#07141a');
+      body.addColorStop(1, '#020608');
+      g.fillStyle = body;
+      g.beginPath(); g.roundRect(-14, -8, 18, 16, 3); g.fill();
+      g.fillStyle = '#04090c';
+      g.beginPath(); g.ellipse(4, 0, 3.6, 8.4, 0, 0, TAU); g.fill();
+      const lit = f.len ? 1 : 0.35;
+      const lens = g.createRadialGradient(5, 0, 0, 5, 0, 8);
+      lens.addColorStop(0, `rgba(235,255,252,${lit})`);
+      lens.addColorStop(0.5, `rgba(120,240,230,${lit})`);
+      lens.addColorStop(1, `rgba(40,150,150,${lit * 0.8})`);
+      g.fillStyle = lens;
+      g.beginPath(); g.ellipse(5, 0, 3, 7.2, 0, 0, TAU); g.fill();
+      g.restore();
+      g.globalCompositeOperation = 'lighter';
+      g.globalAlpha = CS.clamp(0.55 * lit * I, 0, 1);
+      g.drawImage(glowCyan, p.x + dx * 8 - 22, p.y + dy * 8 - 22, 44, 44);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // front lamp facing the camera
+    const hs = g.createRadialGradient(x - 5, y - 6, 2, x, y, 21);
+    hs.addColorStop(0, '#1d3a44');
+    hs.addColorStop(1, '#03090c');
+    g.fillStyle = hs;
+    g.beginPath(); g.arc(x, y, 21, 0, TAU); g.fill();
+    const fl = g.createRadialGradient(x, y, 0, x, y, 15);
+    fl.addColorStop(0, '#f2fffd');
+    fl.addColorStop(0.35, '#a8fbf2');
+    fl.addColorStop(0.8, '#3fd2c8');
+    fl.addColorStop(1, '#1c7f7b');
+    g.fillStyle = fl;
+    g.beginPath(); g.arc(x, y, 15, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'lighter';
+    g.globalAlpha = CS.clamp(0.9 * I, 0, 1);
+    g.drawImage(glowCyan, x - 50, y - 50, 100, 100);
+    g.globalAlpha = 1;
+
+    // glass: fresnel rim, specular arc, small glints
+    g.globalCompositeOperation = 'source-over';
+    const fr = g.createRadialGradient(x, y, rx * 0.7, x, y, rx);
+    fr.addColorStop(0, 'rgba(80,190,200,0)');
+    fr.addColorStop(1, 'rgba(110,215,220,0.32)');
+    g.fillStyle = fr;
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(150,235,232,0.75)';
+    g.lineWidth = 1.6;
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    g.strokeStyle = 'rgba(200,255,250,0.25)';
+    g.lineWidth = 4;
+    g.beginPath(); g.ellipse(x, y, rx - 6, ry - 6, 0, 3.6, 4.5); g.stroke();
+    g.lineWidth = 1.5;
+    g.strokeStyle = 'rgba(220,255,252,0.5)';
+    g.beginPath(); g.ellipse(x, y, rx - 5, ry - 5, 0, 3.75, 4.3); g.stroke();
+    g.globalAlpha = 0.5;
+    g.drawImage(glowSoft, x + rx * 0.45 - 8, y - ry * 0.62 - 8, 16, 16);
+    // stage light bouncing up into the underside of the glass
+    g.globalAlpha = 0.35 * I;
+    g.drawImage(glowSoft, x - 40, y + ry - 30, 80, 40);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  function drawStage(g, I) {
+    const { x, y, rx, ry, d } = STAGE;
+    const side = g.createLinearGradient(x - rx, 0, x + rx, 0);
+    side.addColorStop(0, '#02070c');
+    side.addColorStop(0.5, '#0b1f2a');
+    side.addColorStop(1, '#02070c');
+    g.fillStyle = side;
+    g.beginPath();
+    g.moveTo(x - rx, y);
+    g.lineTo(x - rx, y + d);
+    g.ellipse(x, y + d, rx, ry, 0, Math.PI, 0, true);
+    g.lineTo(x + rx, y);
+    g.ellipse(x, y, rx, ry, 0, 0, Math.PI, false);
+    g.fill();
+    g.strokeStyle = 'rgba(80,160,175,0.3)';
+    g.lineWidth = 1.2;
+    g.beginPath(); g.ellipse(x, y + d, rx, ry, 0, 0, Math.PI); g.stroke();
+
+    g.fillStyle = '#123444';
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+    g.save();
+    g.translate(x - 4, y);
+    g.scale(1, (ry / rx) * 1.1);
+    const pool = g.createRadialGradient(0, 0, 0, 0, 0, rx * 0.85);
+    pool.addColorStop(0, `rgba(220,255,245,${TUNE.pool * I})`);
+    pool.addColorStop(0.4, `rgba(130,215,200,${0.7 * TUNE.pool * I})`);
+    pool.addColorStop(0.75, `rgba(60,130,130,${0.35 * TUNE.pool * I})`);
+    pool.addColorStop(1, 'rgba(20,60,70,0)');
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = pool;
+    g.beginPath(); g.arc(0, 0, rx * 0.85, 0, TAU); g.fill();
+    g.restore();
+    g.globalCompositeOperation = 'source-over';
+    g.strokeStyle = `rgba(150,235,230,${0.7 * Math.min(1, I)})`;
+    g.lineWidth = 1.8;
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.stroke();
+    g.strokeStyle = 'rgba(120,220,215,0.25)';
+    g.lineWidth = 1;
+    g.beginPath(); g.ellipse(x, y, rx * 0.9, ry * 0.8, 0, 0, TAU); g.stroke();
+  }
+
+  function render(g, S) {
+    const tL = S.clocks.lights, tA = S.clocks.audience, tP = S.clocks.performer;
+    const I = S.intensity;
+    const beat = (tL * S.bpm) / 60;
+    const pulse = 0.9 + 0.1 * Math.pow(0.5 + 0.5 * Math.cos(beat * TAU), 3);
+
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.drawImage(arena, 0, 0);
+
+    // warm pinpricks in the crowd (phone screens / lighters far away)
+    g.globalCompositeOperation = 'lighter';
+    for (const p of twinkles) {
+      const a = 0.45 + 0.3 * Math.sin(tA * p.sp + p.ph) + 0.25 * Math.sin(tA * p.sp * 2.7 + p.ph * 3);
+      if (a <= 0.05) continue;
+      g.globalAlpha = Math.min(1, a * TUNE.twinkle);
+      g.drawImage(glowWarm, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    }
+    g.globalAlpha = 1;
+
+    // beams, each leaving its can
+    FIX.forEach((f, i) => {
+      if (!f.len) return;
+      const p = fixturePos(f, tL);
+      const flick = f.spot ? 1 : 0.94 + 0.06 * Math.sin(tL * 3.1 + i * 2.3);
+      const a = I * flick * (f.spot ? 1 : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1);
+      drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a);
+      if (a > 1) drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a - 1);
+      // faint scatter just outside the cone edge
+      drawBeam(g, beamTex[i], p.x, p.y, p.a, f.len, f.half * TUNE.beamHalf, a * TUNE.beamScatter, 2.1);
+    });
+
+    // halo of scattered light around the orb
+    const halo = g.createRadialGradient(ORB.x, ORB.y, 60, ORB.x, ORB.y, 300);
+    halo.addColorStop(0, `rgba(40,170,175,${TUNE.halo * I})`);
+    halo.addColorStop(0.25, `rgba(30,120,130,${TUNE.halo * 0.35 * I})`);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = halo;
+    g.fillRect(ORB.x - 300, ORB.y - 300, 600, 600);
+
+    // dust in the follow spot
+    g.fillStyle = '#c8fff8';
+    const sp = fixturePos(FIX[4], tL);
+    for (const p of dust) {
+      const u = (p.u + tL * p.sp) % 1;
+      const y = sp.y + 70 + u * (STAGE.y - sp.y - 80);
+      const half = (y - sp.y) * Math.tan(FIX[4].half * D2R);
+      const x = sp.x + p.v * half * 0.95 + Math.sin(tL * 0.6 + p.ph) * 4;
+      g.globalAlpha = (0.12 + 0.28 * Math.abs(Math.sin(tL * 1.3 + p.ph))) * (1 - Math.abs(p.v) * 0.6) * I;
+      g.fillRect(x, y, p.s, p.s);
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+
+    drawOrb(g, tL, I * pulse);
+
+    const po = {
+      lx: ORB.x, ly: STAGE.y - 120, rim: TUNE.rim, rimMin: 0.02, falloff: 460, rimW: 0.07,
+      rimColor: '95,170,190', bob: 0.05, sway: 0.08,
+    };
+    let i = 0;
+    for (; i < people.length && people[i].y < STAGE.y + 4; i++) CS.drawPerson(g, people[i], tA, po);
+
+    drawStage(g, I);
+    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit');
+
+
+    for (; i < people.length; i++) CS.drawPerson(g, people[i], tA, po);
+
+    g.globalAlpha = CS.clamp(TUNE.overlay, 0, 1);
+    g.drawImage(overlay, 0, 0);
+    g.globalAlpha = 1;
+    // nothing in the painting goes fully black: lift the floor to deep navy
+    g.globalCompositeOperation = 'lighten';
+    g.fillStyle = `rgb(${TUNE.liftR | 0},${TUNE.liftG | 0},${TUNE.liftB | 0})`;
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  // Focal detail redrawn crisply over the paint pass (the painted copy shows through a little).
+  function renderTop(g, S) {
+    const tL = S.clocks.lights, beat = (tL * S.bpm) / 60;
+    const pulse = 0.9 + 0.1 * Math.pow(0.5 + 0.5 * Math.cos(beat * TAU), 3);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+    const layer = topLayer.getContext('2d');
+    layer.clearRect(0, 0, W, H);
+    drawOrb(layer, tL, S.intensity * pulse);
+    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit');
+    g.globalAlpha = TUNE.topAlpha;
+    g.drawImage(topLayer, 0, 0);
+    g.globalAlpha = 1;
+  }
+  const topLayer = CS.canvas(W, H);
+
+  CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 6 }, init, render, renderTop });
+})();
+</script>
+</body>
+</html>

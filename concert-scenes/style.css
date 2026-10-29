@@ -1,0 +1,33 @@
+:root {
+  --bg: #010407;
+  --panel: #061015;
+  --fg: #bfe9e5;
+  --muted: #5f8a88;
+  --accent: #5fe0d6;
+  --line: #12303a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, -apple-system, sans-serif; }
+.stage { max-width: 1920px; margin: 0 auto; }
+canvas { display: block; width: 100%; height: auto; background: #000; }
+#ui {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  padding: 12px 16px; border-top: 1px solid var(--line); background: var(--panel);
+}
+#ui .group { display: flex; gap: 12px; flex-wrap: wrap; }
+#ui label { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+#ui label.chk { color: var(--fg); text-transform: capitalize; }
+#ui input[type=range] { width: 110px; accent-color: var(--accent); }
+#ui input[type=checkbox] { accent-color: var(--accent); }
+#ui input[type=text] { background: #020a0e; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 210px; }
+#ui span { color: var(--fg); min-width: 2.5em; font-variant-numeric: tabular-nums; }
+.btn {
+  background: #0b1f26; color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 12px; font: inherit; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.rec { color: #ffb4a8; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+nav { display: flex; gap: 16px; padding: 10px 16px; font-size: 12px; }
+nav a { color: var(--muted); text-decoration: none; }
+nav a.on, nav a:hover { color: var(--accent); }

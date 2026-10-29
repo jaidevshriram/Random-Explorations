@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Concert Scenes</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-weight: 500; font-size: 22px; margin: 0 0 6px; }
+  p { color: var(--muted); margin: 0 0 24px; max-width: 60ch; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card { display: block; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--fg); text-decoration: none; }
+  .card:hover { border-color: var(--accent); }
+  .card b { display: block; font-weight: 500; margin-bottom: 4px; }
+  .card span { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Concert scenes</h1>
+  <p>Two concert paintings rebuilt as animated canvas scenes. Each frame is drawn procedurally, run through an oil-paint shader, and can be recorded straight to video.</p>
+  <div class="cards">
+    <a class="card" href="arena.html"><b>Arena</b><span>Glass orb with eight fixture cans, raking beams, packed stands, follow spot on a solo acoustic set. 1536×1024.</span></a>
+    <a class="card" href="standing.html"><b>Still Standing</b><span>Landscape take on the single-beam painting: smoky cone, sketch-lit crowd, handwritten lyric. 1920×1080.</span></a>
+  </div>
+</main>
+</body>
+</html>
