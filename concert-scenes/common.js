@@ -1093,13 +1093,17 @@ const CS = (() => {
       // the camera that took the picture: bloom, veiling glare, aperture starbursts, ghosts strung
       // through the centre, dirt on the front element, fringing, auto-exposure, and a sensor that
       // clips with a soft shoulder. sA = (x, y, core size, strength), sB = (colour, -).
-      lens: `${head} uniform sampler2D img, dirtT; uniform float expo, bloom, ca, dirt, ghost, star, streak; uniform vec3 veil; uniform vec4 sA[6], sB[6]; uniform int ns;
+      lens: `${head} uniform sampler2D img, dirtT; uniform float expo, bloom, ca, dirt, ghost, star, streak, fz, frot; uniform vec2 foff; uniform vec3 veil; uniform vec4 sA[6], sB[6]; uniform int ns;
         const float AS = ${(w / h).toFixed(4)};
         void main(){
-          vec2 c = uv - 0.5, asp = vec2(AS, 1.);
+          vec2 asp = vec2(AS, 1.);
+          // the camera frame: zoomed in, offset and rolled (a hand-held camera); identity by default
+          vec2 q = (uv - 0.5) * asp; float cr = cos(frot), sr = sin(frot);
+          vec2 fuv = vec2(cr * q.x - sr * q.y, sr * q.x + cr * q.y) / fz / asp + 0.5 + foff;
+          vec2 c = fuv - 0.5;
           vec2 off = c * ca * 0.006;
-          vec3 col = vec3(textureLod(img, uv + off, 0.).r, textureLod(img, uv, 0.).g, textureLod(img, uv - off, 0.).b);
-          vec3 b = textureLod(img, uv, 3.).rgb * 0.45 + textureLod(img, uv, 4.5).rgb * 0.35 + textureLod(img, uv, 6.).rgb * 0.2;
+          vec3 col = vec3(textureLod(img, fuv + off, 0.).r, textureLod(img, fuv, 0.).g, textureLod(img, fuv - off, 0.).b);
+          vec3 b = textureLod(img, fuv, 3.).rgb * 0.45 + textureLod(img, fuv, 4.5).rgb * 0.35 + textureLod(img, fuv, 6.).rgb * 0.2;
           col += max(b - 0.3, 0.) * bloom;
           vec3 gl = veil, dc = vec3(0.);
           float GF[5] = float[5](-0.35, -0.7, -1.15, 0.4, -1.7), GR[5] = float[5](0.025, 0.06, 0.11, 0.018, 0.17);
@@ -1107,7 +1111,7 @@ const CS = (() => {
           for (int i = 0; i < 6; i++) {
             if (i >= ns) break;
             vec2 sp = sA[i].xy; float sz = sA[i].z, k = sA[i].w; vec3 sc = sB[i].rgb;
-            vec2 d = (uv - sp) * asp; float r = length(d), r2 = r * r;
+            vec2 d = (fuv - sp) * asp; float r = length(d), r2 = r * r;
             gl += sc * k * (0.07 / (1. + r2 * 30.) + 0.9 * exp(-r2 / (sz * sz)));
             float th = atan(d.y, d.x);
             float spk = pow(abs(cos(th * 3.)), 90.) + 0.35 * pow(abs(cos(th * 3. + 0.5236)), 220.);
@@ -1115,7 +1119,7 @@ const CS = (() => {
             gl += mix(sc, vec3(.45, .65, 1.), .5) * k * streak * exp(-abs(d.y) * 260.) * exp(-abs(d.x) * 3.) * 0.45;
             for (int j = 0; j < 5; j++) {
               vec2 gp = 0.5 + (sp - 0.5) * GF[j];
-              float gr = length((uv - gp) * asp), R0 = GR[j] * (0.8 + 0.4 * min(k, 1.5));
+              float gr = length((fuv - gp) * asp), R0 = GR[j] * (0.8 + 0.4 * min(k, 1.5));
               float disc = smoothstep(R0, R0 * 0.82, gr) * (0.55 + 0.45 * smoothstep(R0 * 0.4, R0, gr));
               gl += GT[j] * sc * k * ghost * disc * 0.05;
             }
@@ -1255,7 +1259,9 @@ const CS = (() => {
       setScale(scale, radius) { alloc(scale); if (radius) P.radius = radius; },
       // lens: null, or what the camera sees this frame (see the lens shader); src as
       // [{x, y (pixels), size (fraction of height), k (strength), col (0..255)}]
-      draw(srcCanvas, topCanvas, on = true, lens = null) {
+      // frame: null, or the camera's framing {zoom, dx, dy, rot} (hand-held shake, a closer crop)
+      draw(srcCanvas, topCanvas, on = true, lens = null, frame = null) {
+        if (frame && !lens) lens = { src: [] }; // framing goes through the same final pass
         gl.bindTexture(gl.TEXTURE_2D, tSrc);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);
         gl.bindTexture(gl.TEXTURE_2D, tTop);
@@ -1281,6 +1287,7 @@ const CS = (() => {
         pass('lens', null, { img: tComp, dirtT: tDirt }, {
           expo: lens.expo ?? 1, bloom: lens.bloom ?? 0, ca: lens.ca ?? 0, dirt: lens.dirt ?? 0, ghost: lens.ghost ?? 0,
           star: lens.star ?? 0, streak: lens.streak ?? 0, veil: lens.veil || [0, 0, 0], sA, sB, ns: S.length,
+          fz: frame ? frame.zoom : 1, frot: frame ? frame.rot : 0, foff: frame ? [frame.dx, frame.dy] : [0, 0],
         }, w, h);
       },
     };
@@ -1379,7 +1386,7 @@ const CS = (() => {
       if (!painter) { if (scene.renderTop) scene.renderTop(ctx, state); return; }
       topCtx.clearRect(0, 0, scene.W, scene.H);
       if (scene.renderTop) scene.renderTop(topCtx, state);
-      painter.draw(src, top, paint, state.lens || null);
+      painter.draw(src, top, paint, state.lens || null, state.frame || null);
     };
     requestAnimationFrame(frame);
     // hooks for the screenshot / optimisation harness

@@ -74,6 +74,11 @@
     projCol: null,         // the projectors' own colour (null: each head's colour)
     projAlpha: 1,          // how solid the projected light is (low: a translucent veil of pattern)
     gain: 1,               // programme-level brightness push on top of the master
+    sparkle: 0, sparkleN: 420, sparkleSpin: 0, // prism sparkles: pin-point beams leaving tiny spectra where they land
+    stardust: 0, dustT: 0, // motes in the air round the ball, drifting outward
+    bang: -1,              // 0..1 while the drop's shell of streaks flies out (-1: none)
+    flash: 0,              // a white flash down the lens from the ball (the bang)
+    nebula: 0,             // faint shifting colour in the smoke
     // every can is a moving head on the ring: it tilts out of the ring toward the audience (+) or
     // away (-), each by its own amount when tiltScan is up
     tilt: 0, tiltScan: 0, tiltPh: 0,
@@ -98,7 +103,7 @@
   // The camera that took the picture. It reacts to light like a real one: a fixture aimed down the
   // lens veils the frame in its colour and flares (starburst, ghosts, lit-up dirt on the glass),
   // and auto-exposure pulls the rest of the frame down, then recovers.
-  const CAMERA = { on: true, glare: 1, flare: 1, dirt: 0.7, bloom: 0.6, autoExpo: true };
+  const CAMERA = { on: true, glare: 1, flare: 1, dirt: 0.7, bloom: 0.6, autoExpo: true, handheld: 0 };
 
   // Live desk: the console (or ?live={...}) sets these and they are applied every frame.
   const LIVE = {
@@ -106,6 +111,7 @@
     autoRot: 0, // auto-rotate speed (0 = off): the rig drifts round in all three axes on its own
     groups: { ring: true, band: true, back: true },
     smoke: 0, disperse: 0, // haze density and prism fringes on the live desk
+    sparkle: 0, stardust: 0, nebula: 0, // the cosmos: prism sparkles, stardust, nebula tint
     // strobe (rate 0 = off): gates the heads on and off; options for white flashes, re-aiming the
     // burst every flash, varying its density per flash, and flashing the spot and front lamp too
     strobe: 0, strobeDuty: 0.45, strobeWhite: true, strobeReaim: true, strobeVary: true, strobeAll: false,
@@ -122,7 +128,7 @@
       LX.mode = 'live';
       try {
         const o = JSON.parse(q || '{}');
-        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll', 'strobeFrac', 'strobeShuffle', 'groups', 'smoke', 'disperse']) if (k in o) LIVE[k] = o[k];
+        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll', 'strobeFrac', 'strobeShuffle', 'groups', 'smoke', 'disperse', 'sparkle', 'stardust', 'nebula']) if (k in o) LIVE[k] = o[k];
         if ('crowd' in o) LX.crowd = o.crowd;
         for (const k in CAMERA) if (k in o) CAMERA[k] = o[k];
         LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan', 'burst']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
@@ -159,6 +165,8 @@
     LX.projAlpha = 1;
     LX.goboSeed = 0;
     LX.fireFrac = 1;
+    LX.sparkle = LIVE.sparkle; LX.sparkleSpin = t * 0.25; LX.stardust = LIVE.stardust; LX.dustT = t;
+    LX.bang = -1; LX.flash = 0; LX.nebula = LIVE.nebula; LX.kick = 0;
     LX.spot = LIVE.spot;
     LX.spotCol = LIVE.spotCol;
     LX.goboSpin = ACC.gobo;
@@ -229,6 +237,7 @@
     LX.projCol = null;
     LX.projAlpha = 1;
     LX.groups = SHOW_GROUPS;
+    LX.sparkle = 0; LX.stardust = 0; LX.bang = -1; LX.flash = 0; LX.nebula = 0; LX.kick = 0;
     if (LX.program === 'beams') { beamsAt(t); return; }
     if (LX.program === 'song') { songAt(t); return; }
     const L = PROGRAMS.main;
@@ -392,6 +401,7 @@
       LX.eye = 0.35 + 0.25 * en;
       LX.eyeCol = [150, 225, 220];
       LX.smoke = 0.25 * q;
+      LX.kick = kick * 0.3;
     } else if (t < P.t1) {
       // the birth of the cosmos
       const [yw, pt, rl] = cosmosRig(t, P);
@@ -427,8 +437,19 @@
         LX.lv[i].proj = FIX[i].back ? 0 : 1.05 + 0.45 * kick;
         LX.lv[i].burst = on ? 1.25 : 0;
       });
-      // she stays a small figure under it all: the spot drops to about half, breathing with the kick
-      LX.spot = 0.48 + 0.14 * kick;
+      // she stays a small figure under it all: the spot drops to a third, breathing with the kick
+      LX.spot = 0.3 + 0.1 * kick;
+      // the cosmos: prism sparkles round the room, stardust drifting out, a nebula in the smoke,
+      // and at the drop a shell of streaks flying out of the ball with a flash down the lens
+      LX.sparkle = 0.95;
+      LX.sparkleN = 420;
+      LX.sparkleSpin = (t - P.t0) * 0.35;
+      LX.stardust = 1;
+      LX.dustT = t - P.t0;
+      LX.bang = t < P.t0 + 1.8 ? (t - P.t0) / 1.8 : -1;
+      LX.flash = 2.2 * (1 - seg(t, P.t0, P.t0 + 0.7));
+      LX.nebula = 0.7;
+      LX.kick = kick;
       LX.spotCol = [214, 220, 232];
       LX.eye = on ? 1 : 0.2;
       LX.eyeCol = WHITE;
@@ -444,6 +465,12 @@
       LX.tiltPh = t * 0.9;
       LX.smoke = 0.95 * (1 - seg(t, P.t1, P.t1 + 12));
       LX.disperse = 1 - seg(t, P.t1, P.t1 + 4);
+      LX.sparkle = 0.95 * (1 - seg(t, P.t1, P.t1 + 5));
+      LX.sparkleN = 420;
+      LX.sparkleSpin = (t - P.t0) * 0.35 * (1 - 0.7 * h);
+      LX.stardust = 1 - seg(t, P.t1, P.t1 + 9);
+      LX.dustT = t - P.t0;
+      LX.nebula = 0.7 * (1 - seg(t, P.t1, P.t1 + 8));
       const fade = 1 - seg(t, C.duration - 6, C.duration);
       ORDER.forEach((i, k) => {
         LX.col[i] = mixc([236, 241, 250], TEAL, h);
@@ -1915,6 +1942,25 @@
         g.globalCompositeOperation = 'source-over';
       }
     }
+    if (LX.on && LX.nebula > 0) {
+      // a nebula: the smoke picks up faint, slowly shifting colour (violet, teal, amber) toward its edges
+      const sm = smokeCv.getContext('2d'), tN = LX.smokeT;
+      sm.globalCompositeOperation = 'copy';
+      fillSmoke(sm, smokeCv.width, smokeCv.height, 3.1, -tN * 4, tN * 3);
+      sm.globalCompositeOperation = 'multiply';
+      const gr = sm.createLinearGradient(0, 0, smokeCv.width, smokeCv.height * 0.6);
+      gr.addColorStop(0, `hsl(${(265 + tN * 6) % 360},70%,55%)`);
+      gr.addColorStop(0.5, `hsl(${(185 + tN * 6) % 360},60%,45%)`);
+      gr.addColorStop(1, `hsl(${(35 + tN * 6) % 360},70%,55%)`);
+      sm.fillStyle = gr;
+      sm.fillRect(0, 0, smokeCv.width, smokeCv.height);
+      sm.globalCompositeOperation = 'source-over';
+      g.globalCompositeOperation = 'lighter';
+      g.globalAlpha = Math.min(1, LX.nebula * 0.22 * Math.min(1.2, amb + 0.2));
+      g.drawImage(smokeCv, 0, 0, W, H);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+    }
 
     // halo of scattered light around the orb
     const halo = g.createRadialGradient(ORBV.x, ORBV.y, 60 * ORBV.s, ORBV.x, ORBV.y, 300 * ORBV.s);
@@ -2093,6 +2139,7 @@
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'source-over';
     (LX.on ? drawOrb3D : drawOrb)(layer, tL, S.intensity * pulse);
+    drawCosmos(layer, tL);
     if (LX.on && frontLights.length) {
       // light leaving the ball's face toward us crosses in front of it on the crisp layer too
       layer.save();
@@ -2298,6 +2345,103 @@
     g.globalCompositeOperation = 'source-over';
   }
 
+  // ---------- the cosmos: prism sparkles, stardust, the bang ----------
+  // Sparkles: hundreds of pin-point beams from mirror-and-prism facets on the ball, turning with it;
+  // where each lands (heads, faces in the stands) it leaves a tiny spectrum, red, green and blue split
+  // along the light's way. Stardust: motes in the air round the ball drifting outward like an
+  // expanding universe, mostly white, a few prismatic. The bang: at the drop a shell of streaks flies
+  // out of the ball.
+  const SPARK = (() => {
+    const Rs = CS.rng(919), n = 600, out = [];
+    for (let k = 0; k < n; k++) { const y = 1 - (2 * (k + 0.5)) / n, r = Math.sqrt(1 - y * y), a = k * 2.399963 + Rs() * 0.4; out.push({ d: [r * Math.cos(a), y, r * Math.sin(a)], ph: Rs() * TAU, sp: 0.8 + Rs() * 3, k: 0.35 + 0.65 * Rs() }); }
+    return out;
+  })();
+  const DUST = (() => {
+    const Rd = CS.rng(929), out = [];
+    for (let k = 0; k < 1100; k++) {
+      const u = Rd() * 2 - 1, a = Rd() * TAU, r = Math.sqrt(1 - u * u);
+      out.push({ d: [r * Math.cos(a), u, r * Math.sin(a)], r0: Rd(), sp: 0.4 + Rd(), ph: Rd() * TAU, tint: Rd() < 0.22 ? hsl(Rd() * 360, 0.9, 0.72) : null, s: 0.5 + Rd() * 1.4 });
+    }
+    return out;
+  })();
+  function drawCosmos(g, t) {
+    if (!LX.on || (LX.sparkle <= 0 && LX.stardust <= 0 && LX.bang < 0)) return;
+    const lit = 0.3 + 0.7 * Math.min(1, amb), ocz = VIEW.on ? VIEW.Oc[2] : O3[2];
+    const behindBall = (q, z) => z > ocz && ((q[0] - ORBV.x) / ORBV.rx) ** 2 + ((q[1] - ORBV.y) / ORBV.ry) ** 2 < 1;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    if (LX.sparkle > 0) {
+      const ca = Math.cos(LX.sparkleSpin), sa = Math.sin(LX.sparkleSpin);
+      for (let k = 0; k < Math.min(LX.sparkleN, SPARK.length); k++) {
+        const sp = SPARK[k], b = sp.d;
+        const dirW = rot3([b[0] * ca + b[2] * sa, b[1], -b[0] * sa + b[2] * ca]);
+        const h = hit3(add3(O3, dirW, RS), dirW);
+        if (h.surf !== 'floor' && h.surf !== 'stand') continue;
+        const q = proj(h.P), z = camDepth(h.P);
+        if (q[0] < -10 || q[0] > W + 10 || q[1] < -10 || q[1] > H + 10 || behindBall(q, z)) continue;
+        const tw = 0.5 + 0.5 * Math.sin(t * sp.sp + sp.ph), a = LX.sparkle * sp.k * tw * tw;
+        if (a < 0.02) continue;
+        const r = CS.clamp(230 / z, 0.9, 4.6) * (VIEW.Fz / CAM.F);
+        // the spectrum lies along the light's way across the screen (from the ball out)
+        let ax = q[0] - ORBV.x, ay = q[1] - ORBV.y;
+        const m = Math.hypot(ax, ay) || 1;
+        ax = (ax / m) * r * 1.1; ay = (ay / m) * r * 1.1;
+        if (r > 1.6) { g.globalAlpha = Math.min(1, a * 0.35); g.drawImage(glowWhite, q[0] - r * 3, q[1] - r * 3, r * 6, r * 6); }
+        g.globalAlpha = Math.min(1, a);
+        g.fillStyle = '#ff3a2a'; g.beginPath(); g.arc(q[0] + ax, q[1] + ay, r * 0.75, 0, TAU); g.fill();
+        g.fillStyle = '#3aff6a'; g.beginPath(); g.arc(q[0], q[1], r * 0.75, 0, TAU); g.fill();
+        g.fillStyle = '#3a6cff'; g.beginPath(); g.arc(q[0] - ax, q[1] - ay, r * 0.75, 0, TAU); g.fill();
+        g.globalAlpha = Math.min(1, a * 0.9);
+        g.fillStyle = '#ffffff'; g.beginPath(); g.arc(q[0], q[1], r * 0.4, 0, TAU); g.fill();
+      }
+    }
+    if (LX.stardust > 0) {
+      for (const p of DUST) {
+        const u = (p.r0 + LX.dustT * 0.018 * p.sp) % 1, R = RS * 1.6 + u * 60;
+        const P = add3(O3, p.d, R), z = camDepth(P);
+        if (z < 3) continue;
+        const q = proj0(P);
+        if (q[0] < 0 || q[0] > W || q[1] < 0 || q[1] > H || behindBall(q, z)) continue;
+        const a = LX.stardust * Math.sin(u * Math.PI) * lit * (0.55 + 0.45 * Math.sin(t * 2.3 * p.sp + p.ph));
+        if (a < 0.03) continue;
+        const sz = CS.clamp((p.s * 110) / z, 0.6, 3.5) * (VIEW.Fz / CAM.F);
+        g.globalAlpha = Math.min(1, a);
+        g.fillStyle = p.tint ? `rgb(${p.tint.map(v => v | 0)})` : '#f4f7ff';
+        g.fillRect(q[0] - sz / 2, q[1] - sz / 2, sz, sz);
+      }
+    }
+    if (LX.bang >= 0 && LX.bang < 1) {
+      // the shell flies out fast and fades; each mote a streak along its flight
+      const e = LX.bang, R1 = RS + 75 * (1 - (1 - e) ** 2.2), R0 = R1 * 0.82, fade = (1 - e) ** 1.5;
+      g.lineCap = 'round';
+      for (let k = 0; k < 520; k++) {
+        const p = DUST[k], s0 = add3(O3, p.d, R0 * (0.85 + 0.3 * p.r0)), s1 = add3(O3, p.d, R1 * (0.85 + 0.3 * p.r0));
+        if (camDepth(s0) < 3 || camDepth(s1) < 3) continue;
+        const a0 = proj0(s0), a1 = proj0(s1);
+        g.strokeStyle = p.tint ? `rgb(${p.tint.map(v => v | 0)})` : '#f6f8ff';
+        g.globalAlpha = Math.min(1, fade * (0.5 + 0.5 * p.sp));
+        g.lineWidth = CS.clamp((p.s * 80) / camDepth(s1), 0.6, 3);
+        g.beginPath(); g.moveTo(a0[0], a0[1]); g.lineTo(a1[0], a1[1]); g.stroke();
+      }
+    }
+    g.restore();
+  }
+  // a camera in someone's hands: zoomed in a little, drifting, with a tremor that grows when the
+  // music hits. Returns the frame transform the paint pass applies (null for a locked-off camera).
+  function handheldFrame(t) {
+    const k = CAMERA.handheld;
+    if (!k) return null;
+    const bump = 1 + 2.2 * (LX.kick || 0);
+    const drift = (f1, f2, p) => Math.sin(t * f1 + p) * 0.6 + Math.sin(t * f2 + p * 2.1) * 0.4;
+    const tremor = p => (Math.sin(t * 5.3 + p) + Math.sin(t * 8.7 + p * 1.7) * 0.6 + Math.sin(t * 13.1 + p * 0.3) * 0.3) / 1.9;
+    return {
+      zoom: 1 + 0.22 * k + 0.012 * Math.sin(t * 0.17),
+      dx: k * (0.011 * drift(0.31, 0.73, 1) + 0.0022 * bump * tremor(0.4)),
+      dy: k * (0.02 + 0.009 * drift(0.27, 0.61, 2) + 0.0022 * bump * tremor(1.9)), // framed a touch high: ball and performer both in
+      rot: k * (0.0055 * drift(0.23, 0.53, 3) + 0.0012 * bump * tremor(2.7)),
+    };
+  }
+
   // ---------- seats ----------
   // A different seat re-projects the scene. The lights and the ball are true 3D already. The painted
   // bowl is re-projected through the room's geometry (floor, stands, roof) as the painting's eye saw
@@ -2386,11 +2530,13 @@
   // what reaches the lens this frame, handed to the paint pass's optics (common.js, lens shader)
   let aeExpo = 1, aeT = null, aeWall = null;
   function lensFrame(S) {
+    S.frame = handheldFrame(S.clocks.lights);
     if (!LX.on || !CAMERA.on || CAMERA.glare <= 0) { S.lens = null; aeExpo = 1; aeT = null; return; }
     const src = glare.map(q => { const P = proj(q.C); return { x: P[0], y: P[1], k: q.k * CAMERA.glare, col: q.col, size: q.size }; });
     // the front lamp looks at the audience: a small steady star whenever it faces us
     const e = rot3([0, 0, -1]), eC = add3(O3, e, RS * 0.99), ef = Math.max(0, -dot3(e, norm3(fromEye(eC))));
     if (LX.eye > 0 && ef > 0.5) { const P = proj(eC); src.push({ x: P[0], y: P[1], k: 0.25 * LX.eye * S.intensity * ef ** 6 * CAMERA.glare, col: LX.eyeCol, size: 0.008 }); }
+    if (LX.flash > 0.01) src.push({ x: ORBV.x, y: ORBV.y, k: LX.flash * CAMERA.glare, col: [245, 248, 255], size: 0.05 });
     src.sort((a, b) => b.k - a.k);
     const top = src.slice(0, 6), total = top.reduce((a, q) => a + q.k, 0);
     // auto-exposure stops down fast when a light hits the lens and opens up again slowly

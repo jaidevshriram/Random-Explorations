@@ -73,6 +73,9 @@
   fader('burst-w', () => LIVE.burstSpread, v => (LIVE.burstSpread = v));
   fader('smoke', () => LIVE.smoke, v => (LIVE.smoke = v));
   fader('disperse', () => LIVE.disperse, v => (LIVE.disperse = v));
+  fader('sparkle', () => LIVE.sparkle, v => (LIVE.sparkle = v));
+  fader('stardust', () => LIVE.stardust, v => (LIVE.stardust = v));
+  fader('nebula', () => LIVE.nebula, v => (LIVE.nebula = v));
   const gp = $('gobo-pick');
   for (const name of [...A.GOBOS, 'mix']) {
     const b = document.createElement('button');
@@ -174,6 +177,7 @@
   fader('crowd-energy', () => A.crowd.energy ?? 1, v => (A.crowd.energy = v));
   toggle('cam-on', () => CAMERA.on, on => (CAMERA.on = on));
   toggle('cam-ae', () => CAMERA.autoExpo, on => (CAMERA.autoExpo = on));
+  toggle('cam-hand', () => CAMERA.handheld > 0, on => (CAMERA.handheld = on ? 1 : 0));
   fader('cam-glare', () => CAMERA.glare, v => (CAMERA.glare = v));
   fader('cam-flare', () => CAMERA.flare, v => (CAMERA.flare = v));
   fader('cam-dirt', () => CAMERA.dirt, v => (CAMERA.dirt = v));
