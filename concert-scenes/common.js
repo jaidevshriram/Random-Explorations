@@ -495,6 +495,7 @@ const CS = (() => {
       arm: r > 8 && r < 30 && R() < (opt.arms || 0), // a raised, swaying arm (mid-crowd only)
       arms2: R() < 0.35,               // both arms up
       armStyle: Math.floor(R() * 3),  // 0 waves side to side, 1 pumps to the beat, 2 held up
+      turn: R() < 0.22 ? (R() < 0.5 ? -1 : 1) * (0.5 + R() * 0.5) : 0, // head turned to one side
       side: R() < 0.5 ? -1 : 1,
       jit: [R(), R(), R(), R()],
       seed: (R() * 1e9) | 0,
@@ -631,8 +632,11 @@ const CS = (() => {
     const hairType = HAIR[Math.floor(p.hair * HAIR.length)];
     const longHair = hairType === 'long' || hairType === 'wavy' || hairType === 'curly';
     const hoodie = R() < 0.16;
-    const W = Math.ceil(sw * 2.4 + r * 1.6), H = Math.ceil(r * 5.4);
-    const ox = W / 2, oy = r * 1.45;
+    // posture: some stand taller (longer neck showing), heads tilt, some are turned to the side
+    const neckUp = hoodie ? 0 : R() < 0.4 ? rr(0.05, 0.3) * r : 0;
+    const headTilt = rr(-0.12, 0.12) + (p.turn || 0) * 0.08;
+    const W = Math.ceil(sw * 2.4 + r * 1.6), H = Math.ceil(r * 5.8);
+    const ox = W / 2, oy = r * 1.85;
     const c = canvas(W, H), g = c.getContext('2d');
     g.translate(ox, oy);
     g.lineCap = 'round';
@@ -692,13 +696,17 @@ const CS = (() => {
       g.globalAlpha = 1;
     } else if (!longHair) {
       g.fillStyle = skinLo;
-      g.beginPath(); g.roundRect(-r * 0.34 + lean * 0.5, r * 0.45, r * 0.68, r * 0.62, r * 0.2); g.fill();
+      g.beginPath(); g.roundRect(-r * 0.34 + lean * 0.5, r * 0.45 - neckUp, r * 0.68, r * 0.62 + neckUp, r * 0.2); g.fill();
       g.strokeStyle = clothLo; // t-shirt collar
       g.lineWidth = Math.max(0.8, r * 0.07);
       g.beginPath(); g.ellipse(lean, r * 0.98, r * 0.42, r * 0.12, 0, 0, Math.PI); g.stroke();
     }
 
-    // head
+    // head (its own frame: lifted by the neck, tilted about the neck base)
+    g.save();
+    g.translate(0, r * 0.85);
+    g.rotate(headTilt);
+    g.translate(0, -r * 0.85 - neckUp);
     const hw = r * 0.86 * p.hw;
     const head = new Path2D();
     head.ellipse(0, 0, hw, r * 0.92, 0, 0, TAU);
@@ -766,6 +774,28 @@ const CS = (() => {
         g.globalAlpha = 1;
       }
     }
+    if (p.turn && Math.abs(p.turn) > 0.45) {
+      // head turned (talking to a friend, glancing back): the face's edge shows past the hair
+      const sd = Math.sign(p.turn), k2 = Math.abs(p.turn);
+      const prof = new Path2D();
+      prof.moveTo(sd * hw * 0.55, -r * 0.55);
+      prof.quadraticCurveTo(sd * hw * 0.95, -r * 0.5, sd * hw * 1.0, -r * 0.18);
+      prof.lineTo(sd * (hw + r * 0.2 * k2), r * 0.04);
+      prof.lineTo(sd * hw * 1.0, r * 0.16);
+      prof.quadraticCurveTo(sd * (hw + r * 0.06), r * 0.3, sd * hw * 0.98, r * 0.36);
+      prof.quadraticCurveTo(sd * hw * 1.0, r * 0.62, sd * hw * 0.72, r * 0.7);
+      prof.quadraticCurveTo(sd * hw * 0.35, r * 0.82, sd * hw * 0.2, r * 0.6);
+      prof.lineTo(sd * hw * 0.4, -r * 0.4);
+      prof.closePath();
+      g.fillStyle = skinC;
+      g.fill(prof);
+      g.fillStyle = skinLo; // eye socket + the shadow under the cheekbone
+      g.beginPath(); g.ellipse(sd * hw * 0.82, -r * 0.12, r * 0.09, r * 0.06, 0, 0, TAU); g.fill();
+      if (showEars || hairType === 'short') {
+        g.fillStyle = skinC;
+        g.beginPath(); g.ellipse(sd * hw * 0.35, r * 0.1, r * 0.13, r * 0.22, 0, 0, TAU); g.fill();
+      }
+    }
 
     // light from the stage: a sheen across the crown, the tops of the shoulders, then a crisp rim
     if (hairType !== 'shaved') {
@@ -779,6 +809,7 @@ const CS = (() => {
       g.fillRect(-r * 2, -r * 2, r * 4, r * 2.5);
       g.restore();
     }
+    g.restore(); // head frame
     g.save();
     g.clip(torso);
     const tg = g.createLinearGradient(0, r * 0.9, 0, r * 2.2);
@@ -866,19 +897,21 @@ const CS = (() => {
         // dark limb, then a lit stripe along the side facing the stage: reads as a rounded arm
         const ls = (p.lside || 1) * r * 0.12;
         g.strokeStyle = p.armDark || p.armC;
-        g.lineWidth = r * 0.66;
+        g.lineWidth = r * 0.78;
         g.beginPath(); g.moveTo(...sh); g.quadraticCurveTo(side * (sw + r * 0.1), r * 0.85, ...el); g.stroke();
-        g.lineWidth = r * 0.5;
+        g.lineWidth = r * 0.6;
         g.beginPath(); g.moveTo(...el); g.quadraticCurveTo(el[0] - side * r * 0.15, (el[1] + hand[1]) / 2, hand[0], hand[1] + r * 0.2); g.stroke();
         g.strokeStyle = p.armC;
-        g.lineWidth = r * 0.26;
+        g.globalAlpha *= 0.7;
+        g.lineWidth = r * 0.2;
         g.beginPath(); g.moveTo(sh[0] + ls, sh[1] - r * 0.1); g.lineTo(el[0] + ls, el[1]); g.lineTo(hand[0] + ls * 0.8, hand[1] + r * 0.25); g.stroke();
+        g.globalAlpha /= 0.7;
         // hand: palm with a thumb, tipped with the sway
         g.save();
         g.translate(hand[0], hand[1]);
         g.rotate(sway * 0.8 + side * 0.15);
         g.fillStyle = p.armDark || p.armC;
-        g.beginPath(); g.ellipse(0, -r * 0.08, r * 0.24, r * 0.32, 0, 0, TAU); g.fill();
+        g.beginPath(); g.ellipse(0, -r * 0.08, r * 0.3, r * 0.38, 0, 0, TAU); g.fill();
         g.beginPath(); g.ellipse(side * -r * 0.2, r * 0.05, r * 0.08, r * 0.16, side * 0.6, 0, TAU); g.fill();
         g.fillStyle = p.skinC || p.armC;
         g.globalAlpha *= 0.75;
