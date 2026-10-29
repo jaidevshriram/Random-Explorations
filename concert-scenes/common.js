@@ -106,172 +106,374 @@ const CS = (() => {
   }
 
   // ---------- performer ----------
-  // Built in local units: feet at (0,0), roughly 100 units tall, facing the camera.
-  // Guitar frame is rotated so the neck points up and to the viewer's right.
+  // Built in local units: feet at (0,0), ~100 units tall, facing the camera, head turned a
+  // little toward the mic. Drawn supersampled into an offscreen canvas, then lit from its
+  // own silhouette (spotlight from above, haze rims at the sides) and placed in the scene.
   function performerPose(t, bpm) {
     const beat = (t * bpm) / 60;
     return {
-      sway: Math.sin(t * 0.9) * 0.028,
+      sway: Math.sin(t * 0.9) * 0.022,
       nod: Math.abs(Math.sin(beat * Math.PI)) * 0.9,
       strum: Math.sin(beat * TAU * 2) * (0.75 + 0.25 * Math.sin(beat * 0.5)),
-      fret: 33 + [0, 4, -2, 2][Math.floor(beat / 4) % 4] + Math.sin(t * 3) * 0.3,
-      hair: Math.sin(t * 1.3) * 1.1,
+      fret: [27, 31, 25, 29][Math.floor(beat / 4) % 4] + Math.sin(t * 3) * 0.2,
+      hair: Math.sin(t * 1.3) * 0.9,
+      breathe: Math.sin(t * 1.5) * 0.35,
     };
   }
 
-  // Guitar frame: body centred mid-torso, neck rising to the viewer's right.
-  const GUITAR = { x: 1, y: -55, a: -0.42 };
-  const onNeck = u => [
-    GUITAR.x + Math.cos(GUITAR.a) * u,
-    GUITAR.y + Math.sin(GUITAR.a) * u,
+  // guitar frame: u runs along the strings toward the headstock, v across them
+  const GUITAR = { x: 2.5, y: -58.5, a: -0.33 };
+  const gpt = (u, v = 0) => [
+    GUITAR.x + Math.cos(GUITAR.a) * u - Math.sin(GUITAR.a) * v,
+    GUITAR.y + Math.sin(GUITAR.a) * u + Math.cos(GUITAR.a) * v,
   ];
+  // dreadnought half-width along u: two overlapping bouts make the waist
+  const bout = u => Math.max(
+    Math.abs(u + 11) < 12 ? 11.8 * Math.sqrt(1 - ((u + 11) / 12) ** 2) : 0,
+    Math.abs(u - 4.3) < 8.8 ? 9.2 * Math.sqrt(1 - ((u - 4.3) / 8.8) ** 2) : 0,
+  );
 
+  // tapered limb a→b→c as a filled outline
+  function limb(g, a, b, c, w0, w1, w2) {
+    const pts = [a, b, c], ws = [w0, w1, w2], L = [], Rt = [];
+    for (let i = 0; i < 3; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[Math.min(2, i + 1)];
+      let nx = -(p1[1] - p0[1]), ny = p1[0] - p0[0];
+      const n = Math.hypot(nx, ny) || 1; nx /= n; ny /= n;
+      L.push([pts[i][0] + nx * ws[i] / 2, pts[i][1] + ny * ws[i] / 2]);
+      Rt.push([pts[i][0] - nx * ws[i] / 2, pts[i][1] - ny * ws[i] / 2]);
+    }
+    const path = new Path2D();
+    path.moveTo(...L[0]); path.quadraticCurveTo(...L[1], ...L[2]);
+    path.arc(c[0], c[1], w2 / 2, Math.atan2(L[2][1] - c[1], L[2][0] - c[0]), Math.atan2(Rt[2][1] - c[1], Rt[2][0] - c[0]));
+    path.quadraticCurveTo(...Rt[1], ...Rt[0]);
+    path.closePath();
+    return path;
+  }
+
+  let perfCv = null, perfMask = null;
   function drawPerformer(g, x, y, s, t, bpm, style) {
-    const P = performerPose(t, bpm);
-    const sketch = style === 'sketch';
-    const rim = sketch ? 'rgba(165,255,245,0.9)' : 'rgba(150,235,225,0.5)';
-    const rimW = sketch ? 0.7 : 0.45;
+    const SS = 3, S = s * SS;
+    const UW = 76, UH = 112, UOX = 30, UOY = 106;
+    const cw = Math.ceil(UW * S), ch = Math.ceil(UH * S);
+    if (!perfCv || perfCv.width !== cw || perfCv.height !== ch) { perfCv = canvas(cw, ch); perfMask = canvas(cw, ch); }
+    const pg = perfCv.getContext('2d');
+    pg.setTransform(1, 0, 0, 1, 0, 0);
+    pg.globalCompositeOperation = 'source-over';
+    pg.clearRect(0, 0, cw, ch);
+    pg.setTransform(S, 0, 0, S, UOX * S, UOY * S);
+    paintPerformer(pg, performerPose(t, bpm), style === 'sketch');
+    pg.setTransform(1, 0, 0, 1, 0, 0);
+    lightPerformer(pg, cw, ch, S, style === 'sketch');
+    g.drawImage(perfCv, x - UOX * s, y - UOY * s, UW * s, UH * s);
+  }
 
-    g.save();
-    g.translate(x, y);
-    g.scale(s, s);
+  // edge light from the figure's own alpha: silhouette minus itself shifted away from the light
+  function lightPerformer(pg, cw, ch, S, sketch) {
+    const mg = perfMask.getContext('2d');
+    const pass = (dx, dy, w, color) => {
+      mg.globalCompositeOperation = 'copy';
+      mg.drawImage(perfCv, 0, 0);
+      mg.globalCompositeOperation = 'destination-out';
+      mg.drawImage(perfCv, -dx * w * S, -dy * w * S);
+      mg.globalCompositeOperation = 'source-in';
+      mg.fillStyle = color;
+      mg.fillRect(0, 0, cw, ch);
+      pg.globalCompositeOperation = 'source-atop';
+      pg.drawImage(perfMask, 0, 0);
+    };
+    if (sketch) {
+      for (const [dx, dy] of [[0, -1], [1, 0], [-1, 0], [0, 1], [0.7, -0.7], [-0.7, -0.7]]) pass(dx, dy, 0.55, 'rgba(165,255,245,0.85)');
+    } else {
+      pass(0.15, -1, 2.6, 'rgba(120,225,215,0.28)');  // broad spill from the spot above
+      pass(0.1, -1, 0.8, 'rgba(215,255,250,0.85)');   // hot top edges
+      pass(-1, -0.15, 0.6, 'rgba(110,210,205,0.35)'); // haze rims at the sides
+      pass(1, -0.15, 0.6, 'rgba(110,210,205,0.35)');
+      // falling off toward the feet
+      const gr = pg.createLinearGradient(0, 0, 0, ch);
+      gr.addColorStop(0, 'rgba(0,0,0,0)');
+      gr.addColorStop(0.55, 'rgba(0,0,0,0.05)');
+      gr.addColorStop(1, 'rgba(0,0,0,0.4)');
+      pg.globalCompositeOperation = 'source-atop';
+      pg.fillStyle = gr;
+      pg.fillRect(0, 0, cw, ch);
+    }
+    pg.globalCompositeOperation = 'source-over';
+  }
+
+  function paintPerformer(g, P, sketch) {
+    const C = sketch ? {
+      top: '#040d16', topHi: '#0a1a26', jeans: '#040c14', jeansHi: '#0a1824', skin: '#8fc4bf', skinHi: '#c8f2ec',
+      hair: '#d8fff8', hairMid: '#8fd8cf', hairLo: '#3d7f7a', body: '#030a12', bodyHi: '#0a1824', bind: '#a8fff4',
+      metal: '#9ff0e6', boot: '#02060a', strap: '#061420',
+    } : {
+      top: '#122a30', topHi: '#3a7176', jeans: '#0b1a22', jeansHi: '#22424c', skin: '#7c9b99', skinHi: '#c4e3df',
+      hair: '#d6f2ee', hairMid: '#93bdb9', hairLo: '#4b706e', body: '#0a1113', bodyHi: '#1a2a2e', bind: '#a6e2da',
+      metal: '#3e5a5e', boot: '#04080a', strap: '#071114',
+    };
+    const hy = -P.nod, br = P.breathe;
     g.lineJoin = 'round';
     g.lineCap = 'round';
-
-    let cloth, sleeve;
-    if (sketch) cloth = sleeve = '#040d16';
-    else {
-      cloth = g.createLinearGradient(0, -98, 0, 0);
-      cloth.addColorStop(0, '#3a6c6b');
-      cloth.addColorStop(0.14, '#142b2e');
-      cloth.addColorStop(0.45, '#0a171a');
-      cloth.addColorStop(1, '#061012');
-      sleeve = g.createLinearGradient(0, -86, 0, -50);
-      sleeve.addColorStop(0, '#4f8886');
-      sleeve.addColorStop(1, '#132a2d');
-    }
-    const hy = -P.nod;
-    const hairFill = g.createLinearGradient(0, -98 + hy, 0, -72);
-    hairFill.addColorStop(0, sketch ? '#f0fffc' : '#e3f6f3');
-    hairFill.addColorStop(0.45, sketch ? '#a6ece3' : '#9cc4c1');
-    hairFill.addColorStop(1, sketch ? '#3f8e88' : '#3c6260');
-
-    const shape = (path, fill, outline = true) => {
-      g.fillStyle = fill;
+    const fill = (path, c) => { g.fillStyle = c; g.fill(path); };
+    const shadeIn = (path, y0, y1, c0, c1) => {
+      // vertical gradient inside a shape (light from above)
+      const gr = g.createLinearGradient(0, y0, 0, y1);
+      gr.addColorStop(0, c0);
+      gr.addColorStop(1, c1);
+      g.fillStyle = gr;
       g.fill(path);
-      if (outline) {
-        g.strokeStyle = rim;
-        g.lineWidth = rimW;
-        g.stroke(path);
-      }
     };
 
-    // mic stand stays put while the body sways
-    g.strokeStyle = sketch ? 'rgba(150,240,230,0.75)' : '#0b171a';
-    g.lineWidth = 1.1;
-    g.beginPath();
-    g.moveTo(31, -10); g.lineTo(31, -68); g.lineTo(14, -86);
-    g.moveTo(31, -10); g.lineTo(23, 0); g.moveTo(31, -10); g.lineTo(39, 0); g.moveTo(31, -10); g.lineTo(31.5, 0.8);
-    g.stroke();
-    if (!sketch) {
-      g.strokeStyle = 'rgba(160,240,230,0.45)';
-      g.lineWidth = 0.45;
-      g.beginPath(); g.moveTo(31.4, -68); g.lineTo(31.4, -11); g.moveTo(31.3, -68); g.lineTo(14.3, -86); g.stroke();
-    }
-
+    g.save();
     g.rotate(P.sway);
 
-    // legs: long, slightly flared trousers
+    // long hair behind the shoulders
+    const back = new Path2D();
+    back.moveTo(-4.4, -96 + hy);
+    back.bezierCurveTo(-6.4, -94 + hy, -6.6, -86 + hy, -7 + P.hair * 0.3, -76);
+    back.bezierCurveTo(-7.4 + P.hair * 0.5, -71.5, -6, -70.5, -4.6, -72);
+    back.lineTo(4.8, -73);
+    back.bezierCurveTo(6.4, -71.5, 7.6 + P.hair * 0.5, -72.5, 7.2 + P.hair * 0.3, -76);
+    back.bezierCurveTo(6.8, -86 + hy, 6.4, -94 + hy, 4.2, -96.5 + hy);
+    back.closePath();
+    shadeIn(back, -97, -70, C.hairMid, C.hairLo);
+    // the side tucked behind the ear, behind the face
+    const tucked = new Path2D();
+    tucked.moveTo(1.8, -96 + hy);
+    tucked.bezierCurveTo(5.4, -94 + hy, 5.6, -88 + hy, 5.2, -83);
+    tucked.bezierCurveTo(6.2, -79, 7.2 + P.hair * 0.3, -77, 7.6 + P.hair * 0.4, -74.5);
+    tucked.lineTo(5.4, -75.5);
+    tucked.bezierCurveTo(3, -80, 1, -86 + hy, 0.6, -92 + hy);
+    tucked.closePath();
+    shadeIn(tucked, -96 + hy, -74, C.hair, C.hairMid);
+
+    // legs: contrapposto, weight on the viewer's left leg, flared hems
     const legs = new Path2D();
-    legs.moveTo(-7.6, -54); legs.lineTo(-0.4, -54); legs.lineTo(-1.6, -2); legs.lineTo(-9.4, -2); legs.closePath();
-    legs.moveTo(0.4, -54); legs.lineTo(7.6, -54); legs.lineTo(9.4, -2); legs.lineTo(1.6, -2); legs.closePath();
-    shape(legs, cloth);
-    const boots = new Path2D();
-    boots.ellipse(-5.6, -1, 4.4, 1.7, 0, 0, TAU);
-    boots.ellipse(5.6, -1, 4.4, 1.7, 0, 0, TAU);
-    shape(boots, '#04080a', sketch);
-
-    const backHair = new Path2D();
-    backHair.moveTo(-4.6, -97 + hy);
-    backHair.bezierCurveTo(-7.6, -95 + hy, -7.4, -86 + hy, -7.4 + P.hair * 0.3, -76);
-    backHair.bezierCurveTo(-7.2 + P.hair * 0.6, -72.5, -5, -72.5, -3.8, -74);
-    backHair.lineTo(3.8, -74);
-    backHair.bezierCurveTo(5, -72.5, 7.2 + P.hair * 0.6, -72.5, 7.4 + P.hair * 0.3, -76);
-    backHair.bezierCurveTo(7.4, -86 + hy, 7.6, -95 + hy, 4.6, -97 + hy);
-    backHair.quadraticCurveTo(0, -100.5 + hy, -4.6, -97 + hy);
-    backHair.closePath();
-    shape(backHair, hairFill, sketch);
-
-    const torso = new Path2D();
-    torso.moveTo(-7, -52);
-    torso.bezierCurveTo(-7.4, -62, -10.4, -74, -10.6, -80);
-    torso.quadraticCurveTo(-10, -84.5, -4, -85.5);
-    torso.lineTo(4, -85.5);
-    torso.quadraticCurveTo(10, -84.5, 10.6, -80);
-    torso.bezierCurveTo(10.4, -74, 7.4, -62, 7, -52);
-    torso.closePath();
-    shape(torso, cloth);
-
-    const head = new Path2D();
-    head.ellipse(0.4, -91 + hy, 3.7, 4.8, 0, 0, TAU);
-    shape(head, sketch ? '#8fc4bf' : '#a2bfbc', false);
-
-    // fringe + strands framing the face
-    const frontHair = new Path2D();
-    frontHair.moveTo(-4.4, -91 + hy);
-    frontHair.bezierCurveTo(-5.2, -100.5 + hy, 5.4, -100.5 + hy, 4.6, -91 + hy);
-    frontHair.bezierCurveTo(3, -94.5 + hy, -1.5, -95 + hy, -4.4, -91 + hy);
-    for (const sd of [-1, 1]) {
-      frontHair.moveTo(sd * 4.3, -93 + hy);
-      frontHair.bezierCurveTo(sd * 5, -87 + hy, sd * (5.6 + P.hair * 0.3), -81, sd * (6.4 + P.hair * 0.4), -74.5);
-      frontHair.lineTo(sd * 4.2, -75.5);
-      frontHair.bezierCurveTo(sd * 3.6, -81, sd * 3.2, -87 + hy, sd * 3.1, -91 + hy);
-      frontHair.closePath();
-    }
-    shape(frontHair, hairFill, false);
-
-    // guitar
-    g.save();
-    g.translate(GUITAR.x, GUITAR.y);
-    g.rotate(GUITAR.a);
-    const gt = new Path2D();
-    gt.ellipse(-6, 0, 10.5, 10.8, 0, 0, TAU);
-    gt.ellipse(6, 0, 7.6, 8.2, 0, 0, TAU);
-    shape(gt, sketch ? '#030a12' : '#0a1619');
-    const neck = new Path2D();
-    neck.rect(12, -1.3, 26, 2.6);
-    neck.rect(38, -2.1, 6, 4.2);
-    shape(neck, sketch ? '#061420' : '#0c191c');
-    g.fillStyle = '#020506';
-    g.beginPath(); g.arc(3, 0, 2.6, 0, TAU); g.fill();
+    legs.moveTo(-9.4, -54);
+    legs.bezierCurveTo(-10.4, -44, -8.8, -33, -8.4, -27);
+    legs.bezierCurveTo(-8.4, -18, -10.8, -6, -11.6, -1.6);
+    legs.lineTo(-1.8, -1.6);
+    legs.bezierCurveTo(-1.4, -8, -1, -18, -1, -27);
+    legs.bezierCurveTo(-0.9, -36, -0.4, -45, -0.2, -49);
+    legs.lineTo(0.2, -49);
+    legs.bezierCurveTo(0.6, -45, 1.2, -36, 1.2, -28);
+    legs.bezierCurveTo(1.4, -18, 2, -8, 2.4, -1.8);
+    legs.lineTo(12, -1.8);
+    legs.bezierCurveTo(11.2, -6, 9.4, -18, 9.2, -28);
+    legs.bezierCurveTo(9.8, -36, 10.2, -44, 9.4, -54);
+    legs.closePath();
+    shadeIn(legs, -53, 0, C.jeansHi, C.jeans);
     if (!sketch) {
-      g.strokeStyle = 'rgba(170,250,240,0.4)';
-      g.lineWidth = 0.55;
-      g.beginPath(); g.ellipse(-6, 0, 10.5, 10.8, 0, Math.PI * 1.0, Math.PI * 1.7); g.stroke();
-      g.beginPath(); g.ellipse(6, 0, 7.6, 8.2, 0, Math.PI * 1.2, Math.PI * 1.8); g.stroke();
+      // denim creases at the knees and the inseam
+      g.strokeStyle = 'rgba(0,0,0,0.35)';
+      g.lineWidth = 0.35;
+      g.beginPath();
+      g.moveTo(-6.5, -29); g.quadraticCurveTo(-4.8, -27.5, -3, -28.5);
+      g.moveTo(3.2, -30); g.quadraticCurveTo(5.2, -28, 7.2, -29.5);
+      g.moveTo(-4.6, -24); g.lineTo(-5.4, -4); g.moveTo(5.8, -24); g.lineTo(6.6, -4);
+      g.stroke();
+    }
+    const boots = new Path2D();
+    boots.ellipse(-6.4, -1, 4.4, 1.6, 0, 0, TAU);
+    boots.ellipse(6.9, -1.1, 4.4, 1.6, 0.05, 0, TAU);
+    boots.ellipse(-8.6, -0.7, 2.4, 1.1, 0, 0, TAU);
+    boots.ellipse(9.4, -0.8, 2.4, 1.1, 0, 0, TAU);
+    fill(boots, C.boot);
+
+    // fitted long-sleeve top
+    const torso = new Path2D();
+    torso.moveTo(-9.4, -53);
+    torso.bezierCurveTo(-7.8, -57, -7, -61, -7.2, -63.5);
+    torso.bezierCurveTo(-7.8, -68, -8.6 - br * 0.3, -72, -8.8, -77.5);
+    torso.quadraticCurveTo(-9.6, -81.5, -9.9, -82.6);
+    torso.quadraticCurveTo(-6.5, -85.2, -2.4, -85.8);
+    torso.quadraticCurveTo(0, -84.8, 2.4, -85.8);
+    torso.quadraticCurveTo(6.5, -85.2, 9.9, -82.6);
+    torso.quadraticCurveTo(9.6, -81.5, 8.6, -77.5);
+    torso.bezierCurveTo(8.6 + br * 0.3, -72, 7.8, -68, 7.2, -63.5);
+    torso.bezierCurveTo(7, -61, 7.9, -57, 9.4, -53);
+    torso.quadraticCurveTo(0, -51.6, -9.4, -53);
+    torso.closePath();
+    shadeIn(torso, -86, -52, C.topHi, C.top);
+
+    // neck and head (turned a touch toward the mic)
+    const neck = new Path2D();
+    neck.roundRect(-1.9, -88.5 + hy * 0.5, 3.8, 4, 1);
+    fill(neck, C.skin);
+    const head = new Path2D();
+    head.ellipse(0.6, -91.6 + hy, 4.5, 5.5, 0.05, 0, TAU);
+    fill(head, C.skin);
+    // profile catching the light: brow, nose, lips, chin toward the mic
+    const face = new Path2D();
+    face.moveTo(2.6, -96 + hy);
+    face.quadraticCurveTo(4.6, -94.8 + hy, 4.7, -93 + hy);
+    face.lineTo(5.6, -91.2 + hy);
+    face.lineTo(4.8, -90.6 + hy);
+    face.quadraticCurveTo(5.2, -89.6 + hy, 4.7, -89 + hy);
+    face.quadraticCurveTo(4.9, -87.6 + hy, 3.7, -87.1 + hy);
+    face.quadraticCurveTo(2, -86.6 + hy, 1, -87.4 + hy);
+    face.lineTo(1.4, -95 + hy);
+    face.closePath();
+    shadeIn(face, -96 + hy, -87 + hy, C.skinHi, C.skin);
+    // eye sockets and mouth, just enough to read as a face under the hair
+    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.beginPath();
+    g.ellipse(-0.6, -92.3 + hy, 0.9, 0.45, 0, 0, TAU);
+    g.ellipse(2.6, -92.4 + hy, 0.8, 0.42, 0, 0, TAU);
+    g.ellipse(2.4, -88.9 + hy, 0.9, 0.25, 0, 0, TAU);
+    g.fill();
+
+    // hair over the crown, a curtain over the viewer's-left shoulder, the rest tucked back
+    const cap = new Path2D();
+    cap.moveTo(-4.7, -88.5 + hy);
+    cap.bezierCurveTo(-5.6, -96 + hy, -2.4, -98.4 + hy, 1, -97.8 + hy);
+    cap.bezierCurveTo(3.8, -97.4 + hy, 4.8, -95.4 + hy, 3.6, -93.6 + hy);
+    cap.quadraticCurveTo(1.6, -95.4 + hy, -0.8, -94.6 + hy);
+    cap.quadraticCurveTo(-2.6, -93 + hy, -3, -89 + hy);
+    cap.closePath();
+    const curtain = new Path2D();
+    curtain.moveTo(-3, -91 + hy);
+    curtain.bezierCurveTo(-4.4, -84 + hy, -6.8 + P.hair * 0.3, -79, -7.4 + P.hair * 0.5, -71.5);
+    curtain.bezierCurveTo(-7.6 + P.hair * 0.5, -70, -5.4, -69.8, -4.4, -71.2);
+    curtain.bezierCurveTo(-3.6, -78, -2.6, -84 + hy, -1.6, -90 + hy);
+    curtain.closePath();
+    for (const h of [curtain, cap]) shadeIn(h, -98 + hy, -71, C.hair, C.hairMid);
+    // strands following the fall
+    g.save();
+    g.clip(curtain);
+    g.lineWidth = 0.28;
+    for (let k = 0; k < 7; k++) {
+      g.strokeStyle = k % 2 ? C.hairLo : C.hair;
+      g.globalAlpha = 0.5;
+      g.beginPath();
+      g.moveTo(-3 + k * 0.2, -91 + hy);
+      g.bezierCurveTo(-4.2 - k * 0.3, -84 + hy, -5.6 - k * 0.25 + P.hair * 0.3, -78, -6.6 + k * 0.35 + P.hair * 0.5, -71);
+      g.stroke();
     }
     g.restore();
+    g.globalAlpha = 1;
 
-    // arms: stroked limbs with a rim pass underneath
-    const [fx, fy] = onNeck(27 + (P.fret - 33) * 0.6);
-    const arms = [
-      [[-9.4, -83], [-14, -63], [-2 + P.strum * 1.2, -53 + P.strum * 3.2]],
-      [[9.4, -83], [17, -64], [fx, fy]],
-    ];
-    for (const pass of [0, 1]) {
-      g.strokeStyle = pass === 0 ? (sketch ? rim : 'rgba(120,210,200,0.3)') : sleeve;
-      g.lineWidth = pass === 0 ? 3.2 + rimW * 2 : 3.1;
-      for (const [a, b, c] of arms) {
-        g.beginPath(); g.moveTo(...a); g.quadraticCurveTo(...b, ...c); g.stroke();
-      }
+    // strap across the chest to the viewer's-right shoulder
+    g.strokeStyle = C.strap;
+    g.lineWidth = 1.5;
+    const sp = gpt(12.5, -4);
+    g.beginPath(); g.moveTo(...sp); g.quadraticCurveTo(9.8, -74, 7.6, -83.6); g.stroke();
+
+    // guitar
+    const body = new Path2D();
+    for (let u = -23; u <= 12.6; u += 0.4) { const [px, py] = gpt(u, -bout(u)); u === -23 ? body.moveTo(px, py) : body.lineTo(px, py); }
+    for (let u = 12.6; u >= -23; u -= 0.4) body.lineTo(...gpt(u, bout(u)));
+    body.closePath();
+    const bt = gpt(-5, -10), bb = gpt(-5, 10);
+    const bg = g.createLinearGradient(bt[0], bt[1], bb[0], bb[1]);
+    bg.addColorStop(0, C.bodyHi);
+    bg.addColorStop(1, C.body);
+    g.fillStyle = bg;
+    g.fill(body);
+    // binding: brighter along the upper (lit) edge
+    g.strokeStyle = C.bind;
+    g.lineWidth = 0.45;
+    g.globalAlpha = sketch ? 0.9 : 0.75;
+    g.beginPath();
+    for (let u = -22.6; u <= 12.4; u += 0.4) { const [px, py] = gpt(u, -bout(u) + 0.25); u === -22.6 ? g.moveTo(px, py) : g.lineTo(px, py); }
+    g.stroke();
+    g.globalAlpha = sketch ? 0.6 : 0.3;
+    g.beginPath();
+    for (let u = -22.6; u <= 12.4; u += 0.4) { const [px, py] = gpt(u, bout(u) - 0.25); u === -22.6 ? g.moveTo(px, py) : g.lineTo(px, py); }
+    g.stroke();
+    g.globalAlpha = 1;
+    // pickguard, soundhole + rosette, bridge
+    const pgp = gpt(-0.5, 4.4);
+    g.fillStyle = '#020506';
+    g.beginPath(); g.ellipse(pgp[0], pgp[1], 3.4, 2.2, GUITAR.a + 0.5, 0, TAU); g.fill();
+    const sh = gpt(2.6, 0);
+    g.beginPath(); g.arc(sh[0], sh[1], 2.7, 0, TAU); g.fill();
+    g.strokeStyle = C.bind;
+    g.globalAlpha = 0.35;
+    g.lineWidth = 0.3;
+    g.beginPath(); g.arc(sh[0], sh[1], 3.3, 0, TAU); g.stroke();
+    g.globalAlpha = 1;
+    const bp = gpt(-13, 0);
+    g.save();
+    g.translate(bp[0], bp[1]);
+    g.rotate(GUITAR.a);
+    g.fillStyle = '#020506';
+    g.fillRect(-0.7, -3.4, 1.4, 6.8);
+    g.restore();
+    // neck, frets, headstock
+    const neck2 = new Path2D();
+    neck2.moveTo(...gpt(11.5, -1.5)); neck2.lineTo(...gpt(38, -1.15)); neck2.lineTo(...gpt(38, 1.15)); neck2.lineTo(...gpt(11.5, 1.5)); neck2.closePath();
+    fill(neck2, C.bodyHi);
+    const head2 = new Path2D();
+    head2.moveTo(...gpt(38, -1.5)); head2.lineTo(...gpt(45, -2.2)); head2.lineTo(...gpt(45.4, 1.9)); head2.lineTo(...gpt(38, 1.5)); head2.closePath();
+    fill(head2, C.body);
+    g.strokeStyle = C.metal;
+    g.lineWidth = 0.18;
+    g.globalAlpha = 0.6;
+    g.beginPath();
+    for (let k = 0, u = 13.5; k < 14; k++, u += 2.2 - k * 0.08) { g.moveTo(...gpt(u, -1.3)); g.lineTo(...gpt(u, 1.3)); }
+    g.stroke();
+    // strings
+    g.globalAlpha = sketch ? 0.5 : 0.3;
+    g.strokeStyle = C.bind;
+    g.lineWidth = 0.1;
+    g.beginPath();
+    for (let k = -2.5; k <= 2.5; k++) { g.moveTo(...gpt(-13, k * 0.45)); g.lineTo(...gpt(38, k * 0.35)); }
+    g.stroke();
+    g.globalAlpha = 1;
+    g.fillStyle = C.metal;
+    for (let k = 0; k < 3; k++) for (const sd of [-1, 1]) { const tp = gpt(39.5 + k * 2, sd * 2.4); g.beginPath(); g.arc(tp[0], tp[1], 0.45, 0, TAU); g.fill(); }
+
+    // strumming arm: upper arm by the side, forearm across the lower bout
+    const hand1 = gpt(-4.5, -1 + P.strum * 3.4);
+    const arm1 = limb(g, [-9.2, -81.6], [-14.6, -67.5], hand1, 4.3, 3.6, 2.6);
+    shadeIn(arm1, -82, -55, C.topHi, C.top);
+    g.save(); g.clip(arm1);
+    g.strokeStyle = C.topHi; g.globalAlpha = 0.8; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(-14.6, -68.6); g.lineTo(hand1[0] - 0.4, hand1[1] - 1.1); g.stroke();
+    g.restore(); g.globalAlpha = 1;
+    g.fillStyle = C.skin;
+    g.beginPath(); g.ellipse(hand1[0], hand1[1], 1.5, 1.15, GUITAR.a + 0.6, 0, TAU); g.fill();
+    g.fillStyle = C.skinHi;
+    g.beginPath(); g.ellipse(hand1[0] - 0.3, hand1[1] - 0.45, 0.8, 0.45, GUITAR.a + 0.6, 0, TAU); g.fill();
+
+    // fretting arm: elbow out, hand under the neck, fingers over the fretboard
+    const uf = P.fret;
+    const hand2 = gpt(uf, 2.3);
+    const arm2 = limb(g, [9.2, -81.6], [15.6, -67], hand2, 4.3, 3.6, 2.5);
+    shadeIn(arm2, -82, -60, C.topHi, C.top);
+    g.save(); g.clip(arm2);
+    g.strokeStyle = C.topHi; g.globalAlpha = 0.8; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(15.4, -68.2); g.lineTo(hand2[0] - 0.2, hand2[1] - 1); g.stroke();
+    g.restore(); g.globalAlpha = 1;
+    g.fillStyle = C.skin;
+    g.beginPath(); g.ellipse(hand2[0], hand2[1], 1.5, 1.2, GUITAR.a, 0, TAU); g.fill();
+    for (let k = 0; k < 4; k++) {
+      const fp = gpt(uf - 1.6 + k * 1.1, -1.2 + Math.abs(k - 1.5) * 0.2);
+      g.fillStyle = k % 2 ? C.skin : C.skinHi;
+      g.beginPath(); g.ellipse(fp[0], fp[1], 0.42, 0.7, GUITAR.a, 0, TAU); g.fill();
     }
-    g.fillStyle = sketch ? '#bfe9e3' : '#7f9f9c';
-    for (const [, , c] of arms) { g.beginPath(); g.arc(c[0], c[1], 1.4, 0, TAU); g.fill(); }
 
-    // mic head over everything
-    g.rotate(-P.sway);
-    g.fillStyle = sketch ? '#d6fff9' : '#2b4247';
-    g.beginPath(); g.ellipse(12.5, -86.6, 2.2, 1.3, -0.75, 0, TAU); g.fill();
+    g.restore(); // the stand doesn't sway
+
+    // mic stand: tripod, pole, boom to the mouth, mic
+    g.strokeStyle = sketch ? 'rgba(150,240,230,0.8)' : '#0b171a';
+    g.lineWidth = 0.9;
+    g.beginPath();
+    g.moveTo(26, -9); g.lineTo(26, -69.5);
+    g.moveTo(26, -9); g.lineTo(19, 0.4); g.moveTo(26, -9); g.lineTo(33, 0.4); g.moveTo(26, -9); g.lineTo(26.6, 1.1);
+    g.stroke();
+    g.lineWidth = 0.7;
+    g.beginPath(); g.moveTo(26.4, -71); g.lineTo(11.8, -88.6 + hy * 0.3); g.stroke();
+    g.fillStyle = sketch ? '#9ff0e6' : '#14262a';
+    g.beginPath(); g.arc(26.2, -70.2, 0.9, 0, TAU); g.fill();
+    g.save();
+    g.translate(10.4, -89.2 + hy * 0.3);
+    g.rotate(-0.35);
+    g.fillStyle = sketch ? '#d6fff9' : '#1d3236';
+    g.beginPath(); g.roundRect(-0.6, -1.1, 4.2, 2.2, 1.1); g.fill();
+    g.fillStyle = sketch ? '#ffffff' : '#3b5a5f';
+    g.beginPath(); g.arc(0, 0, 1.25, 0, TAU); g.fill();
     g.restore();
   }
 
