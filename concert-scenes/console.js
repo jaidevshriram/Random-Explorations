@@ -30,8 +30,9 @@
 
   // ---------- head selection ----------
   const BACK = FIX.map((f, i) => (f.back ? i : -1)).filter(i => i >= 0);
+  const BAND = FIX.map((f, i) => (f.band ? i : -1)).filter(i => i >= 0);
   let sel = ORDER.slice();
-  const selOf = k => (k === 'all' ? ORDER.slice() : k === 'back' ? BACK : [+k]);
+  const selOf = k => (k === 'all' ? ORDER.slice() : k === 'back' ? BACK : k === 'band' ? BAND : [+k]);
   $('sel').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -97,6 +98,8 @@
     faders.push(t);
   };
   toggle('prism', () => LIVE.prism > 0, on => (LIVE.prism = on ? 3 : 0));
+  // groups of heads rigged on the ball (for the live desk and the shows alike)
+  for (const g of ['ring', 'band', 'back']) toggle('grp-' + g, () => LIVE.groups[g], on => { LIVE.groups[g] = on; A.SHOW_GROUPS[g] = on; });
   toggle('auto-rot', () => LIVE.autoRot > 0, on => (LIVE.autoRot = on ? autoSpeed : 0));
   // strobe: the rate fader remembers its value while the strobe is off
   let strobeRate = 9;

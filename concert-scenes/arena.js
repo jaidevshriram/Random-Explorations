@@ -34,11 +34,16 @@
     // heads on the back of the sphere, aimed behind the performer at the far stands (pe: how far
     // round the back they sit, e: how steeply they aim away). The painting never shows them; they
     // come into view as the satellite turns.
-    { pa: -135, a: -135, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true },
-    { pa: -45, a: -45, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true },
-    { pa: 45, a: 45, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true },
-    { pa: 135, a: 135, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true },
+    { pa: -135, a: -135, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true, extra: true },
+    { pa: -45, a: -45, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true, extra: true },
+    { pa: 45, a: 45, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true, extra: true },
+    { pa: 135, a: 135, pe: 50, e: 52, half: 7, len: 700, gain: 0.6, p: 1.3, back: true, extra: true },
+    // an equator band between the front ring and the back four, so some head always faces any way
+    // the ball is turned (all aimed along the ball's surface: e = pe)
+    ...[22.5, 67.5, 112.5, 157.5, -157.5, -112.5, -67.5, -22.5].map(pa => ({ pa, a: pa, pe: 8, e: 8, half: 6.5, len: 700, gain: 0.7, p: 1.3, band: true, extra: true })),
   ];
+  // the rig's groups, each switchable on the desk
+  const groupOf = f => (f.back ? 'back' : f.band ? 'band' : 'ring');
 
   // ---------- live lighting controls ----------
   // Every fixture on the satellite carries four kinds of light, each on its own level:
@@ -56,6 +61,7 @@
     yaw: 0, pitch: 0, spotLock: true,   // 3D orientation (with rot = roll); the follow spot can keep tracking the stage
     gobo: 'dots', goboZoom: 17, prism: 0, // projector stencil ('mix': a different one per fixture), cone half-angle, 3-facet prism
     crowd: 0.7,                           // how strongly moving light lands on the crowd (the desk's fader, never animated)
+    groups: { ring: true, band: true, back: true }, // which groups of heads are rigged (the desk's switches)
     // lasers aim on their own two axes: elevation out of the ring toward the audience (+) or away (-),
     // a scan across it, and the plane a multi-beam fan opens in (0: the ring's plane, 90: a sheet
     // raking from the far stands down to the people at the camera)
@@ -81,7 +87,8 @@
     const f = n => { const k = (n + h / 30) % 12, a = sat * Math.min(l, 1 - l); return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); };
     return [f(0), f(8), f(4)];
   };
-  const ORDER = [6, 0, 1, 2, 3, 5, 8, 9, 10, 11]; // ring: left, up-left, up-right, right, down-right, down-left; then the back four
+  // ring: left, up-left, up-right, right, down-right, down-left; then the back four; then the band
+  const ORDER = [6, 0, 1, 2, 3, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   const SPOT_TEAL = [120, 210, 218], SPOT_AMBER = [255, 185, 110];
   const AMBER = [255, 175, 70], MAGENTA = [255, 80, 190], GREEN = [80, 255, 120], RED = [255, 50, 60], BLUE = [80, 120, 255], VIOLET = [170, 90, 255];
 
@@ -97,6 +104,7 @@
   const LIVE = {
     rot: 0, spin: 0, yaw: 0, turn: 0, pitch: 0, tumble: 0, spotLock: true,
     autoRot: 0, // auto-rotate speed (0 = off): the rig drifts round in all three axes on its own
+    groups: { ring: true, band: true, back: true },
     // strobe (rate 0 = off): gates the heads on and off; options for white flashes, re-aiming the
     // burst every flash, varying its density per flash, and flashing the spot and front lamp too
     strobe: 0, strobeDuty: 0.45, strobeWhite: true, strobeReaim: true, strobeVary: true, strobeAll: false,
@@ -113,7 +121,7 @@
       LX.mode = 'live';
       try {
         const o = JSON.parse(q || '{}');
-        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll', 'strobeFrac', 'strobeShuffle']) if (k in o) LIVE[k] = o[k];
+        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll', 'strobeFrac', 'strobeShuffle', 'groups']) if (k in o) LIVE[k] = o[k];
         if ('crowd' in o) LX.crowd = o.crowd;
         for (const k in CAMERA) if (k in o) CAMERA[k] = o[k];
         LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan', 'burst']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
@@ -141,6 +149,7 @@
     LX.yaw = LIVE.yaw + ACC.turn + (auto ? 22 * au + 18 * Math.sin(au * 0.31) : 0) + LIVE.tumble * (Math.sin(t * 0.37) * 0.8 + Math.sin(t * 0.13 + 1) * 0.4);
     LX.pitch = LIVE.pitch + (auto ? 32 * Math.sin(au * 0.53) + 12 * Math.sin(au * 1.37 + 1) : 0) + LIVE.tumble * (Math.sin(t * 0.29 + 2) * 0.6 + Math.sin(t * 0.11) * 0.3);
     LX.spotLock = LIVE.spotLock;
+    LX.groups = LIVE.groups;
     LX.spot = LIVE.spot;
     LX.spotCol = LIVE.spotCol;
     LX.goboSpin = ACC.gobo;
@@ -200,6 +209,7 @@
   // Two programmes. 'main' is the full show (with a white strobe cut in before the finale);
   // 'beams' is beams only, choreographed to keep crossing the camera's lens.
   const STROBE = { at: 24.5, len: 4.5 };
+  const SHOW_GROUPS = { ring: true, band: true, back: true }; // the desk can switch groups off for the shows too
   const PROGRAMS = { main: 30 + STROBE.len, beams: 20, get song() { return window.SONG ? window.SONG.duration : 30; } };
   function showAt(t) {
     LX.fireFrac = 1;
@@ -209,6 +219,7 @@
     LX.goboSeed = 0;
     LX.projCol = null;
     LX.projAlpha = 1;
+    LX.groups = SHOW_GROUPS;
     if (LX.program === 'beams') { beamsAt(t); return; }
     if (LX.program === 'song') { songAt(t); return; }
     const L = PROGRAMS.main;
@@ -301,6 +312,8 @@
       const pk = 0.5 + 0.5 * Math.cos((beat + k / ORDER.length) * TAU);
       LX.lv[i].beam = 1 - (rake + all) * 0.6 * (1 - pk * pk);
     });
+    const bandK = win(t, 2.0, 17.8, 0.6);
+    FIX.forEach((f, i) => { if (f.band) for (const k in LX.lv[i]) LX.lv[i][k] *= bandK; });
     LX.col[4] = spotBeamCol();
     LX.eyeCol = rigColour();
     LX.eye = 1;
@@ -364,7 +377,7 @@
       for (let k = -4; k <= 4; k++) q += quietAt(t + k * 0.5) / 9;
       const chorus = S0.level >= 2 ? 1 : 0;
       const base = (0.16 + 0.1 * chorus + 0.18 * en) * (1 - 0.8 * q);
-      ORDER.forEach(i => { if (!FIX[i].back) { LX.lv[i].beam = base; LX.col[i] = TEAL.slice(); } });
+      ORDER.forEach(i => { if (groupOf(FIX[i]) === 'ring') { LX.lv[i].beam = base; LX.col[i] = TEAL.slice(); } });
       LX.spot = (1 - 0.4 * q) * (1 - seg(t, P.t0 - 0.35, P.t0 - 0.05)); // a breath of darkness right before the drop
       LX.spotCol = WHITE;
       LX.eye = 0.35 + 0.25 * en;
@@ -422,7 +435,7 @@
       const fade = 1 - seg(t, C.duration - 6, C.duration);
       ORDER.forEach((i, k) => {
         LX.col[i] = mixc([236, 241, 250], TEAL, h);
-        LX.lv[i].beam = FIX[i].back ? 0.3 * (1 - h) : (0.3 + 0.2 * en) * fade;
+        LX.lv[i].beam = FIX[i].extra ? 0.3 * (1 - h) : (0.3 + 0.2 * en) * fade;
       });
       LX.spot = 1 * Math.max(0.35, fade);
       LX.spotCol = WHITE;
@@ -531,6 +544,9 @@
       LX.lv[6].fan = LX.lv[2].fan = all * 0.8;
       LX.spot = 1 - all * 0.5 * (0.5 + 0.5 * Math.cos(beat * TAU));
     }
+    // the equator band stays dark while the rig looks like the painting (intro and home)
+    const bandK = win(t, 2.6, 28.2, 0.6);
+    FIX.forEach((f, i) => { if (f.band) for (const k in LX.lv[i]) LX.lv[i][k] *= bandK; });
     LX.col[4] = spotBeamCol();
     LX.eyeCol = rigColour();
     LX.eye = 1 - (all > 0 ? 0.35 * all * (0.5 + 0.5 * Math.cos(beat * TAU * 2)) : 0);
@@ -559,7 +575,7 @@
     let L = TUNE.lightBase + TUNE.lightFill * Math.exp(-(((x - 768) / 650) ** 2 + ((y - 520) / 380) ** 2));
     const ang = Math.atan2(dy, dx) / D2R;
     for (const f of FIX) {
-      if (!f.len || f.back) continue;
+      if (!f.len || f.extra) continue;
       let da = Math.abs(((ang - f.a + 540) % 360) - 180);
       const reach = r < f.len * 1.05 ? 1 : Math.exp(-(r - f.len) / 120);
       L += TUNE.lightBeam * Math.exp(-((da / (f.half * 1.6)) ** 2)) * reach * (f.spot ? 1.2 : 0.8);
@@ -931,7 +947,7 @@
   };
   // hooks for the light desk (console.js) and the optimisation harness
   window.__arena = {
-    TUNE, rebuild, LX, LIVE, FIX, ORDER, CAMERA, ORB, get GOBOS() { return GOBO_NAMES; },
+    TUNE, rebuild, LX, LIVE, FIX, ORDER, CAMERA, ORB, SHOW_GROUPS, groupOf, get GOBOS() { return GOBO_NAMES; },
     get CHAPTERS() { return CHAPTERS[LX.program]; },
     get SHOW_LENGTH() { return PROGRAMS[LX.program]; },
     PROGRAMS: Object.keys(PROGRAMS),
@@ -1003,7 +1019,7 @@
 
     // cans: short cylinders pointing outward, lens at the outer end
     FIX.forEach((f, idx) => {
-      if (f.back) return;
+      if (f.extra) return;
       const p = fixturePos(f, t);
       const L2 = LX.lv[idx], lc = LX.on ? LX.col[idx] : TEAL;
       const lv = LX.on ? (f.spot ? LX.spot : Math.max(L2.beam, L2.proj, L2.laser, L2.fan, L2.burst)) : 1;
@@ -1210,7 +1226,7 @@
     // ring heads sit on a circle round the ball's face (the painting's ring); back heads on its far
     // side; the follow spot hangs at the bottom pole
     const pe = (f.pe || 0) * D2R, pa = f.pa * D2R;
-    const pb = f.spot ? [0, RS, 0] : f.back ? [RS * Math.cos(pa) * Math.cos(pe), RS * Math.sin(pa) * Math.cos(pe), RS * Math.sin(pe)] : [RING3 * Math.cos(pa), RING3 * Math.sin(pa) * 0.94, -CROWN_Z];
+    const pb = f.spot ? [0, RS, 0] : f.extra ? [RS * Math.cos(pa) * Math.cos(pe), RS * Math.sin(pa) * Math.cos(pe), RS * Math.sin(pe)] : [RING3 * Math.cos(pa), RING3 * Math.sin(pa) * 0.94, -CROWN_Z];
     // roll spins the ring of heads; yaw and pitch turn the whole ball (the spot is off the ring)
     const R3 = f.spot ? rotYP : rot3;
     const C = add3(O3, R3(pb)), n = norm3(R3(pb));
@@ -1302,7 +1318,7 @@
     glare = [];
     hb = LX.on && S.handmade ? S.boilF || 0 : null;
     FIX.forEach((f, i) => {
-      if (!f.len || (f.back && !LX.on)) return;
+      if (!f.len || (f.extra && !LX.on) || (LX.on && !f.spot && !LX.groups[groupOf(f)])) return;
       const lv = LX.on ? LX.lv[i] : DEFAULT_LV, col = LX.on ? LX.col[i] : TEAL;
       const flick = f.spot ? 1 : 0.94 + 0.06 * Math.sin(tL * 3.1 + i * 2.3);
       const a = I * flick * (f.spot ? (LX.on ? LX.spot : 1) : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1) * (1 + 0.07 * hj(i * 17 + 6));
@@ -1347,7 +1363,7 @@
       const tW = Math.tan(LX.burstSpread * D2R);
       for (const [bk, b] of burstDirs(LX.burstCount).entries()) {
         const lvb = LX.lv[b.head].burst;
-        if (!(lvb > 0)) continue;
+        if (!(lvb > 0) || !LX.groups[groupOf(FIX[b.head])]) continue;
         const ph = LX.burstPh * b.sp, u = Math.sin(ph + b.p1) * tW, v = Math.cos(ph * 0.83 + b.p2) * tW;
         const db = norm3(add3(b.d, add3(b.e1.map(c => c * u), b.e2, v)));
         const dw = rot3(db);
@@ -1630,7 +1646,7 @@
     poly(g, body); g.stroke();
     const fc = facingOrb(d);
     const L2 = LX.lv[idx], lc = LX.col[idx];
-    const lvl = f.spot ? LX.spot : Math.max(L2.beam, L2.proj, L2.laser, L2.fan, L2.burst);
+    const lvl = f.spot ? LX.spot : LX.groups[groupOf(f)] ? Math.max(L2.beam, L2.proj, L2.laser, L2.fan, L2.burst) : 0;
     if (fc > -0.2) {
       // the lens (edge-on when the head aims across our view): lit in the head's colour, brightest
       // looking straight down it
@@ -1766,9 +1782,9 @@
   function bounceLight() {
     let k = 0;
     FIX.forEach((f, i) => {
-      if (!f.len) return;
+      if (!f.len || (!f.spot && !LX.groups[groupOf(f)])) return;
       const L2 = LX.lv[i];
-      k += f.spot ? 0.6 * LX.spot : (f.back ? 0.6 : 1) * (L2.beam + 0.5 * L2.proj + 0.12 * L2.laser + 0.25 * L2.fan + 0.25 * L2.burst);
+      k += f.spot ? 0.6 * LX.spot : (f.back ? 0.6 : f.band ? 0.8 : 1) * (L2.beam + 0.5 * L2.proj + 0.12 * L2.laser + 0.25 * L2.fan + 0.25 * L2.burst);
     });
     return k / 6.6;
   }

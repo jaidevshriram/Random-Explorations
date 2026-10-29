@@ -98,10 +98,12 @@ window.analyzeSong = async function analyzeSong(arrayBuffer) {
     }
     return best;
   };
+  // of the candidates nearly as strong as the best, take the one closest to a typical song tempo
   let bestLag = peaks[0] || 50, bestScore = -1;
-  for (const lag of peaks.slice(0, 4)) {
-    const bpm = (60 * OF) / lag, prior = Math.exp(-0.5 * (Math.log2(bpm / 125) / 0.8) ** 2);
-    const sc = gridMean(lag) * prior * Math.sqrt(comb[lag] / comb[peaks[0]]);
+  window.__tempoDebug = peaks.slice(0, 6).map(l => [+((60 * OF) / l).toFixed(1), +(comb[l] / comb[peaks[0]]).toFixed(2), +gridMean(l).toFixed(3)]);
+  for (const lag of peaks.slice(0, 6)) {
+    if (comb[lag] < 0.7 * comb[peaks[0]]) continue;
+    const bpm = (60 * OF) / lag, sc = -Math.abs(Math.log2(bpm / 128));
     if (sc > bestScore) { bestScore = sc; bestLag = lag; }
   }
   const a0 = acF[bestLag - 1], a1 = acF[bestLag], a2 = acF[bestLag + 1], den = a0 - 2 * a1 + a2;
