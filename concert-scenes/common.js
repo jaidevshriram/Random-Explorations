@@ -152,7 +152,7 @@ const CS = (() => {
   }
 
   let perfCv = null, perfMask = null;
-  function drawPerformer(g, x, y, s, t, bpm, style) {
+  function drawPerformer(g, x, y, s, t, bpm, style, light = 1) {
     const SS = 3, S = s * SS;
     const UW = 76, UH = 112, UOX = 30, UOY = 106;
     const cw = Math.ceil(UW * S), ch = Math.ceil(UH * S);
@@ -164,12 +164,12 @@ const CS = (() => {
     pg.setTransform(S, 0, 0, S, UOX * S, UOY * S);
     paintPerformer(pg, performerPose(t, bpm), style === 'sketch');
     pg.setTransform(1, 0, 0, 1, 0, 0);
-    lightPerformer(pg, cw, ch, S, style === 'sketch');
+    lightPerformer(pg, cw, ch, S, style === 'sketch', light);
     g.drawImage(perfCv, x - UOX * s, y - UOY * s, UW * s, UH * s);
   }
 
   // edge light from the figure's own alpha: silhouette minus itself shifted away from the light
-  function lightPerformer(pg, cw, ch, S, sketch) {
+  function lightPerformer(pg, cw, ch, S, sketch, light = 1) {
     const mg = perfMask.getContext('2d');
     const pass = (dx, dy, w, color) => {
       mg.globalCompositeOperation = 'copy';
@@ -185,10 +185,16 @@ const CS = (() => {
     if (sketch) {
       for (const [dx, dy] of [[0, -1], [1, 0], [-1, 0], [0, 1], [0.7, -0.7], [-0.7, -0.7]]) pass(dx, dy, 0.55, 'rgba(165,255,245,0.85)');
     } else {
-      pass(0.15, -1, 2.6, 'rgba(120,225,215,0.28)');  // broad spill from the spot above
-      pass(0.1, -1, 0.8, 'rgba(215,255,250,0.85)');   // hot top edges
-      pass(-1, -0.15, 0.6, 'rgba(110,210,205,0.35)'); // haze rims at the sides
-      pass(1, -0.15, 0.6, 'rgba(110,210,205,0.35)');
+      // with the follow spot down she falls to a silhouette, rimmed only by the room's haze
+      pg.globalCompositeOperation = 'source-atop';
+      pg.fillStyle = `rgba(2,7,11,${0.72 * (1 - light)})`;
+      pg.fillRect(0, 0, cw, ch);
+      if (light > 0.01) {
+        pass(0.15, -1, 2.6, `rgba(120,225,215,${0.28 * light})`);  // broad spill from the spot above
+        pass(0.1, -1, 0.8, `rgba(215,255,250,${0.85 * light})`);   // hot top edges
+      }
+      pass(-1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`); // haze rims at the sides
+      pass(1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`);
       // falling off toward the feet
       const gr = pg.createLinearGradient(0, 0, 0, ch);
       gr.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1002,10 +1008,10 @@ const CS = (() => {
       precision highp float; in vec2 uv; out vec4 o; uniform vec2 px;`;
     const FS = {
       // displace lookups by a slow noise field so straight CG edges wobble like brushwork
-      warp: `${head} uniform sampler2D src, nz; uniform float amp;
+      warp: `${head} uniform sampler2D src, nz; uniform float amp; uniform vec2 boil;
         void main(){
-          vec2 n = texture(nz, uv * vec2(${(w / 256).toFixed(3)}, ${(h / 256).toFixed(3)}) * 0.5).xy - 0.5;
-          vec2 n2 = texture(nz, uv * vec2(${(w / 256).toFixed(3)}, ${(h / 256).toFixed(3)}) * 2.1 + 0.37).zw - 0.5;
+          vec2 n = texture(nz, uv * vec2(${(w / 256).toFixed(3)}, ${(h / 256).toFixed(3)}) * 0.5 + boil).xy - 0.5;
+          vec2 n2 = texture(nz, uv * vec2(${(w / 256).toFixed(3)}, ${(h / 256).toFixed(3)}) * 2.1 + 0.37 + boil * 1.7).zw - 0.5;
           o = texture(src, uv + (n * amp + n2 * amp * 0.45) * px);
         }`,
       tensor: `${head} uniform sampler2D src;
@@ -1142,7 +1148,7 @@ const CS = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-    const P = { radius: 6, wobble: 2.2, hard: 8, sharp: 8, grain: 0.035, ...opt };
+    const P = { radius: 6, wobble: 2.2, hard: 8, sharp: 8, grain: 0.035, boil: [0, 0], ...opt };
     const pass = (name, target, texs, uni = {}, vw = pw, vh = ph) => {
       const p = progs[name];
       gl.useProgram(p);
@@ -1170,7 +1176,7 @@ const CS = (() => {
         gl.bindTexture(gl.TEXTURE_2D, tTop);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, topCanvas);
         if (!on) { pass('copy', null, { src: tSrc, top: tTop }, {}, w, h); return; }
-        pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble * sc });
+        pass('warp', fWarp, { src: tSrc, nz: tNoise }, { amp: P.wobble * sc, boil: P.boil });
         pass('tensor', fT1, { src: tWarp });
         pass('blur', fT2, { src: tT1 }, { dir: [1, 0] });
         pass('blur', fT1, { src: tT2 }, { dir: [0, 1] });
