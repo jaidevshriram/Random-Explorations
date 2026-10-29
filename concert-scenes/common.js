@@ -283,83 +283,117 @@ const CS = (() => {
       ph: R() * TAU,
       f: 0.7 + R() * 0.9,
       hair: R(),
+      hw: 0.85 + R() * 0.25,          // head width
+      sw: 1.55 + R() * 0.55,          // shoulder half-width (in head radii)
+      tilt: (R() - 0.5) * 0.3,
       warm: R() < (opt.warm || 0),
       body: `rgb(${L * 0.45 | 0},${L * 1.15 | 0},${L * 1.3 | 0})`,
       head: `rgb(${L * 0.5 | 0},${L * 1.1 | 0},${L * 1.25 | 0})`,
       phone: r > 5 && R() < (opt.phones || 0),
+      arm: r > 6 && r < 22 && R() < (opt.arms || 0), // a raised, swaying arm (mid-crowd only)
       side: R() < 0.5 ? -1 : 1,
       jit: [R(), R(), R(), R()],
     };
   }
 
-  // Silhouette seen from behind: head + shoulders, rim-lit from a light point.
+  // Person seen from behind: sloping shoulders, head with one of a few hair shapes, and
+  // light from a point (the stage) falling on the side of the head and tops of the shoulders.
   function drawPerson(g, p, t, o) {
     const r = p.r;
     const bob = Math.sin(t * p.f + p.ph) * r * o.bob;
     const sx = Math.sin(t * p.f * 0.47 + p.ph * 1.7) * r * o.sway;
     const x = p.x + sx, y = p.y + bob;
-    const la = Math.atan2(o.ly - y, o.lx - x);
     const d = Math.hypot(o.lx - x, (o.ly - y) * 1.6);
-    const lit = o.rim * Math.exp(-d / o.falloff) + o.rimMin;
+    const lit = Math.min(0.85, o.rim * Math.exp(-d / o.falloff) + o.rimMin);
+    const tilt = p.tilt + Math.sin(t * p.f * 0.31 + p.ph) * 0.04;
+    const la = Math.atan2(o.ly - y, o.lx - x) - tilt;
+    const col = p.warm ? '200,120,90' : o.rimColor;
+    const small = r < 7;
 
+    g.save();
+    g.translate(x, y);
+    g.rotate(tilt);
+
+    // shoulders and back
+    const sw = r * p.sw;
+    const torso = new Path2D();
+    torso.moveTo(-sw, r * 3.4);
+    torso.bezierCurveTo(-sw * 1.02, r * 1.7, -sw * 0.82, r * 1.05, -r * 0.42, r * 0.92);
+    torso.lineTo(r * 0.42, r * 0.92);
+    torso.bezierCurveTo(sw * 0.82, r * 1.05, sw * 1.02, r * 1.7, sw, r * 3.4);
+    torso.closePath();
     g.fillStyle = p.warm ? '#120a08' : p.body;
-    g.beginPath();
-    g.ellipse(x, y + r * 2.05, r * 1.85, r * 1.25, 0, 0, TAU);
-    g.fill();
+    g.fill(torso);
 
-    let hand;
-    if (p.phone) {
-      const ps = Math.sin(t * p.f * 0.6 + p.ph) * r * 0.15;
-      hand = [x + p.side * r * 0.75 + ps, y - r * 1.35 + Math.cos(t * p.f * 0.5 + p.ph) * r * 0.08];
+    // a raised arm, swaying with the music
+    if (p.arm && !o.noArms) {
+      const sway = Math.sin(t * p.f * 1.3 + p.ph) * 0.35;
+      const sh = [p.side * sw * 0.7, r * 1.25];
+      const hand = [p.side * (sw * 0.7 + r * 0.6) + Math.sin(sway) * r * 1.8, -r * 1.9 + Math.abs(Math.cos(sway)) * r * 0.2];
+      // upper arm out to an elbow, forearm up to the hand, tapering
+      const el = [p.side * (sw + r * 0.35), r * 0.15];
       g.strokeStyle = p.body;
-      g.lineWidth = r * 0.42;
       g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(x + p.side * r * 1.2, y + r * 1.6);
-      g.quadraticCurveTo(x + p.side * r * 1.5, y + r * 0.2, hand[0], hand[1]);
-      g.stroke();
+      g.lineJoin = 'round';
+      g.lineWidth = r * 0.62;
+      g.beginPath(); g.moveTo(...sh); g.lineTo(...el); g.stroke();
+      g.lineWidth = r * 0.48;
+      g.beginPath(); g.moveTo(...el); g.lineTo(...hand); g.stroke();
+      g.fillStyle = p.body;
+      g.beginPath(); g.ellipse(hand[0], hand[1] - r * 0.1, r * 0.3, r * 0.38, sway, 0, TAU); g.fill();
+      if (lit > 0.03) {
+        g.strokeStyle = `rgba(${col},${lit * 0.6})`;
+        g.lineWidth = Math.max(0.6, r * 0.08);
+        g.beginPath(); g.moveTo(el[0] - p.side * r * 0.2, el[1] - r * 0.2); g.lineTo(hand[0] - p.side * r * 0.15, hand[1] - r * 0.3); g.stroke();
+      }
     }
 
+    // head + hair
+    const head = new Path2D();
+    const hw = r * 0.8 * p.hw;
+    head.ellipse(0, 0, hw, r, 0, 0, TAU);
+    if (p.hair > 0.68) head.ellipse(0, r * 0.6, hw * 1.12, r * 1.15, 0, 0, TAU);            // long hair
+    else if (p.hair < 0.1) head.ellipse(-r * 0.1, -r * 0.85, r * 0.42, r * 0.36, 0, 0, TAU);   // bun
+    else if (p.hair < 0.22) for (let k = 0; k < 5; k++) head.ellipse(Math.cos(k * 1.26) * hw * 0.75, Math.sin(k * 1.26) * r * 0.75 - r * 0.1, r * 0.42, r * 0.42, 0, 0, TAU); // curls
+    else if (p.hair < 0.3) head.ellipse(0, -r * 0.35, hw * 1.15, r * 0.6, 0, Math.PI, TAU);   // cap
     g.fillStyle = p.warm ? '#1a0e0a' : p.head;
-    g.beginPath();
-    g.ellipse(x, y, r * 0.82, r, 0, 0, TAU);
-    if (p.hair > 0.65) g.ellipse(x, y + r * 0.55, r * 0.92, r * 1.05, 0, 0, TAU); // long hair
-    else if (p.hair < 0.12) g.ellipse(x - r * 0.1, y - r * 0.85, r * 0.42, r * 0.36, 0, 0, TAU); // bun
-    g.fill();
+    g.fill(head);
 
-    if (lit > 0.015) {
-      const col = p.warm ? '200,120,90' : o.rimColor;
-      g.strokeStyle = `rgba(${col},${Math.min(0.85, lit)})`;
-      g.lineWidth = Math.max(0.7, r * o.rimW);
-      g.lineCap = 'round';
-      g.beginPath();
-      g.ellipse(x, y, r * 0.8, r * 0.98, 0, la - 1.15 + p.jit[0] * 0.3, la + 0.9 + p.jit[1] * 0.3);
-      g.stroke();
-      if (o.sketch && r > 10) {
-        // second, broken stroke so the edge reads hand-drawn
-        g.lineWidth = Math.max(0.6, r * o.rimW * 0.6);
+    if (lit > 0.02) {
+      if (small) {
+        g.fillStyle = `rgba(${col},${lit * 0.7})`;
+        g.beginPath(); g.ellipse(Math.cos(la) * hw * 0.35, Math.sin(la) * r * 0.45, hw * 0.55, r * 0.5, 0, 0, TAU); g.fill();
+      } else {
+        // light wrapping the side of the head that faces the stage
+        g.save();
+        g.clip(head);
+        // a crescent: bright right at the edge facing the light, gone by mid-head
+        const lx = Math.cos(la) * hw * 1.25, ly = Math.sin(la) * r * 1.25;
+        const lg = g.createRadialGradient(lx, ly, r * 0.25, lx, ly, r * 0.85);
+        lg.addColorStop(0, `rgba(${col},${lit})`);
+        lg.addColorStop(0.5, `rgba(${col},${lit * 0.3})`);
+        lg.addColorStop(1, `rgba(${col},0)`);
+        g.fillStyle = lg;
+        g.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+        g.restore();
+        // a few lit strands
+        g.strokeStyle = `rgba(${col},${lit * 0.7})`;
+        g.lineWidth = Math.max(0.6, r * 0.05);
         g.beginPath();
-        g.ellipse(x + r * 0.05, y + r * 0.04, r * 0.86, r * 1.02, 0, la - 0.4 - p.jit[2] * 0.5, la + 0.3 + p.jit[3] * 0.4);
+        g.ellipse(0, 0, hw * 0.98, r * 0.98, 0, la - 0.7 - p.jit[0] * 0.4, la + 0.5 + p.jit[1] * 0.4);
         g.stroke();
       }
-      g.globalAlpha = 0.7;
-      g.beginPath();
-      g.ellipse(x, y + r * 2.05, r * 1.82, r * 1.22, 0, la - 0.75, la + 0.75);
-      g.stroke();
-      g.globalAlpha = 1;
-    }
-
-    if (hand && o.phoneSprite) {
-      const w = r * 0.46, h = r * 0.82;
+      // tops of the shoulders catch light from above
       g.save();
-      g.translate(hand[0], hand[1] - h * 0.35);
-      g.rotate(p.side * 0.12 + Math.sin(t * 0.7 + p.ph) * 0.05);
-      g.drawImage(o.phoneSprite, -w / 2, -h / 2, w, h);
-      g.globalCompositeOperation = 'lighter';
-      g.globalAlpha = 0.2 + 0.05 * Math.sin(t * 2 + p.ph);
-      g.drawImage(o.phoneGlow, -w * 2, -h * 1.4, w * 4, h * 2.8);
+      g.clip(torso);
+      const sg = g.createLinearGradient(0, r * 0.9, 0, r * 2.1);
+      sg.addColorStop(0, `rgba(${col},${lit * 0.4})`);
+      sg.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = sg;
+      g.fillRect(-sw * 1.1, r * 0.85, sw * 2.2, r * 1.3);
       g.restore();
     }
+    g.restore();
   }
 
   // Tiny phone with the show on its screen.

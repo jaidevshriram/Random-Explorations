@@ -23,11 +23,11 @@
   // Calibration knobs, tuned by hill-climbing SSIM against the reference painting.
   // `?tune={...}` overrides them for experiments.
   const TUNE = {
-    beamGain: 0.99, beamScatter: 0.258, beamHalf: 1.258, halo: 0.031, pool: 0.8, overlay: 0.741, twinkle: 0.5,
-    lightBase: 0.063, lightFill: 0.061, lightBeam: 0.33, tierL: 0.945, slabL: 1.75, farL: 1.295, nearL: 0.48,
-    frontDark: 1, rampR: 0.888, rampG: 1.141, rampB: 1.204, liftR: 2.4, liftG: 4, liftB: 14.62, topAlpha: 0.9,
-    rim: 0, b0: 0.903, b1: 0.257, b2: 0.876, b3: 0.666, b4: 1.019, b5: 1.15, b6: 0.438, stageGlow: 0.3,
-    shirtL: 2.166,
+    beamGain: 1.3, beamScatter: 0.18, beamHalf: 1.14, halo: 0.03, pool: 0.85, overlay: 1, twinkle: 1.2,
+    lightBase: 0.08, lightFill: 0.12, lightBeam: 0.3, tierL: 1.45, slabL: 1, farL: 1.1, nearL: 0.62,
+    frontDark: 0.75, rampR: 0.75, rampG: 0.98, rampB: 1.05, liftR: 1, liftG: 4, liftB: 17, topAlpha: 0.9,
+    rim: 0.75, b0: 0.93, b1: 0.4, b2: 1.135, b3: 0.83, b4: 1.36, b5: 1.25, b6: 0.775, stageGlow: 0.35,
+    shirtL: 1.6, fog: 0.38, backLift: 0.22, soffitL: 0.6, fasciaL: 0.95, shadow: 0.6, floorHaze: 0.09, headL: 0.4,
   };
   try { Object.assign(TUNE, JSON.parse(new URLSearchParams(location.search).get('tune') || '{}')); } catch (e) {}
 
@@ -49,14 +49,16 @@
   // ---------- palette ----------
   // navy ramp sampled from the painting: shadow → lit crowd → beam-lit haze
   const RAMP = [[0, [2, 6, 14]], [0.3, [7, 20, 34]], [0.6, [20, 48, 66]], [1, [52, 100, 116]], [1.6, [90, 160, 170]]];
-  function navy(L, k = 1) {
+  function navyRGB(L) {
     L = CS.clamp(L, 0, 1.6);
     let i = 0;
     while (i < RAMP.length - 2 && L > RAMP[i + 1][0]) i++;
     const [l0, c0] = RAMP[i], [l1, c1] = RAMP[i + 1];
     const t = (L - l0) / (l1 - l0);
-    return `rgb(${CS.lerp(c0[0], c1[0], t) * k * TUNE.rampR | 0},${CS.lerp(c0[1], c1[1], t) * k * TUNE.rampG | 0},${CS.lerp(c0[2], c1[2], t) * k * TUNE.rampB | 0})`;
+    return [CS.lerp(c0[0], c1[0], t) * TUNE.rampR, CS.lerp(c0[1], c1[1], t) * TUNE.rampG, CS.lerp(c0[2], c1[2], t) * TUNE.rampB];
   }
+  const rgb = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+  const navy = (L, k = 1) => rgb(navyRGB(L).map(v => v * k));
 
   // light reaching a point: soft room fill + the beams raking across the bowl
   function lightAt(x, y) {
@@ -83,9 +85,9 @@
     t2Bot: line(385, 452, 420), t3Top: line(445, 482, 470), t3Bot: line(540, 590, 580), floor: line(600, 615, 610),
   };
   const TIERS = [
-    { top: L_.t1Top, bot: L_.t1Bot, hr: 3.3 },
-    { top: L_.t2Top, bot: L_.t2Bot, hr: 3.8 },
-    { top: L_.t3Top, bot: L_.t3Bot, hr: 4.3 },
+    { top: L_.t1Top, bot: L_.t1Bot, hr: 4.2 },
+    { top: L_.t2Top, bot: L_.t2Bot, hr: 4.8 },
+    { top: L_.t3Top, bot: L_.t3Bot, hr: 5.4 },
   ];
   const SLABS = [[L_.t1Bot, L_.t2Top], [L_.t2Bot, L_.t3Top], [L_.t3Bot, L_.floor]];
   const floorR = y => {
@@ -126,6 +128,23 @@
     return c;
   }
 
+  // ---------- depth ----------
+  // nearness: 0 at the far end of the bowl … 1 right at the camera. The stands get nearer
+  // toward the sides (and a little with each lower tier); the floor toward the frame bottom.
+  const nearStand = (x, ti) => CS.clamp((0.16 + 0.74 * Math.pow(Math.abs(x - ORB.x) / ORB.x, 1.2)) * (0.86 + 0.07 * ti), 0, 1);
+  const nearFloor = y => CS.clamp(Math.pow(Math.max(0, (y - 595) / 430), 1.4), 0, 1);
+  // colour of the air at a point: deep navy, lifted wherever beams pass through it
+  function hazeAt(x, y) {
+    const k = CS.clamp(lightAt(x, y) - TUNE.lightBase, 0, 1.5);
+    return [10 + 26 * k, 28 + 86 * k, 42 + 92 * k];
+  }
+  // aerial perspective: distant surfaces lose contrast around their local level and sink into the haze
+  function shade(L, n, x, y, Lref = L) {
+    const fog = CS.clamp(TUNE.fog * (1 - n), 0, 1);
+    const c = navyRGB(Lref + (L - Lref) * (0.35 + 0.65 * n)), h = hazeAt(x, y);
+    return rgb([CS.lerp(c[0], h[0], fog), CS.lerp(c[1], h[1], fog), CS.lerp(c[2], h[2], fog)]);
+  }
+
   function band(g, top, bot) {
     g.beginPath();
     for (let x = 0; x <= W; x += 12) g.lineTo(x, top(x));
@@ -133,34 +152,56 @@
     g.closePath();
   }
 
-  // a painterly person dab: body, head and a lit cap
-  function dabPerson(g, x, y, hr, L) {
-    g.fillStyle = navy(L * 0.7);
-    g.beginPath(); g.ellipse(x, y + hr * 1.7, hr * 1.5, hr * 1.25, rr(-0.3, 0.3), 0, TAU); g.fill();
-    g.fillStyle = navy(L * 0.85);
-    g.beginPath(); g.ellipse(x, y, hr * 0.8, hr, 0, 0, TAU); g.fill();
-    if (R() < 0.65) {
-      g.fillStyle = navy(L * rr(1.15, 1.6));
-      g.globalAlpha = 0.7;
-      g.beginPath(); g.ellipse(x - hr * 0.25, y - hr * 0.35, hr * 0.5, hr * 0.42, 0, 0, TAU); g.fill();
-      g.beginPath(); g.ellipse(x - hr * 0.6, y + hr * 1.2, hr * 0.7, hr * 0.4, -0.4, 0, TAU); g.fill();
+  // a person in the stands: a dark figure against the lit air behind it, with a rim of
+  // light where a beam or the haze catches the head and shoulders
+  function dabPerson(g, x, y, hr, L, n) {
+    g.fillStyle = shade(L * 0.22, n, x, y, L * 0.45);
+    g.beginPath(); g.ellipse(x, y + hr * 1.75, hr * 1.45, hr * 1.2, rr(-0.3, 0.3), 0, TAU); g.fill();
+    g.beginPath(); g.ellipse(x, y, hr * 0.78, hr * 0.95, rr(-0.2, 0.2), 0, TAU); g.fill();
+    if (R() < 0.6) {
+      g.fillStyle = shade(L * rr(1.0, 1.7), n, x, y, L * 0.45);
+      g.globalAlpha = 0.8;
+      g.beginPath(); g.ellipse(x - hr * 0.25, y - hr * 0.55, hr * 0.45, hr * 0.28, -0.3, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(x - hr * 0.75, y + hr * 0.95, hr * 0.6, hr * 0.24, -0.35, 0, TAU); g.fill();
       g.globalAlpha = 1;
     }
   }
 
+  // the lit air / seating seen between the bodies of a crowd band
+  function backdrop(g, top, bot, ti, k) {
+    for (let x = 0; x < W; x += 4) {
+      const y0 = top(x), y1 = bot(x), n = ti < 0 ? 0.3 : nearStand(x, ti);
+      const L = (lightAt(x, (y0 + y1) / 2) + TUNE.backLift) * k;
+      const gr = g.createLinearGradient(0, y0, 0, y1);
+      gr.addColorStop(0, shade(L * 0.55, n, x, y0));
+      gr.addColorStop(1, shade(L * 1.0, n, x, y1));
+      g.fillStyle = gr;
+      g.fillRect(x, y0, 4.5, y1 - y0);
+    }
+  }
+
+  // brush stroke laid along a curve's tangent (for architecture)
+  function along(g, curve, x, y, len, th, col) {
+    g.fillStyle = col;
+    g.save();
+    g.translate(x, y);
+    g.rotate(Math.atan2(curve(x + 8) - curve(x - 8), 16) + rr(-0.05, 0.05));
+    g.fillRect(-len / 2, -th / 2, len, th);
+    g.restore();
+  }
+
   function buildArena() {
     const c = CS.canvas(W, H), g = c.getContext('2d');
-    // roof / far wall
+    // roof and far wall, lost in haze
     const bg = g.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, '#020812');
     bg.addColorStop(0.5, '#05111d');
     bg.addColorStop(1, '#030912');
     g.fillStyle = bg;
     g.fillRect(0, 0, W, H);
-    // painterly mottling over the dark structure
     for (let i = 0; i < 9000; i++) {
       const x = rr(0, W), y = rr(0, 640);
-      g.fillStyle = navy(lightAt(x, y) * rr(0.35, 0.8));
+      g.fillStyle = shade(lightAt(x, y) * rr(0.35, 0.8), 0.3, x, y);
       g.globalAlpha = 0.35;
       g.save(); g.translate(x, y); g.rotate(rr(-0.6, 0.6));
       g.fillRect(-rr(6, 18), -rr(2, 5), rr(12, 36), rr(4, 10));
@@ -168,78 +209,95 @@
     }
     g.globalAlpha = 1;
 
-    // crowds in the stands
+    // crowds in the stands: heads shrink and fade with distance
     TIERS.forEach((T, ti) => {
-      band(g, T.top, T.bot);
-      g.fillStyle = navy(0.18);
-      g.fill();
-      // seat rows follow the balcony curve; draw back (top) rows first so the
-      // row in front hides the bodies behind it
+      backdrop(g, T.top, T.bot, ti, TUNE.tierL);
+      // seat rows follow the balcony curve; back (top) rows first so each row hides the bodies behind
       const hc = T.bot(ORB.x) - T.top(ORB.x);
-      const rows = Math.max(3, Math.floor(hc / (T.hr * 2.2)));
+      const rows = Math.max(3, Math.floor(hc / (T.hr * 2.3)));
       for (let k = 0; k < rows; k++) {
         const s = (k + 0.5) / rows;
         for (let x = -6; x < W + 6; ) {
-          const u = Math.abs(x - ORB.x) / ORB.x;
-          const hr = T.hr * (1 + 0.7 * u);
+          const n = nearStand(x, ti) * (0.92 + 0.08 * s);
+          const hr = T.hr * (0.6 + 0.8 * n);
           const y = CS.lerp(T.top(x), T.bot(x), s) + rr(-0.5, 0.5) * hr;
-          if (R() < 0.9) dabPerson(g, x, y, hr * rr(0.85, 1.15), lightAt(x, y) * rr(0.5, 1.15) * TUNE.tierL);
-          if (R() < 0.02) twinkles.push({ x: x + rr(-2, 2), y: y + rr(-1, 4), s: 4 + hr * 1.6, ph: rr(0, TAU), sp: rr(0.4, 2), warm: true });
-          x += hr * 1.85 * rr(0.8, 1.25);
+          if (R() < 0.93) dabPerson(g, x, y, hr * rr(0.85, 1.15), lightAt(x, y) * rr(0.6, 1.15) * TUNE.tierL, n);
+          if (R() < 0.065) twinkles.push({ x: x + rr(-2, 2), y: y + rr(-1, 4), s: 3.5 + 7 * n, a0: 0.45 + 0.55 * n, ph: rr(0, TAU), sp: rr(0.4, 2) });
+          x += hr * 1.85 * rr(0.85, 1.25);
         }
+      }
+      // shadow cast by the balcony overhang onto the top rows
+      for (let x = 0; x < W; x += 6) {
+        const y0 = T.top(x), h = (T.bot(x) - y0) * 0.5;
+        const sg = g.createLinearGradient(0, y0, 0, y0 + h);
+        sg.addColorStop(0, `rgba(0,3,9,${TUNE.shadow})`);
+        sg.addColorStop(1, 'rgba(0,3,9,0)');
+        g.fillStyle = sg;
+        g.fillRect(x, y0, 6, h);
       }
     });
 
-    // balcony slabs: lit fascia lip, dark underside
+    // balconies as solid slabs: lit front face (thicker where nearer) over a dark soffit
     SLABS.forEach(([top, bot], si) => {
+      const fBot = x => Math.min(bot(x) - 2, top(x) + 5 + 30 * nearStand(x, si));
       band(g, top, bot);
-      const y0 = top(ORB.x), y1 = bot(ORB.x);
-      const gr = g.createLinearGradient(0, y0 - 40, 0, y1 + 10);
-      gr.addColorStop(0, '#0d2333');
-      gr.addColorStop(0.3, '#061420');
-      gr.addColorStop(1, '#030a13');
-      g.fillStyle = gr;
+      g.fillStyle = navy(0.05);
       g.fill();
-      for (let i = 0; i < 1600; i++) {
-        const x = rr(0, W), t = R(), y = CS.lerp(top(x), bot(x), t);
-        g.fillStyle = navy(lightAt(x, y) * rr(0.25, 0.55) * (1.2 - t) * TUNE.slabL);
-        g.globalAlpha = 0.5;
-        g.save(); g.translate(x, y); g.rotate(Math.atan2(top(x + 10) - top(x), 10));
-        g.fillRect(-rr(8, 20), -rr(1, 3), rr(16, 40), rr(2, 6));
-        g.restore();
+      for (let i = 0; i < 2600; i++) {
+        const x = rr(0, W), t = R(), y = CS.lerp(fBot(x), bot(x), t), n = nearStand(x, si);
+        // the underside stays dark except where a beam rakes across it
+        const L = (0.04 + TUNE.soffitL * Math.max(0, lightAt(x, y) - 0.16) * 1.8) * (1 - 0.6 * t);
+        along(g, top, x, y, rr(18, 55) * (0.5 + n), rr(2, 6), shade(L * rr(0.7, 1.25), n, x, y, L));
       }
-      g.globalAlpha = 1;
-      g.strokeStyle = 'rgba(70,130,155,0.35)';
+      band(g, top, fBot);
+      g.fillStyle = navy(0.22);
+      g.fill();
+      for (let i = 0; i < 1800; i++) {
+        const x = rr(0, W), t = R(), y = CS.lerp(top(x), fBot(x), t), n = nearStand(x, si);
+        const L = (lightAt(x, y) * TUNE.fasciaL + 0.12) * (1.2 - 0.55 * t);
+        along(g, top, x, y, rr(14, 40) * (0.5 + n), rr(1.5, 4) * (0.6 + n), shade(L * rr(0.8, 1.2), n, x, y, L));
+      }
+      // bright lip along the top edge, dark crease where the face meets the soffit
+      g.lineWidth = 1.6;
+      for (let x = 0; x < W; x += 12) {
+        // the lip fades into the haze with distance
+        const a = CS.clamp((0.12 + 0.6 * lightAt(x, top(x)) * TUNE.fasciaL) * (0.25 + 0.75 * nearStand(x, si)), 0, 0.9);
+        g.strokeStyle = `rgba(120,200,212,${a})`;
+        g.beginPath(); g.moveTo(x, top(x)); g.lineTo(x + 12, top(x + 12)); g.stroke();
+      }
+      g.strokeStyle = 'rgba(0,4,10,0.65)';
       g.lineWidth = 2;
       g.beginPath();
-      for (let x = 0; x <= W; x += 12) g.lineTo(x, top(x) + 1);
+      for (let x = 0; x <= W; x += 12) g.lineTo(x, fBot(x));
       g.stroke();
     });
 
     // suites: warm lit windows tucked under the balconies
     const suites = [[270, 0], [140, 0], [1350, 0], [405, 1], [455, 1], [960, 1], [1230, 1], [240, 2], [180, 2], [1340, 2], [1440, 2], [1065, 1]];
     for (const [sx, ti] of suites) {
+      const n = nearStand(sx, ti);
       const sy = TIERS[ti].top(sx) + 4;
-      const w = rr(14, 22), h = rr(12, 16);
+      const w = (10 + 12 * n) * rr(0.9, 1.1), h = w * 0.75;
       const sg = g.createLinearGradient(0, sy, 0, sy + h);
-      sg.addColorStop(0, 'rgba(170,150,120,0.32)');
-      sg.addColorStop(1, 'rgba(90,75,60,0.2)');
+      sg.addColorStop(0, `rgba(170,150,120,${0.2 + 0.2 * n})`);
+      sg.addColorStop(1, `rgba(90,75,60,${0.12 + 0.12 * n})`);
       g.fillStyle = sg;
       g.fillRect(sx, sy, w, h);
-      // a couple of silhouettes against the window
       g.fillStyle = 'rgba(6,12,20,0.6)';
       for (let k = 0; k < 2; k++) { g.beginPath(); g.ellipse(sx + w * (0.3 + 0.4 * k), sy + h * 0.7, w * 0.12, h * 0.35, 0, 0, TAU); g.fill(); }
-      twinkles.push({ x: sx + w * 0.7, y: sy + h * 0.4, s: 8, ph: rr(0, TAU), sp: 0.5, warm: true });
+      twinkles.push({ x: sx + w * 0.7, y: sy + h * 0.4, s: 5 + 5 * n, a0: 0.7, ph: rr(0, TAU), sp: 0.5 });
     }
 
-    // the far floor, too small to animate
-    for (let y = 600; y < 742; y += Math.max(1.6, floorR(y) * 1.05)) {
+    // the far floor, too small to animate: tiny heads backlit by stage haze
+    backdrop(g, L_.floor, () => 760, -1, TUNE.farL * 1.2);
+    for (let y = 598; y < 742; y += Math.max(1.6, floorR(y) * 1.05)) {
       const r = floorR(y);
       for (let x = -4; x < W + 4; x += r * 1.9 * rr(0.8, 1.25)) {
         const yy = y + rr(-r * 0.3, r * 0.3);
         if (((x - STAGE.x) / 240) ** 2 + ((yy - 778) / 44) ** 2 < 1) continue;
-        dabPerson(g, x, yy, r * rr(0.85, 1.15), lightAt(x, yy) * rr(0.4, 0.95) * TUNE.farL);
-        if (R() < 0.03) twinkles.push({ x, y: yy - r * 1.2, s: 4 + r * 1.4, ph: rr(0, TAU), sp: rr(0.4, 1.6), warm: true });
+        const glow = TUNE.stageGlow * Math.exp(-Math.hypot(x - STAGE.x, (yy - STAGE.y) * 1.8) / 420);
+        dabPerson(g, x, yy, r * rr(0.85, 1.15), (lightAt(x, yy) + glow) * rr(0.4, 0.95) * TUNE.farL, nearFloor(yy));
+        if (R() < 0.05) twinkles.push({ x, y: yy - r * 1.2, s: 3 + r * 1.4, a0: 0.75, ph: rr(0, TAU), sp: rr(0.4, 1.6) });
       }
     }
     return c;
@@ -248,15 +306,16 @@
   function buildPeople() {
     for (let y = 742; y < 1090; ) {
       const r = floorR(y);
-      for (let x = -50; x < W + 50; x += r * 1.95 * rr(0.82, 1.2)) {
-        const yy = y + rr(-r * 0.25, r * 0.25);
+      for (let x = -50 + rr(0, r); x < W + 50; x += r * 1.9 * rr(0.7, 1.3)) {
+        const yy = y + rr(-r * 0.45, r * 0.45);
         if (((x - STAGE.x) / 245) ** 2 + ((yy - 778) / 46) ** 2 < 1) continue;
-        const p = CS.makePerson(R, x, yy, r * rr(0.88, 1.12));
-        // the crowd around the stage catches its spill; the nearest rows fall back into silhouette
+        const p = CS.makePerson(R, x, yy, r * rr(0.85, 1.15), { arms: 0.035 });
+        // the crowd around the stage catches its spill; the nearest rows fall toward silhouette
+        const n = nearFloor(yy);
         const glow = TUNE.stageGlow * Math.exp(-Math.hypot(x - STAGE.x, (yy - STAGE.y) * 1.8) / 420);
-        const L = (lightAt(x, yy - r) + glow) * rr(0.4, 0.85) * TUNE.nearL * (1 - TUNE.frontDark * CS.smooth(800, 1000, yy));
-        p.body = navy(L * TUNE.shirtL * rr(0.7, 1.2));
-        p.head = navy(L * 0.6);
+        const L = (lightAt(x, yy - r) + glow) * rr(0.45, 0.9) * TUNE.nearL * (1 - TUNE.frontDark * CS.smooth(800, 1000, yy));
+        p.body = shade(L * TUNE.shirtL * rr(0.7, 1.2), n, x, yy, L);
+        p.head = shade(L * TUNE.headL, n, x, yy, L);
         people.push(p);
       }
       y += r * 1.0;
@@ -269,7 +328,7 @@
     beamTex.wash = makeBeam(91, FIX[4]);
     glowCyan = CS.glow(90, 230, 220, 128);
     glowSoft = CS.glow(70, 200, 200, 128, 0.4);
-    glowWarm = CS.glow(255, 180, 110, 32, 0.2);
+    glowWarm = CS.glow(255, 185, 115, 32, 0.12);
     rebuild();
     overlay = CS.paintOverlay(W, H, 5, { strokes: 30000, strength: 0.8, vignette: 0.55 });
     for (let i = 0; i < 420; i++) dust.push({ u: R(), v: R() * 2 - 1, s: 0.6 + R() * 1.5, ph: R() * TAU, sp: 0.01 + R() * 0.03 });
@@ -354,20 +413,20 @@
       body.addColorStop(0.35, '#07141a');
       body.addColorStop(1, '#020608');
       g.fillStyle = body;
-      g.beginPath(); g.roundRect(-14, -8, 18, 16, 3); g.fill();
+      g.beginPath(); g.roundRect(-13, -11, 17, 22, 3); g.fill();
       g.fillStyle = '#04090c';
-      g.beginPath(); g.ellipse(4, 0, 3.6, 8.4, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(4, 0, 5.5, 11.5, 0, 0, TAU); g.fill();
       const lit = f.len ? 1 : 0.35;
-      const lens = g.createRadialGradient(5, 0, 0, 5, 0, 8);
+      const lens = g.createRadialGradient(6, 0, 0, 6, 0, 11);
       lens.addColorStop(0, `rgba(235,255,252,${lit})`);
       lens.addColorStop(0.5, `rgba(120,240,230,${lit})`);
       lens.addColorStop(1, `rgba(40,150,150,${lit * 0.8})`);
       g.fillStyle = lens;
-      g.beginPath(); g.ellipse(5, 0, 3, 7.2, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(6, 0, 5, 10.5, 0, 0, TAU); g.fill();
       g.restore();
       g.globalCompositeOperation = 'lighter';
-      g.globalAlpha = CS.clamp(0.55 * lit * I, 0, 1);
-      g.drawImage(glowCyan, p.x + dx * 8 - 22, p.y + dy * 8 - 22, 44, 44);
+      g.globalAlpha = CS.clamp(0.8 * lit * I, 0, 1);
+      g.drawImage(glowCyan, p.x + dx * 9 - 30, p.y + dy * 9 - 30, 60, 60);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
     }
@@ -467,15 +526,17 @@
     g.globalAlpha = 1;
     g.drawImage(arena, 0, 0);
 
-    // warm pinpricks in the crowd (phone screens / lighters far away)
-    g.globalCompositeOperation = 'lighter';
-    for (const p of twinkles) {
-      const a = 0.45 + 0.3 * Math.sin(tA * p.sp + p.ph) + 0.25 * Math.sin(tA * p.sp * 2.7 + p.ph * 3);
-      if (a <= 0.05) continue;
-      g.globalAlpha = Math.min(1, a * TUNE.twinkle);
-      g.drawImage(glowWarm, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
-    }
-    g.globalAlpha = 1;
+
+    // stage light hanging in the air at crowd level behind the stage: silhouettes the far floor
+    g.save();
+    g.translate(STAGE.x, 655);
+    g.scale(1, 0.16);
+    let fh = g.createRadialGradient(0, 0, 0, 0, 0, 820);
+    fh.addColorStop(0, `rgba(60,170,175,${TUNE.floorHaze * I})`);
+    fh.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = fh;
+    g.fillRect(-820, -820, 1640, 1640);
+    g.restore();
 
     // beams, each leaving its can
     FIX.forEach((f, i) => {
@@ -514,7 +575,7 @@
     drawOrb(g, tL, I * pulse);
 
     const po = {
-      lx: ORB.x, ly: STAGE.y - 120, rim: TUNE.rim, rimMin: 0.02, falloff: 460, rimW: 0.07,
+      lx: ORB.x, ly: STAGE.y - 120, rim: TUNE.rim, rimMin: 0.06, falloff: 650, rimW: 0.07,
       rimColor: '95,170,190', bob: 0.05, sway: 0.08,
     };
     let i = 0;
@@ -525,6 +586,19 @@
 
 
     for (; i < people.length; i++) CS.drawPerson(g, people[i], tA, po);
+
+    // stage spill washing over the nearest heads around it
+    g.globalCompositeOperation = 'lighter';
+    g.save();
+    g.translate(STAGE.x, STAGE.y + 30);
+    g.scale(1, 0.3);
+    fh = g.createRadialGradient(0, 0, 0, 0, 0, 480);
+    fh.addColorStop(0, `rgba(60,180,185,${0.1 * I})`);
+    fh.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = fh;
+    g.fillRect(-480, -480, 960, 960);
+    g.restore();
+    g.globalCompositeOperation = 'source-over';
 
     g.globalAlpha = CS.clamp(TUNE.overlay, 0, 1);
     g.drawImage(overlay, 0, 0);
@@ -544,6 +618,17 @@
     g.globalCompositeOperation = 'source-over';
     const layer = topLayer.getContext('2d');
     layer.clearRect(0, 0, W, H);
+    // warm pinpricks in the crowd: too small for the paint filter, so they live up here
+    const tA = S.clocks.audience;
+    layer.globalCompositeOperation = 'lighter';
+    for (const p of twinkles) {
+      const a = 0.45 + 0.3 * Math.sin(tA * p.sp + p.ph) + 0.25 * Math.sin(tA * p.sp * 2.7 + p.ph * 3);
+      if (a <= 0.05) continue;
+      layer.globalAlpha = Math.min(1, a * TUNE.twinkle * (p.a0 ?? 1));
+      layer.drawImage(glowWarm, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    }
+    layer.globalAlpha = 1;
+    layer.globalCompositeOperation = 'source-over';
     drawOrb(layer, tL, S.intensity * pulse);
     CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit');
     g.globalAlpha = TUNE.topAlpha;
@@ -552,7 +637,7 @@
   }
   const topLayer = CS.canvas(W, H);
 
-  CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 6 }, init, render, renderTop });
+  CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 4, wobble: 1.8 }, init, render, renderTop });
 })();
 </script>
 </body>
