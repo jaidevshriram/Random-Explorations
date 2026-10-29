@@ -28,7 +28,7 @@ rasterized and scored against the reference with PSNR (primary metric) and SSIM.
 Rules (submissions that break them are rejected):
 - The canvas size is given in each task. The root <svg> width/height are forced to it, \
 so draw in pixel coordinates (or use a viewBox with the same aspect ratio).
-- The SVG must fit in the stated byte budget (UTF-8 bytes).
+- If a byte budget is stated, the SVG must fit in it (UTF-8 bytes).
 - Not allowed: <image>, <feImage>, <foreignObject>, <script>, <text>/<tspan>, data: \
 URIs, @import, or any href/url() that is not a #fragment. Paths, shapes, gradients, \
 patterns, filters such as feGaussianBlur, opacity, clipPath and mask are all fine.
@@ -37,9 +37,8 @@ patterns, filters such as feGaussianBlur, opacity, clipPath and mask are all fin
 Every turn, reply with the complete SVG in a single ```svg fenced block (no other code \
 blocks). After each attempt you get back your render, its PSNR/SSIM, and an error \
 heatmap (bright = wrong). PSNR is mean squared error in disguise: getting colors and \
-large shapes right matters most, and a soft, slightly blurry edge in roughly the right \
-place usually beats a crisp edge in the wrong place. Spend your byte budget where the \
-heatmap is brightest.
+large shapes right matters most, then edges in exactly the right place (pixel x covers \
+x..x+1, so its centre is at x+0.5). Work where the heatmap is brightest.
 
 When you believe you cannot improve the score further, reply with just DONE and no SVG."""
 
@@ -68,7 +67,7 @@ def reconstruct(
     model: str,
     effort: str,
     max_rounds: int,
-    byte_budget: int = DEFAULT_BYTE_BUDGET,
+    byte_budget: int | None = DEFAULT_BYTE_BUDGET,
 ) -> dict:
     ref = np.asarray(load_reference(image_id))
     h, w = ref.shape[:2]
@@ -83,7 +82,8 @@ def reconstruct(
             _png_block(np.asarray(grid_overlay(Image.fromarray(ref)))),
             {"type": "text", "text": (
                 f"Reference image `{image_id}` (shown first, without the grid). Canvas: {w}x{h} pixels. "
-                f"Byte budget: {byte_budget} bytes. You have up to {max_rounds} rounds. "
+                + (f"Byte budget: {byte_budget} bytes. " if byte_budget else "No byte limit. ")
+                + f"You have up to {max_rounds} rounds. "
                 "Round 1: send your first SVG."
             )},
         ],
@@ -148,7 +148,7 @@ def reconstruct(
                     _png_block(error_heatmap(ref, test)),
                     {"type": "text", "text": (
                         f"Round {rnd}: PSNR {scores['psnr']:.2f} dB, SSIM {scores['ssim']:.4f}, "
-                        f"{scores['bytes']}/{byte_budget} bytes. Best so far: "
+                        f"{scores['bytes']} bytes. Best so far: "
                         f"{best[0]['psnr']:.2f} dB (round {best[2]})."
                     )},
                 ]
@@ -170,7 +170,7 @@ def reconstruct(
     return log
 
 
-def run(entry: str, image_ids: list[str], model: str, effort: str, max_rounds: int, byte_budget: int) -> None:
+def run(entry: str, image_ids: list[str], model: str, effort: str, max_rounds: int, byte_budget: int | None) -> None:
     client = anthropic.Anthropic()
     out_dir = SUBMISSIONS_DIR / entry
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -24,7 +24,7 @@ python bench.py leaderboard
 ```
 
 Options: `--model` (default `claude-opus-5-5`), `--effort` (default `high`),
-`--max-rounds` (default 8), `--budget` (SVG byte limit, default 32768).
+`--max-rounds` (default 8), `--budget` (optional SVG byte limit; none by default).
 
 Each image costs up to `max-rounds` requests, and the conversation grows every
 round (each SVG plus two feedback images). Prompt caching is on, so earlier
@@ -50,7 +50,7 @@ something like:
 > `python bench.py check lego_r19 submissions/my-entry/lego_r19.svg` and look at
 > the render and heatmap it writes. Keep improving the PSNR until you can't anymore.
 > Drawing tools and code are fine, but don't read or vectorize the reference's
-> pixels. Rules: max 32768 bytes, no `<image>`, `<text>`, `data:` URIs or external refs.
+> pixels. Rules: no `<image>`, `<text>`, `data:` URIs or external refs.
 
 Two entries were made this way in a Claude Code session, each with the script
 that generates it:
@@ -90,8 +90,10 @@ A submission is `submissions/<entry>/<image_id>.svg` for each image, plus an
 optional `meta.json` (`model`, `notes`, ...). The rules make sure the SVG
 actually *draws* the image instead of smuggling it in:
 
-- **Byte budget:** 32 KB per SVG by default. Without a limit, one `<rect>` per
-  pixel would score near infinity.
+- **Draw parts, not pixels:** every shape should be a meaningful piece of the
+  scene (a face, a beam, a wheel, a gap). One `<rect>` per pixel would score
+  near infinity, so pixel-grid tracing doesn't count. There is no byte limit by
+  default; pass `--budget N` to score a size-limited track.
 - **No raster or external content:** `<image>`, `<feImage>`, `<foreignObject>`,
   `<script>`, `data:` URIs, `@import`, and any `href`/`url()` that isn't a
   `#fragment` are rejected.

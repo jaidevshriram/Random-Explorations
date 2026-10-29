@@ -388,12 +388,13 @@ def render(chosen, grads, label=False):
         body.append(f'<g id="{obj}">' + under + "".join(paths) + "</g>")
     return "\n".join([
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">',
-        f'<defs><filter id="b"><feGaussianBlur stdDeviation="{P["BLUR"]}"/></filter>' + "".join(under_defs + defs) + "</defs>",
+        "<defs>" + (f'<filter id="b"><feGaussianBlur stdDeviation="{P["BLUR"]}"/></filter>' if P["BLUR"] else "")
+        + "".join(under_defs + defs) + "</defs>",
         # Contours run through the centres of boundary pixels, which in SVG sit at
         # +0.5: shift everything by half a pixel, and stroke each part in its own
         # colour (via currentColor) so it also covers the outer half of its edge pixels.
         '<rect width="800" height="800" fill="#fff"/>'
-        + ('<g shape-rendering="crispEdges">' if label else '<g filter="url(#b)">') +
+        + ('<g shape-rendering="crispEdges">' if label else '<g filter="url(#b)">' if P["BLUR"] else "<g>") +
         f'<g transform="translate(.5 .5)" fill="currentColor" stroke="currentColor" stroke-width="{P["SW"]}" stroke-linejoin="round">',
         *body, "</g></g></svg>"]) + "\n"
 

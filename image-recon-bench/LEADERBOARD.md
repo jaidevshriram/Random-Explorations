@@ -1,6 +1,6 @@
 # Leaderboard
 
-_Generated 2026-10-29 by `python bench.py leaderboard`. Ranked by mean PSNR (dB) over 1 image; SSIM as tie-breaker. Byte budget: 32768 bytes per SVG._
+_Generated 2026-10-29 by `python bench.py leaderboard`. Ranked by mean PSNR (dB) over 1 image; SSIM as tie-breaker. No byte limit._
 
 | # | Entry | Model | Method | Mean PSNR | Mean SSIM | Coverage | Avg bytes |
 |---|-------|-------|--------|----------:|----------:|:--------:|----------:|

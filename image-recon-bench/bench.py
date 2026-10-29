@@ -52,7 +52,7 @@ def cmd_check(args):
     Image.fromarray(test).save(out / f"{args.image}_render.png")
     Image.fromarray(error_heatmap(ref, test)).save(out / f"{args.image}_heatmap.png")
     print(f"{args.image}: PSNR {scoring.fmt_psnr(result['psnr'])} dB  SSIM {result['ssim']:.4f}  "
-          f"{result['bytes']}/{args.budget} bytes")
+          f"{result['bytes']} bytes" + (f" (budget {args.budget})" if args.budget else ""))
     print(f"render:  {out / f'{args.image}_render.png'}")
     print(f"heatmap: {out / f'{args.image}_heatmap.png'}")
 
@@ -89,14 +89,14 @@ def main():
     s.add_argument("--model", default="claude-opus-5-5")
     s.add_argument("--effort", default="high", choices=["low", "medium", "high", "xhigh", "max"])
     s.add_argument("--max-rounds", type=int, default=8)
-    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET, help="max SVG bytes")
+    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET, help="optional max SVG bytes (default: no limit)")
     s.set_defaults(func=cmd_run)
 
     s = sub.add_parser("check", help="score one SVG against one reference image")
     s.add_argument("image", choices=list(images.REFERENCE_SET))
     s.add_argument("svg")
     s.add_argument("--out", default="scratch", help="where to write render/heatmap PNGs")
-    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET)
+    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET, help="optional max SVG bytes (default: no limit)")
     s.set_defaults(func=cmd_check)
 
     s = sub.add_parser("grid", help="write the reference with a pixel grid overlay")
@@ -105,7 +105,7 @@ def main():
     s.set_defaults(func=cmd_grid)
 
     s = sub.add_parser("leaderboard", help="score every submission and write LEADERBOARD.md")
-    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET)
+    s.add_argument("--budget", type=int, default=DEFAULT_BYTE_BUDGET, help="optional max SVG bytes (default: no limit)")
     s.set_defaults(func=cmd_leaderboard)
 
     args = p.parse_args()

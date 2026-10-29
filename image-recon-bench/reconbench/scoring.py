@@ -26,7 +26,7 @@ def score_array(ref: np.ndarray, test: np.ndarray) -> dict:
     return {"psnr": min(psnr(ref, test), PSNR_CAP), "ssim": ssim(ref, test)}
 
 
-def score_svg(image_id: str, svg: str, byte_budget: int = DEFAULT_BYTE_BUDGET) -> tuple[dict, np.ndarray]:
+def score_svg(image_id: str, svg: str, byte_budget: int | None = DEFAULT_BYTE_BUDGET) -> tuple[dict, np.ndarray]:
     """Render and score one SVG. Raises InvalidSubmission on rule violations."""
     ref = np.asarray(load_reference(image_id))
     h, w = ref.shape[:2]
@@ -46,7 +46,7 @@ def load_meta(entry_dir: Path) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-def score_entry(entry_dir: Path, byte_budget: int = DEFAULT_BYTE_BUDGET) -> dict:
+def score_entry(entry_dir: Path, byte_budget: int | None = DEFAULT_BYTE_BUDGET) -> dict:
     per_image = {}
     for image_id in REFERENCE_SET:
         path = entry_dir / f"{image_id}.svg"
@@ -72,7 +72,7 @@ def score_entry(entry_dir: Path, byte_budget: int = DEFAULT_BYTE_BUDGET) -> dict
     }
 
 
-def score_all(byte_budget: int = DEFAULT_BYTE_BUDGET) -> list[dict]:
+def score_all(byte_budget: int | None = DEFAULT_BYTE_BUDGET) -> list[dict]:
     entries = sorted(p for p in SUBMISSIONS_DIR.iterdir() if p.is_dir()) if SUBMISSIONS_DIR.exists() else []
     results = [score_entry(p, byte_budget) for p in entries]
     results.sort(key=lambda r: (-r["mean_psnr"], -r["mean_ssim"]))

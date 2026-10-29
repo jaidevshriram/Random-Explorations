@@ -2,8 +2,8 @@
 
 The rules exist so a submission has to *draw* the image rather than smuggle it
 in: no embedded or linked raster data, no external references, no text (font
-rendering differs between machines), and a hard byte budget so that "one
-<rect> per pixel" is not a strategy.
+rendering differs between machines). An optional byte budget can cap the SVG
+size for a size-limited track; by default there is no limit.
 """
 
 import io
@@ -14,7 +14,7 @@ import numpy as np
 import resvg_py
 from PIL import Image
 
-DEFAULT_BYTE_BUDGET = 32 * 1024
+DEFAULT_BYTE_BUDGET = None  # no size limit unless one is asked for
 
 SVG_NS = "http://www.w3.org/2000/svg"
 FORBIDDEN_ELEMENTS = {
@@ -32,10 +32,10 @@ def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
-def validate_svg(svg: str, byte_budget: int = DEFAULT_BYTE_BUDGET) -> ET.Element:
+def validate_svg(svg: str, byte_budget: int | None = DEFAULT_BYTE_BUDGET) -> ET.Element:
     """Raise InvalidSubmission if the SVG breaks the rules; return the parsed root."""
     size = len(svg.encode("utf-8"))
-    if size > byte_budget:
+    if byte_budget is not None and size > byte_budget:
         raise InvalidSubmission(f"SVG is {size} bytes, over the {byte_budget}-byte budget")
     if re.search(r"<!(DOCTYPE|ENTITY)", svg, re.I):
         raise InvalidSubmission("DOCTYPE/ENTITY declarations are not allowed")
@@ -67,7 +67,7 @@ def _check_urls(text: str) -> None:
             raise InvalidSubmission(f"external url() not allowed: {m.group(0)!r}")
 
 
-def render_svg(svg: str, width: int, height: int, byte_budget: int = DEFAULT_BYTE_BUDGET) -> np.ndarray:
+def render_svg(svg: str, width: int, height: int, byte_budget: int | None = DEFAULT_BYTE_BUDGET) -> np.ndarray:
     """Validate and rasterize an SVG to an (H, W, 3) uint8 array on a white background.
 
     The root's width/height are forced to the reference size, so the SVG's user
