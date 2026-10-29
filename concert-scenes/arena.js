@@ -51,7 +51,7 @@
   const TEAL = [40, 215, 205];
   const DEFAULT_LV = { beam: 1, proj: 0, laser: 0, fan: 0, burst: 0 };
   const LX = {
-    on: new URLSearchParams(location.search).has('show'), program: new URLSearchParams(location.search).get('show') === 'beams' ? 'beams' : 'main', rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
+    on: new URLSearchParams(location.search).has('show'), program: ['beams', 'song'].includes(new URLSearchParams(location.search).get('show')) ? new URLSearchParams(location.search).get('show') : 'main', rot: 0, spot: 1, spotCol: [120, 210, 218], goboSpin: 0, fanSpread: 24, fanScan: 0,
     eye: 1, eyeCol: TEAL.slice(), // the lamp facing the audience on the front of the satellite
     yaw: 0, pitch: 0, spotLock: true,   // 3D orientation (with rot = roll); the follow spot can keep tracking the stage
     gobo: 'dots', goboZoom: 17, prism: 0, // projector stencil ('mix': a different one per fixture), cone half-angle, 3-facet prism
@@ -62,6 +62,12 @@
     laserTilt: 0, laserScan: 0, fanTwist: 0,
     burstCount: 44, burstSpread: 6, burstPh: 0, // burst: single beams evenly in every direction off the sphere, each wandering a little
     fireFrac: 1, fireWin: 0, // share of laser lines firing at once, and which draw of that share (changes as fireWin steps)
+    smoke: 0, smokeT: 0,   // haze density (0 clear air .. 1 thick smoke the beams billow through) and its drift
+    disperse: 0,           // prism dispersion: hairline red/blue fringes on beams and lasers, and lens fringing
+    goboSeed: 0,           // shuffles which stencil each head carries when gobo is 'mix'
+    projCol: null,         // the projectors' own colour (null: each head's colour)
+    projAlpha: 1,          // how solid the projected light is (low: a translucent veil of pattern)
+    gain: 1,               // programme-level brightness push on top of the master
     // every can is a moving head on the ring: it tilts out of the ring toward the audience (+) or
     // away (-), each by its own amount when tiltScan is up
     tilt: 0, tiltScan: 0, tiltPh: 0,
@@ -194,10 +200,17 @@
   // Two programmes. 'main' is the full show (with a white strobe cut in before the finale);
   // 'beams' is beams only, choreographed to keep crossing the camera's lens.
   const STROBE = { at: 24.5, len: 4.5 };
-  const PROGRAMS = { main: 30 + STROBE.len, beams: 20 };
+  const PROGRAMS = { main: 30 + STROBE.len, beams: 20, get song() { return window.SONG ? window.SONG.duration : 30; } };
   function showAt(t) {
     LX.fireFrac = 1;
+    LX.smoke = 0;
+    LX.disperse = 0;
+    LX.gain = 1;
+    LX.goboSeed = 0;
+    LX.projCol = null;
+    LX.projAlpha = 1;
     if (LX.program === 'beams') { beamsAt(t); return; }
+    if (LX.program === 'song') { songAt(t); return; }
     const L = PROGRAMS.main;
     t = ((t % L) + L) % L;
     const inStrobe = t >= STROBE.at && t < STROBE.at + STROBE.len;
@@ -299,6 +312,125 @@
     cap('BACK TO THE PAINTING', 17.6, 19.9);
     LX.label = label;
     LX.labelA = la;
+  }
+
+  // ---------- music ----------
+  // A cue sheet in window.SONG (analyze_song.py, or the desk's own analysis of a dropped file):
+  // beats, downbeats, sections ranked by energy, and loudness/bands per frame. The song programme:
+  // calm and still until the song's loudest section (a white spot, a few dim teal heads leaning to
+  // the audience, breathing with the music; dimmer through the quiet stretch), then the peak is the
+  // birth of the cosmos (white strobe, a random share of a white spray, random gobos through a prism
+  // over the crowd, thick smoke, hairline spectra, the ball tumbling), then it settles home.
+  const bsearch = (a, t) => { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] <= t) lo = m + 1; else hi = m; } return lo - 1; };
+  const songPeak = C => C.sections.reduce((m, s, i, a) => (s.energy > a[m].energy ? i : m), 0);
+  // the ball through the peak: starts square on, tumbles, and keeps turning
+  function cosmosRig(t, P) {
+    const u = t - P.t0, r = seg(t, P.t0, P.t0 + 3);
+    return [
+      (360 * u) / 26 + 35 * Math.sin(u * 0.53) * r,
+      (-20 + 22 * Math.sin(u * 0.61 + 0.4)) * r,
+      (360 * u) / 17,
+    ];
+  }
+  function songAt(t) {
+    const C = window.SONG;
+    if (!C) { mainAt(((t % 30) + 30) % 30); return; }
+    t = CS.clamp(t, 0, C.duration - 1e-3);
+    const fi = Math.min(C.rms.length - 1, Math.floor(t * C.fps));
+    const en = C.energy[fi], hi = C.high[fi], lo = C.low[fi];
+    const bi = Math.max(0, bsearch(C.beats, t)), b0 = C.beats[bi] ?? 0, b1 = C.beats[bi + 1] ?? b0 + 60 / C.tempo;
+    const bph = CS.clamp((t - b0) / Math.max(0.05, b1 - b0), 0, 1), kick = Math.exp(-bph * 5) * (0.35 + 0.65 * lo);
+    const di = Math.max(0, bsearch(C.downbeats, t));
+    const pk = songPeak(C), P = C.sections[pk];
+    const si = Math.max(0, C.sections.findIndex(s => t >= s.t0 && t < s.t1));
+    const S0 = C.sections[si];
+    for (let i = 0; i < FIX.length; i++) { LX.col[i] = TEAL.slice(); Object.assign(LX.lv[i], DEFAULT_LV, { beam: FIX[i].spot ? 1 : 0 }); }
+    LX.spotLock = true;
+    LX.tiltScan = 0;
+    LX.tiltPh = t;
+    LX.laserTilt = 0;
+    LX.prism = 0;
+    LX.label = '';
+    LX.labelA = 0;
+    const WHITE = [236, 241, 250];
+    if (t < P.t0) {
+      // calm: the rig square on and still; a white spot; the ring heads a soft teal leaning toward
+      // the audience, breathing with the music; the quiet stretch before the peak dims everything
+      LX.yaw = LX.pitch = LX.rot = 0;
+      LX.tilt = 14;
+      // how "quiet" we are: sections ranked lowest, smoothed in and out over a couple of seconds
+      const quietAt = x => { const s = C.sections.find(q => x >= q.t0 && x < q.t1); return s && s.level === 0 ? 1 : 0; };
+      let q = 0;
+      for (let k = -4; k <= 4; k++) q += quietAt(t + k * 0.5) / 9;
+      const chorus = S0.level >= 2 ? 1 : 0;
+      const base = (0.16 + 0.1 * chorus + 0.18 * en) * (1 - 0.8 * q);
+      ORDER.forEach(i => { if (!FIX[i].back) { LX.lv[i].beam = base; LX.col[i] = TEAL.slice(); } });
+      LX.spot = (1 - 0.4 * q) * (1 - seg(t, P.t0 - 0.35, P.t0 - 0.05)); // a breath of darkness right before the drop
+      LX.spotCol = WHITE;
+      LX.eye = 0.35 + 0.25 * en;
+      LX.eyeCol = [150, 225, 220];
+      LX.smoke = 0.25 * q;
+    } else if (t < P.t1) {
+      // the birth of the cosmos
+      const [yw, pt, rl] = cosmosRig(t, P);
+      LX.yaw = yw; LX.pitch = pt; LX.rot = rl;
+      LX.tilt = 30;
+      LX.tiltScan = 14;
+      LX.tiltPh = t * 0.9;
+      LX.smoke = 0.95;
+      LX.disperse = 1;
+      LX.gain = 1.2;
+      const hit = 1 - seg(t, P.t0, P.t0 + 0.5); // the first downbeat lands as a white flash
+      // strobe on sixteenths; a random 60% of the spray fires, re-drawn every tenth of a second
+      const beats16 = (t - P.t0) * (C.tempo / 60) * 4, n = Math.floor(beats16), on = beats16 - n < 0.5;
+      const R1 = Math.sin(n * 91.7) * 43758.5453, r1 = R1 - Math.floor(R1);
+      LX.burstCount = Math.round((40 + 100 * hi) * (0.7 + 0.6 * r1));
+      LX.burstSpread = 14;
+      LX.burstPh = n * 3.7;
+      LX.fireFrac = 0.6;
+      LX.fireWin = Math.floor(t / 0.1);
+      LX.gobo = 'mix';
+      LX.goboSeed = di;               // new stencils every bar
+      LX.goboZoom = 22;
+      LX.prism = 3;
+      LX.goboSpin = t * 2.4;
+      // the projections: a pale, translucent light brown drifting through warm tones
+      const wt = [[214, 172, 128], [222, 160, 150], [226, 196, 140], [200, 168, 140]], wu = ((t - P.t0) / 6) % wt.length, wk = Math.floor(wu);
+      LX.projCol = mixc(wt[wk], wt[(wk + 1) % wt.length], ease(wu - wk));
+      LX.projAlpha = 0.42;
+      const silver = [[240, 244, 255], [205, 210, 222], [255, 249, 238]];
+      ORDER.forEach((i, k) => {
+        LX.col[i] = silver[k % 3];
+        LX.lv[i].beam = (0.25 + 0.55 * kick) * (FIX[i].back ? 0.7 : 1) + 1.2 * hit;
+        LX.lv[i].proj = FIX[i].back ? 0 : 1.05 + 0.45 * kick;
+        LX.lv[i].burst = on ? 1.25 : 0;
+      });
+      LX.spot = 1.15 + 0.3 * kick;
+      LX.spotCol = WHITE;
+      LX.eye = on ? 1 : 0.2;
+      LX.eyeCol = WHITE;
+    } else {
+      // after the peak: the smoke hangs, the strobe is gone, the ball turns home, the spot holds her
+      const [yw, pt, rl] = cosmosRig(P.t1, P), h = seg(t, P.t1, Math.min(C.duration, P.t1 + 9));
+      const home = v => Math.round(v / 360) * 360;
+      LX.yaw = yw + (home(yw) - yw) * h;
+      LX.pitch = pt * (1 - h);
+      LX.rot = rl + (home(rl) - rl) * h;
+      LX.tilt = 30 * (1 - h) + 14 * h;
+      LX.smoke = 0.95 * (1 - seg(t, P.t1, P.t1 + 12));
+      LX.disperse = 1 - seg(t, P.t1, P.t1 + 4);
+      const fade = 1 - seg(t, C.duration - 6, C.duration);
+      ORDER.forEach((i, k) => {
+        LX.col[i] = mixc([236, 241, 250], TEAL, h);
+        LX.lv[i].beam = FIX[i].back ? 0.3 * (1 - h) : (0.3 + 0.2 * en) * fade;
+      });
+      LX.spot = 1 * Math.max(0.35, fade);
+      LX.spotCol = WHITE;
+      LX.eye = 0.4 * fade;
+      LX.eyeCol = [150, 225, 220];
+    }
+    LX.smokeT = t;
+    LX.col[4] = spotBeamCol();
   }
 
   function mainAt(t) {
@@ -790,6 +922,12 @@
   const CHAPTERS = {
     main: [['Intro', 0], ['Beams', 2.6], ['Full turn', 6.7], ['Gobos', 10.6], ['Lasers', 15.6], ['Fans', 19.7], ['Strobe', 24.5], ['Everything', 29.1], ['Home', 32.8]],
     beams: [['Intro', 0], ['Into the lens', 2.1], ['From behind', 5.9], ['Raking', 10.1], ['Tumble', 14.1], ['Home', 17.6]],
+    get song() {
+      const C = window.SONG;
+      if (!C) return [['Song', 0]];
+      const pk = songPeak(C);
+      return C.sections.map((s, i) => [i === pk ? 'Cosmos' : i > pk ? 'Outro' : ['Quiet', 'Verse', 'Build', 'Chorus'][s.level], s.t0]);
+    },
   };
   // hooks for the light desk (console.js) and the optimisation harness
   window.__arena = {
@@ -1027,6 +1165,14 @@
     [x, z] = [x * Math.cos(yw) + z * Math.sin(yw), -x * Math.sin(yw) + z * Math.cos(yw)];
     return [x, y, z];
   }
+  // the same without the roll: what the ball itself does when the ring spins inside it
+  function rotYP(v) {
+    const pt = LX.pitch * D2R, yw = LX.yaw * D2R;
+    let [x, y, z] = v;
+    [y, z] = [y * Math.cos(pt) - z * Math.sin(pt), y * Math.sin(pt) + z * Math.cos(pt)];
+    [x, z] = [x * Math.cos(yw) + z * Math.sin(yw), -x * Math.sin(yw) + z * Math.cos(yw)];
+    return [x, y, z];
+  }
   // rotate v about unit axis k by angle a (Rodrigues)
   function axisRot(v, k, a) {
     const c = Math.cos(a), s1 = Math.sin(a), kv = cross3(k, v), d = k[0] * v[0] + k[1] * v[1] + k[2] * v[2];
@@ -1061,13 +1207,28 @@
   }
   // a fixture's place and aim on the satellite this frame
   function fixture3(f, i = FIX.indexOf(f)) {
-    const lock = f.spot && LX.spotLock;
     // ring heads sit on a circle round the ball's face (the painting's ring); back heads on its far side
     const pe = (f.pe || 0) * D2R, pa = f.pa * D2R;
     const pb = f.back ? [RS * Math.cos(pa) * Math.cos(pe), RS * Math.sin(pa) * Math.cos(pe), RS * Math.sin(pe)] : [RING3 * Math.cos(pa), RING3 * Math.sin(pa) * 0.94, -CROWN_Z];
-    const db = aimBody(f, i), pw = lock ? pb : rot3(pb), dw = lock ? db : rot3(db);
-    return { C: add3(O3, pw), d: dw };
+    // roll spins the ring of heads; yaw and pitch turn the whole ball. The follow spot hangs from
+    // the ball's underside, off the ring, so it turns with the ball but not with the ring's spin.
+    const R3 = f.spot ? rotYP : rot3;
+    const C = add3(O3, R3(pb)), d = R3(aimBody(f, i));
+    if (!f.spot || !LX.spotLock) return { C, d, aimK: 1 };
+    // The follow spot rides the ball like every head. It tracks the performer, but a moving head
+    // only reaches so far from its resting aim: turn the ball too far and the beam slides off her.
+    const want = norm3(sub3(PERF3, C)), ang = Math.acos(CS.clamp(dot3(d, want), -1, 1));
+    let aim = want;
+    if (ang > SPOT_REACH) aim = norm3(axisRot(d, norm3(cross3(d, want)), SPOT_REACH));
+    const miss = Math.acos(CS.clamp(dot3(aim, want), -1, 1)) / D2R;
+    return { C, d: aim, aimK: Math.exp(-((miss / 6) ** 2)) };
   }
+  const SPOT_REACH = 40 * D2R; // how far the follow spot can swing from straight down on the ball
+  // where the follow spot aims: the stage floor at the performer's feet
+  const PERF3 = [((PERF.x - CAM.cx) * Z0) / CAM.F, HF, Z0];
+  // how much of the follow spot is actually on the performer this frame (1 = square on her)
+  let spotAim = 1;
+  const spotTrack = () => (LX.on ? fixture3(FIX[4], 4).aimK : 1);
 
   let lasers = []; // this frame's laser lines in 3D (and on screen): soft in the paint, crisp on top
   let glare = [];  // light reaching the camera's lens this frame: fixtures and lasers aimed at it
@@ -1125,7 +1286,7 @@
 
   // resolve every fixture for this frame: where it sits and aims, levels, colour, tinted texture
   function frameLights(S) {
-    const tL = S.clocks.lights, I = S.intensity;
+    const tL = S.clocks.lights, I = S.intensity * (LX.on ? LX.gain : 1);
     const pulse = 0.9 + 0.1 * Math.pow(0.5 + 0.5 * Math.cos(((tL * S.bpm) / 60) * TAU), 3);
     const list = [];
     lasers = [];
@@ -1139,7 +1300,7 @@
       const tex = LX.on && lv.beam + lv.proj > 0 ? recolor(beamTex[i], col, tintCv[i]) : beamTex[i];
       const half0 = f.half * TUNE.beamHalf * (1 + 0.05 * hj(i * 17 + 5));
       let B, C = null, d = null;
-      if (!LX.on || (f.spot && LX.spotLock)) {
+      if (!LX.on) {
         // the painting's own beams (and a follow spot that keeps tracking the performer)
         const p = fixturePos(f, tL);
         B = { x: p.x, y: p.y, a: p.a + 0.006 * hj(i * 17 + 4), len: f.len, half: half0, floor: false, facing: 0 };
@@ -1185,6 +1346,36 @@
       }
     }
     return list;
+  }
+
+  // red and blue copies of each beam texture, for dispersion fringes
+  const fringeCache = {};
+  const fringeTex = i => fringeCache[i] || (fringeCache[i] = { r: recolor(beamTex[i], [255, 60, 40], CS.canvas(512, 192)), b: recolor(beamTex[i], [60, 110, 255], CS.canvas(512, 192)) });
+
+  // Smoke: a tileable churning field the beams' glow is multiplied through, and that the room's
+  // light picks out on its own.
+  let smokeTex = null;
+  function smokeField() {
+    if (smokeTex) return smokeTex;
+    const N = 256, c = CS.canvas(N, N), g = c.getContext('2d'), id = g.createImageData(N, N), n = CS.noise2(515, 8), n2 = CS.noise2(516, 16);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = CS.fbm(n, x / 32, y / 32, 4, 8) * 0.7 + CS.fbm(n2, x / 16, y / 16, 3, 16) * 0.3;
+      const k = Math.round(255 * CS.clamp(0.15 + 1.5 * (v - 0.3), 0.12, 1)), o = (y * N + x) * 4;
+      id.data[o] = id.data[o + 1] = id.data[o + 2] = k;
+      id.data[o + 3] = 255;
+    }
+    g.putImageData(id, 0, 0);
+    return (smokeTex = c);
+  }
+  // fill a context with the smoke field, drifting with LX.smokeT, at a scale
+  function fillSmoke(g, w, h, scale, dx, dy) {
+    const pat = g.createPattern(smokeField(), 'repeat');
+    g.save();
+    g.translate(dx, dy);
+    g.scale(scale, scale);
+    g.fillStyle = pat;
+    g.fillRect(-dx / scale, -dy / scale, w / scale, h / scale);
+    g.restore();
   }
 
   // a pool of light where a cone lands on the floor crowd
@@ -1254,11 +1445,16 @@
     }
     return discCache.get(key);
   };
-  const goboOf = i => (LX.gobo === 'mix' ? GOBOS[GOBO_NAMES[(ORDER.indexOf(i) + GOBO_NAMES.length) % GOBO_NAMES.length]] : GOBOS[LX.gobo]) || GOBOS.dots;
+  const goboOf = i => (LX.gobo === 'mix' ? GOBOS[GOBO_NAMES[(ORDER.indexOf(i) + (LX.goboSeed | 0) * 3 + GOBO_NAMES.length * 64) % GOBO_NAMES.length]] : GOBOS[LX.gobo]) || GOBOS.dots;
 
   // one projector: shafts in the haze (foot=false), or the printed pattern (foot=true)
+  const projTint = {};
   function drawGobo(g, L, ap, foot) {
-    const { f, i, C, d, col, tex } = L;
+    const { f, i, C, d } = L;
+    // the projector can carry its own colour, independent of the head's beam
+    const col = LX.projCol || L.col;
+    const tex = LX.projCol ? recolor(beamTex[i], col, projTint[i] || (projTint[i] = CS.canvas(512, 192))) : L.tex;
+    ap *= LX.projAlpha;
     const G = goboOf(i), ab = f.a * D2R;
     const ax = rot3([-Math.sin(ab), Math.cos(ab), 0]), ay = rot3([0, 0, 1]); // the gate's axes ride the satellite
     const tH = Math.tan(LX.goboZoom * D2R), spin = LX.goboSpin * (i % 2 ? -1 : 1), cs = Math.cos(spin), sn = Math.sin(spin);
@@ -1356,13 +1552,19 @@
         if (!foot) {
           beam(B, ab);
           if (ab > 1) beam(B, ab - 1);
+          if (LX.on && LX.disperse > 0) {
+            // a prism's hairline spectrum: a red edge one side, a blue edge the other
+            const fr = fringeTex(L.i);
+            drawBeam(g, fr.r, B.x, B.y, B.a + 0.005, B.len, B.half * 1.02, ab * 0.2 * LX.disperse);
+            drawBeam(g, fr.b, B.x, B.y, B.a - 0.005, B.len, B.half * 1.02, ab * 0.2 * LX.disperse);
+          }
           if (LX.on) drawBeam(g, whiteTex[L.i], B.x, B.y, B.a, B.len, B.half, ab * 0.16); // hot core
           beam(B, ab * TUNE.beamScatter, 2.1);
         } else if (!f.spot) {
           beam(B, ab * 0.9, 1.25);
           beam(B, ab * 0.3, 2.6); // scattered light around the cone
         }
-        if (LX.on && !f.spot && (B.floor || B.surf === 'stand')) pool(g, B, col, a * lv.beam, foot);
+        if (LX.on && (B.floor || B.surf === 'stand') && (!f.spot || spotAim < 0.95)) pool(g, B, col, a * lv.beam * (f.spot ? 1 - spotAim : 1), foot);
       }
       if (lv.proj > 0 && a > 0 && L.d) drawGobo(g, L, a * lv.proj * (foot ? 1 : L.fw), foot);
     }
@@ -1566,10 +1768,12 @@
 
   function render(g, S) {
     if (LX.on) (LX.mode === 'live' ? liveAt : showAt)(S.clocks.lights);
-    amb = LX.on ? CS.clamp(0.03 + 0.97 * bounceLight() * Math.min(1.5, S.intensity), 0.03, 1.15) : 1;
+    amb = LX.on ? CS.clamp(0.03 + 0.97 * bounceLight() * Math.min(1.5, S.intensity * LX.gain), 0.03, 1.25) : 1;
     amb = LX.on ? CS.clamp(0.08 + 0.92 * bounceLight() * Math.min(1.5, S.intensity), 0.08, 1.15) : 1;
     const tL = S.clocks.lights, tA = S.clocks.audience, tP = S.clocks.performer;
-    const I = S.intensity, spot = LX.on ? LX.spot : 1;
+    spotAim = spotTrack();
+    // what reaches the stage and the performer is only the part of the spot still on her
+    const I = S.intensity, spot = LX.on ? LX.spot * spotAim : 1;
     const beat = (tL * S.bpm) / 60;
     const pulse = 0.9 + 0.1 * Math.pow(0.5 + 0.5 * Math.cos(beat * TAU), 3);
 
@@ -1592,7 +1796,29 @@
     g.restore();
 
     const list = frameLights(S);
-    drawLights(g, list, false);
+    if (LX.on && LX.smoke > 0) {
+      // through smoke: the beams' glow goes into a buffer, part of it straight to the frame and
+      // part multiplied through the churning smoke field, so the cones billow and break up
+      const hz = hazeCv.getContext('2d'), sm = smokeCv.getContext('2d'), k = LX.smoke;
+      hz.setTransform(1, 0, 0, 1, 0, 0);
+      hz.globalCompositeOperation = 'source-over';
+      hz.fillStyle = '#000';
+      hz.fillRect(0, 0, hazeCv.width, hazeCv.height);
+      hz.setTransform(0.5, 0, 0, 0.5, 0, 0);
+      drawLights(hz, list, false);
+      hz.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'lighter';
+      g.globalAlpha = 1 - 0.55 * k;
+      g.drawImage(hazeCv, 0, 0, W, H);
+      sm.globalCompositeOperation = 'copy';
+      sm.drawImage(hazeCv, 0, 0);
+      sm.globalCompositeOperation = 'multiply';
+      fillSmoke(sm, smokeCv.width, smokeCv.height, 1.3, -LX.smokeT * 14, LX.smokeT * 5);
+      fillSmoke(sm, smokeCv.width, smokeCv.height, 2.6, LX.smokeT * 9, -LX.smokeT * 3);
+      sm.globalCompositeOperation = 'source-over';
+      addTimes(g, smokeCv, 2.6 * k, W, H);
+      g.globalCompositeOperation = 'source-over';
+    } else drawLights(g, list, false);
 
     if (LX.on) {
       // the room picks up the dominant colour of whatever is lit
@@ -1611,6 +1837,22 @@
       }
     }
 
+    if (LX.on && LX.smoke > 0) {
+      // the smoke itself, lit by whatever is in the room
+      const sk = LX.smoke * Math.min(1.2, amb) * 0.16;
+      if (sk > 0.003) {
+        const sm = smokeCv.getContext('2d');
+        sm.globalCompositeOperation = 'copy';
+        fillSmoke(sm, smokeCv.width, smokeCv.height, 1.8, LX.smokeT * 6, LX.smokeT * 2);
+        sm.globalCompositeOperation = 'source-over';
+        g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = Math.min(1, sk);
+        g.drawImage(smokeCv, 0, 0, W, H);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = 'source-over';
+      }
+    }
+
     // halo of scattered light around the orb
     const halo = g.createRadialGradient(ORB.x, ORB.y, 60, ORB.x, ORB.y, 300);
     const hc = LX.on ? rigColour().map(v => v | 0).join(',') : '40,170,175';
@@ -1623,14 +1865,16 @@
     // dust in the follow spot
     g.globalCompositeOperation = 'lighter';
     g.fillStyle = `rgb(${mixc(sc, [255, 255, 255], 0.6).map(v => v | 0)})`;
-    const sp = fixturePos(FIX[4], tL);
-    for (const p of dust) {
-      const u = (p.u + tL * p.sp) % 1;
-      const y = sp.y + 70 + u * (STAGE.y - sp.y - 80);
-      const half = (y - sp.y) * Math.tan(FIX[4].half * D2R);
-      const x = sp.x + p.v * half * 0.95 + Math.sin(tL * 0.6 + p.ph) * 4;
-      g.globalAlpha = (0.12 + 0.28 * Math.abs(Math.sin(tL * 1.3 + p.ph))) * (1 - Math.abs(p.v) * 0.6) * I * spot;
-      g.fillRect(x, y, p.s, p.s);
+    // motes along wherever the spot's beam actually is (on her or not)
+    const SB = (list.find(L => L.f.spot) || {}).B, spotLv = LX.on ? LX.spot : 1;
+    if (SB) {
+      const ca = Math.cos(SB.a), sa = Math.sin(SB.a), tH = Math.tan(SB.half * D2R);
+      for (const p of dust) {
+        const u = 0.12 + 0.8 * ((p.u + tL * p.sp) % 1), r = u * SB.len, half = r * tH;
+        const off = p.v * half * 0.95 + Math.sin(tL * 0.6 + p.ph) * 4;
+        g.globalAlpha = (0.12 + 0.28 * Math.abs(Math.sin(tL * 1.3 + p.ph))) * (1 - Math.abs(p.v) * 0.6) * I * spotLv;
+        g.fillRect(SB.x + ca * r - sa * off, SB.y + sa * r + ca * off, p.s, p.s);
+      }
     }
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';
@@ -1760,7 +2004,7 @@
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'source-over';
     (LX.on ? drawOrb3D : drawOrb)(layer, tL, S.intensity * pulse);
-    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot : 1, LX.on ? LX.spotCol : undefined, ...perfHaze());
+    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot * spotAim : 1, LX.on ? LX.spotCol : undefined, ...perfHaze());
     g.globalAlpha = TUNE.topAlpha;
     g.drawImage(topLayer, 0, 0);
     // the crowd in front of the stage, again but crisp, over its painted copy: keeps the
@@ -1771,7 +2015,7 @@
     if (LX.on && amb < 1) { cl.globalCompositeOperation = 'source-atop'; cl.fillStyle = `rgba(0,0,0,${1 - amb})`; cl.fillRect(0, 0, W, H); cl.globalCompositeOperation = 'source-over'; }
     if (LX.on) {
       cl.globalCompositeOperation = 'lighter';
-      cl.globalAlpha = Math.min(1, LX.spot);
+      cl.globalAlpha = Math.min(1, LX.spot * spotAim);
       cl.drawImage(rimFrontCv, 0, 0);
       cl.globalAlpha = 1;
       cl.globalCompositeOperation = 'source-over';
@@ -1818,11 +2062,13 @@
   // drawn behind them at their own depth. A laser passes in front of the people behind it and
   // vanishes behind anyone nearer the camera; where it lands it lights the head it hits.
   const NEAR_Y = 600; // above this on screen nobody in the near crowd can cover a laser
-  function laserPiece(g, s2, t0, t1, wMul, alpha) {
+  function laserPiece(g, s2, t0, t1, wMul, alpha, off = 0) {
     const P0 = add3(s2.P0, sub3(s2.P1, s2.P0), t0), P1 = add3(s2.P0, sub3(s2.P1, s2.P0), t1);
     const a = proj(P0), b = proj(P1);
     const w0 = (wMul * CAM.F) / P0[2] * 0.05, w1 = Math.min(60, (wMul * CAM.F) / Math.max(1, P1[2]) * 0.05);
     const L2 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / L2, ny = (b[0] - a[0]) / L2;
+    // offset sideways (dispersion fringes), growing toward the near end like the line's width
+    if (off) { const o0 = off * w0 / Math.max(0.3, w0), o1 = off * w1 / Math.max(0.3, w0); a[0] += nx * o0; a[1] += ny * o0; b[0] += nx * o1; b[1] += ny * o1; }
     g.globalAlpha = CS.clamp(alpha, 0, 1);
     g.beginPath();
     g.moveTo(a[0] + nx * w0, a[1] + ny * w0); g.lineTo(b[0] + nx * w1, b[1] + ny * w1);
@@ -1864,6 +2110,10 @@
         if (q.hit) { laserHit(lg, s2, s2.a * 0.9, 0.45); continue; }
         lg.fillStyle = s2.cGlow; laserPiece(lg, s2, q.t0, q.t1, 1.3, s2.aGlow);
         lg.fillStyle = s2.cCore; laserPiece(lg, s2, q.t0, q.t1, 0.4, s2.aCore);
+        if (LX.disperse > 0) {
+          lg.fillStyle = '#ff3c28'; laserPiece(lg, s2, q.t0, q.t1, 0.22, s2.aCore * 0.35 * LX.disperse, 1.4);
+          lg.fillStyle = '#3c6eff'; laserPiece(lg, s2, q.t0, q.t1, 0.22, s2.aCore * 0.35 * LX.disperse, -1.4);
+        }
       }
       lg.globalAlpha = 1;
     };
@@ -1920,10 +2170,11 @@
     for (const l of lasers) { lp += l.a; for (let j = 0; j < 3; j++) lc[j] += l.col[j] * l.a; }
     if (lp > 0) { const hk = Math.min(0.22, lp * 0.0014) * CAMERA.glare; for (let j = 0; j < 3; j++) veil[j] += (lc[j] / lp / 255) * hk; }
     const fl = CAMERA.flare;
-    S.lens = { src: top, expo: aeExpo, veil, bloom: CAMERA.bloom * (0.4 + 0.6 * Math.min(2, total)), ca: Math.min(1.5, total * 0.8), dirt: CAMERA.dirt, ghost: fl, star: fl, streak: fl * 0.6 };
+    S.lens = { src: top, expo: aeExpo, veil, bloom: CAMERA.bloom * (0.4 + 0.6 * Math.min(2, total)), ca: Math.min(2, total * 0.8 + LX.disperse * 0.9), dirt: CAMERA.dirt, ghost: fl, star: fl, streak: fl * 0.6 };
   }
 
   const topLayer = CS.canvas(W, H), crowdLayer = CS.canvas(W, H), maskCv = CS.canvas(W, H), laserLayer = CS.canvas(W, H);
+  const hazeCv = CS.canvas(W / 2, H / 2), smokeCv = CS.canvas(W / 2, H / 2);
   const pplCv = CS.canvas(W, H), lightCv = CS.canvas(W / 2, H / 2), rcvCv = CS.canvas(W / 2, H / 2);
   const rimCv = CS.canvas(W, H), rimFrontCv = CS.canvas(W, H), crowdFrame = CS.canvas(W, H);
   let rcvStatic = null;
