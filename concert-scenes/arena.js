@@ -69,7 +69,7 @@
     burstCount: 44, burstSpread: 6, burstPh: 0, // burst: single beams evenly in every direction off the sphere, each wandering a little
     fireFrac: 1, fireWin: 0, // share of laser lines firing at once, and which draw of that share (changes as fireWin steps)
     smoke: 0, smokeT: 0,   // haze density (0 clear air .. 1 thick smoke the beams billow through) and its drift
-    disperse: 0,           // prism dispersion: hairline red/blue fringes on beams and lasers, and lens fringing
+    disperse: 0,           // prism: lasers leave the ball white and part into a thin rainbow as they travel; hairline fringes on beams; lens fringing
     goboSeed: 0,           // shuffles which stencil each head carries when gobo is 'mix'
     projCol: null,         // the projectors' own colour (null: each head's colour)
     projAlpha: 1,          // how solid the projected light is (low: a translucent veil of pattern)
@@ -1636,11 +1636,11 @@
     g.globalAlpha = 1;
   }
   // where a laser lands: a hot spot sized by its distance from the camera
-  function laserHit(g, s2, alpha, mul = 1) {
+  function laserHit(g, s2, alpha, mul = 1, dx = 0, dy = 0, col = s2.col) {
     if (s2.surf !== 'floor' && s2.surf !== 'stand') return;
     const r = Math.min(70, (VIEW.Fz / camDepth(s2.P1)) * 0.09 * mul);
     g.globalAlpha = CS.clamp(alpha, 0, 1);
-    g.drawImage(glowFor(s2.col), s2.s1[0] - r, s2.s1[1] - r * 0.6, r * 2, r * 1.2);
+    g.drawImage(glowFor(col), s2.s1[0] + dx - r, s2.s1[1] + dy - r * 0.6, r * 2, r * 1.2);
     g.globalAlpha = 1;
   }
 
@@ -1678,7 +1678,7 @@
       const fwd = 1 + 1.5 * s2.toward * s2.toward;
       if (!foot) {
         laserQuad(g, s2, 5, s2.a * 0.1 * fwd);
-        laserQuad(g, s2, 1.6, s2.a * 0.35 * fwd);
+        laserQuad(g, s2, 1.6, s2.a * 0.35 * fwd * (1 - 0.5 * (LX.on ? LX.disperse : 0)));
         laserHit(g, s2, s2.a * 0.7);
       } else laserHit(g, s2, s2.a, 1.6);
     }
@@ -2221,14 +2221,27 @@
   // drawn behind them at their own depth. A laser passes in front of the people behind it and
   // vanishes behind anyone nearer the camera; where it lands it lights the head it hits.
   const NEAR_Y = 600; // above this on screen nobody in the near crowd can cover a laser
-  function laserPiece(g, s2, t0, t1, wMul, alpha, off = 0) {
-    const wl0 = (wMul * VIEW.Fz) / camDepth(s2.P0) * 0.05; // the line's width where it leaves the ball
+  // A prism in each head: the line leaves the glass white and its colours part as it travels, so it
+  // reaches the crowd as a thin rainbow. Each band is a slice of the spectrum, red on one side and
+  // violet on the other; near the ball, where they still overlap, they add back up to white.
+  const SPECTRUM = [[255, 30, 30], [255, 140, 0], [200, 230, 0], [30, 220, 90], [0, 200, 255], [30, 90, 255], [160, 40, 255]];
+  const PRISM_SPREAD = 0.011; // half-angle (radians) the colours fan over
+  // half-width in px of the parted colours at fraction t along a line, at eye depth z
+  const spreadAt = (s2, t, z) => Math.min(28, (LX.disperse * PRISM_SPREAD * t * s2.len * VIEW.Fz) / Math.max(1, z));
+  // a stretch t0..t1 of a laser line. band (-1..1) shifts it across the parted spectrum; grow widens
+  // it by that much of the spread and thins it to match (the same light over more width); bandW
+  // widens a band by that much of the spread so neighbouring bands meet
+  function laserPiece(g, s2, t0, t1, wMul, alpha, band = 0, grow = 0, bandW = 0) {
     const P0 = add3(s2.P0, sub3(s2.P1, s2.P0), t0), P1 = add3(s2.P0, sub3(s2.P1, s2.P0), t1);
-    const a = proj(P0), b = proj(P1);
-    const w0 = (wMul * VIEW.Fz) / camDepth(P0) * 0.05, w1 = Math.min(60, (wMul * VIEW.Fz) / Math.max(1, camDepth(P1)) * 0.05);
+    const a = proj(P0), b = proj(P1), z0 = camDepth(P0), z1 = camDepth(P1);
+    let w0 = (wMul * VIEW.Fz) / z0 * 0.05, w1 = Math.min(60, (wMul * VIEW.Fz) / Math.max(1, z1) * 0.05);
     const L2 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / L2, ny = (b[0] - a[0]) / L2;
-    // offset sideways (dispersion fringes), growing toward the near end like the line's width
-    if (off) { const o0 = (off * w0) / Math.max(0.3, wl0), o1 = (off * w1) / Math.max(0.3, wl0); a[0] += nx * o0; a[1] += ny * o0; b[0] += nx * o1; b[1] += ny * o1; }
+    if (band || grow || bandW) {
+      const S0 = spreadAt(s2, t0, z0), S1 = spreadAt(s2, t1, z1);
+      a[0] += nx * band * S0; a[1] += ny * band * S0; b[0] += nx * band * S1; b[1] += ny * band * S1;
+      if (grow) alpha *= (w0 + w1) / (w0 + w1 + grow * (S0 + S1));
+      w0 += (grow + bandW) * S0; w1 += (grow + bandW) * S1;
+    }
     g.globalAlpha = CS.clamp(alpha, 0, 1);
     g.beginPath();
     g.moveTo(a[0] + nx * w0, a[1] + ny * w0); g.lineTo(b[0] + nx * w1, b[1] + ny * w1);
@@ -2247,6 +2260,11 @@
       s2.cCore = `rgb(${mixc(s2.col, [255, 255, 255], 0.55).map(v => v | 0)})`;
       s2.aGlow = s2.a * 0.4 * fwd;
       s2.aCore = s2.a * 0.95 * fwd;
+      if (LX.disperse > 0) {
+        s2.len = Math.hypot(...sub3(s2.P1, s2.P0));
+        // each band only carries what the laser has of that colour (a teal line parts into greens and blues)
+        s2.cBands = SPECTRUM.map(c => `rgb(${c.map((v, j) => ((v * s2.col[j]) / 255) | 0)})`);
+      }
       // in the eye's frame: the stretch above NEAR_Y can't be covered by the crowd; below it, pieces
       // every ~1.5 units deep. Depths are distances along the eye's view axis.
       const P0 = toCam(s2.P0), d = sub3(toCam(s2.P1), P0), yc = NEAR_Y - CAM.cy, F = VIEW.Fz;
@@ -2275,12 +2293,22 @@
     const drawTo = z => {
       for (; pi < pieces.length && pieces[pi].z > z; pi++) {
         const q = pieces[pi], s2 = q.s2;
-        if (q.hit) { laserHit(lg, s2, s2.a * 0.9, 0.45); continue; }
-        lg.fillStyle = s2.cGlow; laserPiece(lg, s2, q.t0, q.t1, 1.3, s2.aGlow);
-        lg.fillStyle = s2.cCore; laserPiece(lg, s2, q.t0, q.t1, 0.4, s2.aCore);
-        if (LX.disperse > 0) {
-          lg.fillStyle = '#ff3c28'; laserPiece(lg, s2, q.t0, q.t1, 0.22, s2.aCore * 0.35 * LX.disperse, 1.4);
-          lg.fillStyle = '#3c6eff'; laserPiece(lg, s2, q.t0, q.t1, 0.22, s2.aCore * 0.35 * LX.disperse, -1.4);
+        const D = LX.disperse;
+        if (q.hit) {
+          if (D > 0) {
+            // it lands as a small spectrum, red to violet across the line
+            const S = spreadAt(s2, 1, camDepth(s2.P1)), L2 = Math.hypot(s2.s1[0] - s2.s0[0], s2.s1[1] - s2.s0[1]) || 1;
+            const nx = -(s2.s1[1] - s2.s0[1]) / L2, ny = (s2.s1[0] - s2.s0[0]) / L2;
+            for (const [f, c] of [[-0.8, SPECTRUM[0]], [0, SPECTRUM[3]], [0.8, SPECTRUM[6]]]) laserHit(lg, s2, s2.a * 0.45, 0.4, nx * f * S, ny * f * S, c.map((v, j) => (v * s2.col[j]) / 255));
+          }
+          if (D < 1) laserHit(lg, s2, s2.a * 0.9 * (1 - D), 0.45);
+          continue;
+        }
+        lg.fillStyle = s2.cGlow; laserPiece(lg, s2, q.t0, q.t1, 1.3, s2.aGlow, 0, D);
+        if (D < 1) { lg.fillStyle = s2.cCore; laserPiece(lg, s2, q.t0, q.t1, 0.4, s2.aCore * (1 - D)); }
+        if (D > 0) {
+          const n = SPECTRUM.length;
+          for (let i = 0; i < n; i++) { lg.fillStyle = s2.cBands[i]; laserPiece(lg, s2, q.t0, q.t1, 0.4, s2.aCore * 0.32 * D, -1 + (2 * i) / (n - 1), 0, 0.17); }
         }
       }
       lg.globalAlpha = 1;
