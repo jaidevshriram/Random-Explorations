@@ -88,7 +88,7 @@
 
   // Live desk: the console (or ?live={...}) sets these and they are applied every frame.
   const LIVE = {
-    rot: 0, spin: 0, yaw: 0, pitch: 0, tumble: 0, spotLock: true,
+    rot: 0, spin: 0, yaw: 0, turn: 0, pitch: 0, tumble: 0, spotLock: true,
     spot: 1, spotCol: [120, 210, 218], goboSpeed: 1.8, gobo: 'dots', goboZoom: 17, prism: 0, fanSpread: 26, fanScan: 14, rainbow: false,
     laserTilt: 0, laserScan: 20, fanTwist: 0, tilt: 0, tiltScan: 0, tiltSpeed: 0.8, burstCount: 44, burstSpread: 6, burstSpeed: 1,
     eye: 1, eyeCol: null, // null: follow the rig's colour
@@ -101,22 +101,32 @@
       LX.mode = 'live';
       try {
         const o = JSON.parse(q || '{}');
-        for (const k of ['rot', 'spin', 'yaw', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed']) if (k in o) LIVE[k] = o[k];
+        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed']) if (k in o) LIVE[k] = o[k];
         if ('crowd' in o) LX.crowd = o.crowd;
         for (const k in CAMERA) if (k in o) CAMERA[k] = o[k];
         LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan', 'burst']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
       } catch (e) {}
     }
   }
+  // Speeds (spin, turn, gobo wheel, drifts) accumulate frame by frame, so moving a speed fader never
+  // makes the rig jump.
+  const ACC = { t: null, spin: 0, turn: 0, gobo: 0, tilt: 0, burst: 0 };
   function liveAt(t) {
-    LX.rot = LIVE.rot + LIVE.spin * t;
+    const dt = ACC.t === null ? 0 : CS.clamp(t - ACC.t, 0, 0.2);
+    ACC.t = t;
+    ACC.spin += LIVE.spin * dt;
+    ACC.turn += LIVE.turn * dt;
+    ACC.gobo += LIVE.goboSpeed * dt;
+    ACC.tilt += LIVE.tiltSpeed * dt;
+    ACC.burst += LIVE.burstSpeed * dt;
+    LX.rot = LIVE.rot + ACC.spin;
     // tumble: a slow, uneven drift in yaw and pitch on top of the set orientation
-    LX.yaw = LIVE.yaw + LIVE.tumble * (Math.sin(t * 0.37) * 0.8 + Math.sin(t * 0.13 + 1) * 0.4);
+    LX.yaw = LIVE.yaw + ACC.turn + LIVE.tumble * (Math.sin(t * 0.37) * 0.8 + Math.sin(t * 0.13 + 1) * 0.4);
     LX.pitch = LIVE.pitch + LIVE.tumble * (Math.sin(t * 0.29 + 2) * 0.6 + Math.sin(t * 0.11) * 0.3);
     LX.spotLock = LIVE.spotLock;
     LX.spot = LIVE.spot;
     LX.spotCol = LIVE.spotCol;
-    LX.goboSpin = t * LIVE.goboSpeed;
+    LX.goboSpin = ACC.gobo;
     LX.gobo = LIVE.gobo;
     LX.goboZoom = LIVE.goboZoom;
     LX.prism = LIVE.prism;
@@ -127,10 +137,10 @@
     LX.fanTwist = LIVE.fanTwist;
     LX.tilt = LIVE.tilt;
     LX.tiltScan = LIVE.tiltScan;
-    LX.tiltPh = t * LIVE.tiltSpeed;
+    LX.tiltPh = ACC.tilt;
     LX.burstCount = LIVE.burstCount;
     LX.burstSpread = LIVE.burstSpread;
-    LX.burstPh = t * LIVE.burstSpeed;
+    LX.burstPh = ACC.burst;
     FIX.forEach((f, i) => {
       const F = LIVE.fx[i];
       Object.assign(LX.lv[i], f.spot ? DEFAULT_LV : { beam: F.beam, proj: F.proj, laser: F.laser, fan: F.fan, burst: F.burst || 0 });
@@ -179,10 +189,21 @@
     LX.laserTilt = (5 + 35 * Math.sin((t - 15.5) * 1.5)) * win(t, 15.6, 19.6, 0.4);
     LX.laserScan = 15;
     LX.fanTwist = 70 * seg(t, 22, 23.5);
-    LX.spot = 1;
-    // the spot drops the performer to silhouette while the rig turns, and comes back warm
-    LX.spot = 1 - seg(t, 6.9, 7.6) + seg(t, 9.6, 10.2);
-    LX.spotCol = mixc(SPOT_TEAL, SPOT_AMBER, seg(t, 9.4, 9.9) * (1 - seg(t, 15.5, 16.3)));
+    // the follow spot has its own story: cool white, a hot warm push for the beams, out while the
+    // rig turns and back deep amber, rose under the gobos, cold blue for the lasers, green-white for
+    // the fans, cycling on the beat at the end, home to the painting's teal
+    const SPOT_KEYS = [
+      [0, [200, 225, 255], 1], [2.4, [200, 225, 255], 1], [3.2, [255, 226, 180], 1.3], [6.4, [255, 226, 180], 1.25],
+      [9.5, [255, 130, 60], 1.35], [10.4, [255, 140, 70], 1.2], [11.2, [255, 120, 200], 1], [15.2, [255, 120, 200], 1],
+      [16, [130, 160, 255], 0.95], [19.3, [130, 160, 255], 0.95], [20, [180, 255, 200], 1.05], [24.3, [180, 255, 200], 1.05],
+      [28.4, [120, 210, 218], 1], [30, [120, 210, 218], 1],
+    ];
+    let kk = 0;
+    while (kk < SPOT_KEYS.length - 2 && t > SPOT_KEYS[kk + 1][0]) kk++;
+    const [ta, ca, la0] = SPOT_KEYS[kk], [tb, cb, lb0] = SPOT_KEYS[kk + 1], ku = ease(CS.clamp((t - ta) / (tb - ta), 0, 1));
+    LX.spotCol = mixc(ca, cb, ku);
+    // out while the rig turns, back with a punch
+    LX.spot = (la0 + (lb0 - la0) * ku) * (1 - seg(t, 6.9, 7.6) + seg(t, 9.6, 10.2));
     LX.goboSpin = t * 1.8;
     LX.gobo = ['dots', 'rings', 'breakup', 'star'][CS.clamp(Math.floor((t - 10.5) / 1.25), 0, 3)];
     LX.goboZoom = 17;
@@ -195,8 +216,14 @@
 
     cap('BEAMS  ·  swinging through the arena in 3D', 2.6, 6.5);
     ORDER.forEach((i, k) => { LX.lv[i].beam = 1 - 0.7 * win(t, 2.8, 6.4) * (0.5 + 0.5 * Math.cos(t * 4 - k * 0.9)); });
+    // the teal of the painting gives way: ice blue to violet to magenta across the ring
+    const beamsCol = win(t, 2.7, 6.8, 0.9);
+    ORDER.forEach((i, k) => { LX.col[i] = mixc(LX.col[i], [[90, 140, 255], [140, 100, 255], [200, 80, 255], [255, 70, 200], [140, 100, 255], [90, 140, 255]][k % 6], beamsCol); });
 
     cap('A FULL TURN  ·  the heads behind the performer come round', 6.7, 10.4);
+    // ring heads go deep red-amber, the back four ice white so they read as they come round
+    const turnCol = win(t, 6.6, 10.6, 0.6);
+    ORDER.forEach(i => { LX.col[i] = mixc(LX.col[i], FIX[i].back ? [215, 235, 255] : [255, 90, 40], turnCol); });
 
     cap('GOBO PROJECTORS  ·  patterns printed on the crowd', 10.6, 15.4);
     const proj = win(t, 10.5, 15.6, 0.6);
@@ -629,7 +656,9 @@
   ];
   // hooks for the light desk (console.js) and the optimisation harness
   window.__arena = {
-    TUNE, rebuild, LX, LIVE, FIX, ORDER, CHAPTERS, SHOW_LENGTH: 30, CAMERA, get GOBOS() { return GOBO_NAMES; },
+    TUNE, rebuild, LX, LIVE, FIX, ORDER, CHAPTERS, SHOW_LENGTH: 30, CAMERA, ORB, get GOBOS() { return GOBO_NAMES; },
+    // forget accumulated spin/turn (after "square on" or taking over from the showcase)
+    resetMotion() { ACC.spin = 0; ACC.turn = 0; },
     debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, canvases: () => ({ lightCv, rcvCv, pplCv }) },
     get crowd() { return crowdOpts; },
     setMode(m) { LX.on = m !== 'paint'; LX.mode = m === 'live' ? 'live' : 'show'; },
@@ -909,8 +938,16 @@
   // angle (degrees) between a ray from C along d and the line from C to the camera
   const offLens = (C, d) => Math.acos(CS.clamp(-dot3(d, C) / Math.hypot(C[0], C[1], C[2]), -1, 1)) / D2R;
 
+  // Hand-made frames: each one redraws the lights a touch differently, as an animator redrawing
+  // every cel would: aims wander a fraction of a degree, cones breathe, levels flicker. hb is the
+  // hand-made frame number (null when motion is smooth); hj(k) is a repeatable -1..1 for slot k.
+  let hb = null;
+  const hj = k => { if (hb === null) return 0; const x = Math.sin(k * 127.1 + hb * 311.7) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; };
+  const hjv = (k, amp) => [hj(k) * amp, hj(k + 0.37) * amp, hj(k + 0.71) * amp];
+
   // one laser line from C along dir; strength k; reaches the lens → glare
   function shootFrom(C, dir, k, col, start) {
+    if (hb !== null) { dir = norm3(add3(dir, hjv(lasers.length * 3 + 101, 0.0025))); k *= 1 + 0.08 * hj(lasers.length + 501); }
     const h = hit3(C, dir), P0 = add3(C, dir, start), P1 = h.P;
     lasers.push({ P0, P1, s0: proj(P0), s1: proj(P1), col, a: k, surf: h.surf, toward: Math.max(0, -dir[2]) });
     const tl = offLens(C, dir);
@@ -948,20 +985,22 @@
     const list = [];
     lasers = [];
     glare = [];
+    hb = LX.on && S.handmade ? S.boilF || 0 : null;
     FIX.forEach((f, i) => {
       if (!f.len || (f.back && !LX.on)) return;
       const lv = LX.on ? LX.lv[i] : DEFAULT_LV, col = LX.on ? LX.col[i] : TEAL;
       const flick = f.spot ? 1 : 0.94 + 0.06 * Math.sin(tL * 3.1 + i * 2.3);
-      const a = I * flick * (f.spot ? (LX.on ? LX.spot : 1) : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1);
+      const a = I * flick * (f.spot ? (LX.on ? LX.spot : 1) : pulse) * TUNE.beamGain * (TUNE['b' + i] ?? 1) * (1 + 0.07 * hj(i * 17 + 6));
       const tex = LX.on && lv.beam + lv.proj > 0 ? recolor(beamTex[i], col, tintCv[i]) : beamTex[i];
-      const half0 = f.half * TUNE.beamHalf;
+      const half0 = f.half * TUNE.beamHalf * (1 + 0.05 * hj(i * 17 + 5));
       let B, C = null, d = null;
       if (!LX.on || (f.spot && LX.spotLock)) {
         // the painting's own beams (and a follow spot that keeps tracking the performer)
         const p = fixturePos(f, tL);
-        B = { x: p.x, y: p.y, a: p.a, len: f.len, half: half0, floor: false, facing: 0 };
+        B = { x: p.x, y: p.y, a: p.a + 0.006 * hj(i * 17 + 4), len: f.len, half: half0, floor: false, facing: 0 };
       } else {
         ({ C, d } = fixture3(f, i));
+        if (hb !== null) d = norm3(add3(d, hjv(i * 17 + 1, 0.006)));
         B = beam3(add3(C, d, 0.45), d, half0); // from the lens, at the can's outer end
       }
       // a cone that opens across more of the frame (one coming toward us) spreads the same light
@@ -1377,6 +1416,8 @@
     return k / 6.6;
   }
   let amb = 1; // this frame's indirect light on everything not lit directly (show/live only)
+  // the room's light on the performer's sides: the rig's colour, as strong as the bounce
+  const perfHaze = () => (LX.on ? [mixc(rigColour(), [255, 255, 255], 0.25), Math.min(1, amb)] : [[110, 210, 205], 1]);
 
   function render(g, S) {
     if (LX.on) (LX.mode === 'live' ? liveAt : showAt)(S.clocks.lights);
@@ -1494,7 +1535,7 @@
     flushPeople();
     flushRims(false);
     drawStage(g, I, spot);
-    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit', spot, sc);
+    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit', spot, sc, ...perfHaze());
     for (; i < people.length; i++) person(people[i]);
     flushPeople();
     flushRims(true);
@@ -1574,7 +1615,7 @@
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'source-over';
     (LX.on ? drawOrb3D : drawOrb)(layer, tL, S.intensity * pulse);
-    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot : 1, LX.on ? LX.spotCol : undefined);
+    CS.drawPerformer(layer, PERF.x, PERF.y, PERF.s, S.clocks.performer, S.bpm, 'lit', LX.on ? LX.spot : 1, LX.on ? LX.spotCol : undefined, ...perfHaze());
     g.globalAlpha = TUNE.topAlpha;
     g.drawImage(topLayer, 0, 0);
     // the crowd in front of the stage, again but crisp, over its painted copy: keeps the

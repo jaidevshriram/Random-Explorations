@@ -34,7 +34,7 @@
   .monitor.dragging { cursor: grabbing; }
   .monitor canvas { display: block; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
   .views {
-    position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px; right: 12px;
+    position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: 12px; right: max(16px, env(safe-area-inset-right, 0px));
     display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
   }
   .views button, .zoom button {
@@ -45,12 +45,12 @@
   .views button:hover, .zoom button:hover { border-color: var(--amber); }
   .views button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
   .zoom {
-    position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); bottom: 12px;
+    position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 12px;
     display: flex; align-items: center; gap: 6px;
   }
   .zoom output { font: 500 12px var(--mono); color: var(--fg); min-width: 3.4em; text-align: center; text-shadow: 0 1px 3px #000; }
   .hint {
-    position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px; margin: 0;
+    position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 12px; margin: 0;
     font: 500 12px var(--body); color: rgba(216, 232, 229, 0.7); text-shadow: 0 1px 3px #000;
   }
 
@@ -86,6 +86,8 @@
     cursor: pointer; white-space: nowrap;
   }
   .chapters button.on { color: var(--amber); border-left-color: var(--amber); }
+  .chapters button.end { border-left: 0; border-right: 1px solid var(--line); padding: 4px 7px 0 0; transform: translateX(-100%); }
+  .chapters button.end.on { border-right-color: var(--amber); }
   .readout { font: 500 13px var(--mono); color: var(--muted); text-align: right; min-width: 7.5em; font-variant-numeric: tabular-nums; }
   .readout b { display: block; color: var(--fg); font: 600 15px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
   .take { margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
@@ -126,6 +128,15 @@
   .swatches button[aria-pressed="true"] { outline: 2px solid var(--amber); outline-offset: 1px; }
   .swatches button.rainbow { background: conic-gradient(#ff4d6d, #ffb547, #7dff7a, #4dd8ff, #8a6bff, #ff4dd2, #ff4d6d); }
   .swatches button.follow { background: radial-gradient(circle, #e9f1ef 0 22%, var(--panel-2) 24%); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .toggle {
+    font: 600 13px/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px 8px 26px; cursor: pointer; position: relative;
+  }
+  .toggle::before { content: ""; position: absolute; left: 10px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--line); }
+  .toggle[aria-pressed="true"] { color: var(--fg); border-color: #5a4a2a; }
+  .toggle[aria-pressed="true"]::before { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .monitor.grab-orb { cursor: move; }
   .note { font-size: 13px; color: var(--muted); margin: 0; max-width: 40ch; }
   button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
@@ -151,7 +162,7 @@
     <button type="button" data-view="stands">Stands</button>
   </nav>
   <div class="zoom"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><output id="zoom-val">1.0×</output><button type="button" id="zoom-in" aria-label="Zoom in">+</button></div>
-  <p class="hint">Drag to move · scroll or pinch to zoom · double-click to reset</p>
+  <p class="hint" id="hint">Drag to move · scroll or pinch to zoom · double-click to reset</p>
 </section>
 
 <section class="desk">
@@ -192,13 +203,18 @@
   <div class="panel" id="p-live" hidden>
     <div class="modules">
       <div class="module">
-        <h2>Rig</h2>
-        <label class="fader"><span>Rotation</span><input type="range" id="rot" min="-180" max="180" step="1" value="0"><output>0°</output></label>
-        <label class="fader"><span>Spin</span><input type="range" id="spin" min="-90" max="90" step="1" value="0"><output>0°/s</output></label>
-        <p class="note">Every fixture rides the ring, so beams, gobos and lasers all turn together.</p>
+        <h2>Satellite</h2>
+        <label class="fader"><span>Yaw</span><input type="range" id="yaw" min="-180" max="180" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Pitch</span><input type="range" id="pitch" min="-90" max="90" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Roll</span><input type="range" id="roll" min="-180" max="180" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Turn</span><input type="range" id="turn" min="-90" max="90" step="1" value="0" data-unit="°/s"><output>0°/s</output></label>
+        <label class="fader"><span>Spin</span><input type="range" id="spin" min="-90" max="90" step="1" value="0" data-unit="°/s"><output>0°/s</output></label>
+        <label class="fader"><span>Tumble</span><input type="range" id="tumble" min="0" max="70" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <div class="row"><button type="button" class="btn" id="square">Square on</button></div>
+        <p class="note">Or grab the ball on the monitor: drag sideways to turn it, up and down to tip it, shift-drag to roll it.</p>
       </div>
       <div class="module">
-        <h2>Fixtures</h2>
+        <h2>Heads</h2>
         <div class="chips" id="sel">
           <button type="button" data-sel="all" aria-pressed="true">All</button>
           <button type="button" data-sel="6">Left</button>
@@ -207,24 +223,44 @@
           <button type="button" data-sel="2">Right</button>
           <button type="button" data-sel="3">Down R</button>
           <button type="button" data-sel="5">Down L</button>
+          <button type="button" data-sel="back">Back four</button>
         </div>
-        <label class="fader"><span>Beam</span><input type="range" id="lv-beam" min="0" max="1.4" step="0.01" value="1"><output>100%</output></label>
-        <label class="fader"><span>Projector</span><input type="range" id="lv-proj" min="0" max="1.4" step="0.01" value="0"><output>0%</output></label>
-        <label class="fader"><span>Laser</span><input type="range" id="lv-laser" min="0" max="1.4" step="0.01" value="0"><output>0%</output></label>
-        <label class="fader"><span>Laser fan</span><input type="range" id="lv-fan" min="0" max="1.4" step="0.01" value="0"><output>0%</output></label>
-        <div class="swatches" id="fx-col" aria-label="Fixture colour"></div>
+        <label class="fader"><span>Beam</span><input type="range" id="lv-beam" min="0" max="1.4" step="0.01" value="1" data-unit="%"><output>100%</output></label>
+        <label class="fader"><span>Gobo</span><input type="range" id="lv-proj" min="0" max="1.4" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <label class="fader"><span>Laser</span><input type="range" id="lv-laser" min="0" max="1.4" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <label class="fader"><span>Laser fan</span><input type="range" id="lv-fan" min="0" max="1.4" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <label class="fader"><span>Burst</span><input type="range" id="lv-burst" min="0" max="1.4" step="0.01" value="0" data-unit="%"><output>0%</output></label>
+        <div class="swatches" id="fx-col" aria-label="Head colour"></div>
       </div>
       <div class="module">
-        <h2>Effects</h2>
-        <label class="fader"><span>Gobo spin</span><input type="range" id="gobo" min="0" max="6" step="0.05" value="1.8"><output>1.8</output></label>
-        <label class="fader"><span>Fan spread</span><input type="range" id="spread" min="4" max="70" step="1" value="26"><output>26°</output></label>
-        <label class="fader"><span>Fan scan</span><input type="range" id="scan" min="0" max="40" step="1" value="14"><output>14°</output></label>
+        <h2>Aim</h2>
+        <label class="fader"><span>Head tilt</span><input type="range" id="tilt" min="-60" max="60" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Tilt sweep</span><input type="range" id="tilt-scan" min="0" max="40" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Laser elev.</span><input type="range" id="laser-tilt" min="-60" max="60" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Laser sweep</span><input type="range" id="laser-scan" min="0" max="40" step="1" value="20" data-unit="°"><output>20°</output></label>
+        <p class="note">Positive tilts lean the heads out of the ring toward the audience; negative toward the far stands.</p>
+      </div>
+      <div class="module">
+        <h2>Gobos</h2>
+        <div class="chips" id="gobo-pick"></div>
+        <label class="fader"><span>Zoom</span><input type="range" id="gobo-zoom" min="6" max="30" step="0.5" value="17" data-unit="°"><output>17°</output></label>
+        <label class="fader"><span>Wheel spin</span><input type="range" id="gobo" min="0" max="6" step="0.05" value="1.8" data-unit=""><output>1.8</output></label>
+        <div class="row"><button type="button" class="toggle" id="prism" aria-pressed="false">Prism ×3</button></div>
+      </div>
+      <div class="module">
+        <h2>Laser effects</h2>
+        <label class="fader"><span>Fan spread</span><input type="range" id="spread" min="4" max="70" step="1" value="26" data-unit="°"><output>26°</output></label>
+        <label class="fader"><span>Fan scan</span><input type="range" id="scan" min="0" max="40" step="1" value="14" data-unit="°"><output>14°</output></label>
+        <label class="fader"><span>Fan plane</span><input type="range" id="twist" min="0" max="90" step="1" value="0" data-unit="°"><output>0°</output></label>
+        <label class="fader"><span>Burst beams</span><input type="range" id="burst-n" min="8" max="96" step="1" value="44" data-unit=""><output>44</output></label>
+        <label class="fader"><span>Burst wander</span><input type="range" id="burst-w" min="0" max="20" step="0.5" value="6" data-unit="°"><output>6°</output></label>
       </div>
       <div class="module">
         <h2>Stage</h2>
-        <label class="fader"><span>Follow spot</span><input type="range" id="spot" min="0" max="1" step="0.01" value="1"><output>100%</output></label>
+        <label class="fader"><span>Follow spot</span><input type="range" id="spot" min="0" max="1" step="0.01" value="1" data-unit="%"><output>100%</output></label>
         <div class="swatches" id="spot-col" aria-label="Follow spot colour"></div>
-        <label class="fader"><span>Front lamp</span><input type="range" id="eye" min="0" max="1" step="0.01" value="1"><output>100%</output></label>
+        <div class="row"><button type="button" class="toggle" id="spot-lock" aria-pressed="true">Spot follows performer</button></div>
+        <label class="fader"><span>Front lamp</span><input type="range" id="eye" min="0" max="1" step="0.01" value="1" data-unit="%"><output>100%</output></label>
         <div class="swatches" id="eye-col" aria-label="Front lamp colour"></div>
       </div>
     </div>
@@ -234,13 +270,23 @@
     <div class="modules">
       <div class="module">
         <h2>Crowd</h2>
-        <label class="fader"><span>Sway speed</span><input type="range" id="crowd-speed" min="0" max="3" step="0.05" value="1"><output>1.0×</output></label>
-        <label class="fader"><span>Energy</span><input type="range" id="crowd-energy" min="0" max="2.5" step="0.05" value="1"><output>1.0×</output></label>
+        <label class="fader"><span>Light on crowd</span><input type="range" id="crowd-light" min="0" max="2" step="0.05" value="0.7" data-unit="%"><output>70%</output></label>
+        <label class="fader"><span>Sway speed</span><input type="range" id="crowd-speed" min="0" max="3" step="0.05" value="1" data-unit="×"><output>1.0×</output></label>
+        <label class="fader"><span>Energy</span><input type="range" id="crowd-energy" min="0" max="2.5" step="0.05" value="1" data-unit="×"><output>1.0×</output></label>
+      </div>
+      <div class="module">
+        <h2>Camera</h2>
+        <div class="row"><button type="button" class="toggle" id="cam-on" aria-pressed="true">Lens effects</button><button type="button" class="toggle" id="cam-ae" aria-pressed="true">Auto exposure</button></div>
+        <label class="fader"><span>Glare</span><input type="range" id="cam-glare" min="0" max="2" step="0.05" value="1" data-unit="%"><output>100%</output></label>
+        <label class="fader"><span>Flares</span><input type="range" id="cam-flare" min="0" max="2" step="0.05" value="1" data-unit="%"><output>100%</output></label>
+        <label class="fader"><span>Lens dirt</span><input type="range" id="cam-dirt" min="0" max="2" step="0.05" value="0.7" data-unit="%"><output>70%</output></label>
+        <label class="fader"><span>Bloom</span><input type="range" id="cam-bloom" min="0" max="2" step="0.05" value="0.6" data-unit="%"><output>60%</output></label>
       </div>
       <div class="module">
         <h2>Master</h2>
-        <label class="fader"><span>Intensity</span><input type="range" id="master" min="0.2" max="1.8" step="0.01" value="1"><output>100%</output></label>
-        <label class="fader"><span>Tempo</span><input type="range" id="tempo" min="50" max="160" step="1" value="84"><output>84</output></label>
+        <label class="fader"><span>Intensity</span><input type="range" id="master" min="0.2" max="1.8" step="0.01" value="1" data-unit="%"><output>100%</output></label>
+        <label class="fader"><span>Tempo</span><input type="range" id="tempo" min="50" max="160" step="1" value="84" data-unit=" bpm"><output>84 bpm</output></label>
+        <p class="note">The camera reacts when a light looks down its lens: starburst, veil, ghosts, lit-up dirt, and exposure pulling down. Switch it off for a clean picture.</p>
       </div>
     </div>
   </div>

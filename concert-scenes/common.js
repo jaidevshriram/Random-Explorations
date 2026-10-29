@@ -152,7 +152,9 @@ const CS = (() => {
   }
 
   let perfCv = null, perfMask = null;
-  function drawPerformer(g, x, y, s, t, bpm, style, light = 1, tint = [120, 225, 215]) {
+  // light/tint: the follow spot's level and colour; haze/hazeK: colour and strength of the room's
+  // light rimming her sides
+  function drawPerformer(g, x, y, s, t, bpm, style, light = 1, tint = [120, 225, 215], haze = [110, 210, 205], hazeK = 1) {
     const SS = 3, S = s * SS;
     const UW = 76, UH = 112, UOX = 30, UOY = 106;
     const cw = Math.ceil(UW * S), ch = Math.ceil(UH * S);
@@ -164,14 +166,14 @@ const CS = (() => {
     pg.setTransform(S, 0, 0, S, UOX * S, UOY * S);
     paintPerformer(pg, performerPose(t, bpm), style === 'sketch');
     pg.setTransform(1, 0, 0, 1, 0, 0);
-    lightPerformer(pg, cw, ch, S, style === 'sketch', light, tint);
+    lightPerformer(pg, cw, ch, S, style === 'sketch', light, tint, haze, hazeK);
     g.drawImage(perfCv, x - UOX * s, y - UOY * s, UW * s, UH * s);
     // the last drawn figure and where it went, for scenes that need its silhouette (occlusion)
     drawPerformer.last = { cv: perfCv, x: x - UOX * s, y: y - UOY * s, w: UW * s, h: UH * s };
   }
 
   // edge light from the figure's own alpha: silhouette minus itself shifted away from the light
-  function lightPerformer(pg, cw, ch, S, sketch, light = 1, tint = [120, 225, 215]) {
+  function lightPerformer(pg, cw, ch, S, sketch, light = 1, tint = [120, 225, 215], haze = [110, 210, 205], hazeK = 1) {
     const tc = tint.map(v => v | 0).join(','), hot = tint.map(v => (v + (255 - v) * 0.65) | 0).join(',');
     const mg = perfMask.getContext('2d');
     const pass = (dx, dy, w, color) => {
@@ -196,8 +198,9 @@ const CS = (() => {
         pass(0.15, -1, 2.6, `rgba(${tc},${0.28 * light})`);  // broad spill from the spot above
         pass(0.1, -1, 0.8, `rgba(${hot},${0.85 * light})`);  // hot top edges
       }
-      pass(-1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`); // haze rims at the sides
-      pass(1, -0.15, 0.6, `rgba(110,210,205,${0.2 + 0.15 * light})`);
+      const hz = haze.map(v => v | 0).join(','), ha = (0.2 * hazeK + 0.15 * Math.min(1, light));
+      pass(-1, -0.15, 0.6, `rgba(${hz},${ha})`); // haze rims at the sides
+      pass(1, -0.15, 0.6, `rgba(${hz},${ha})`);
       // falling off toward the feet
       const gr = pg.createLinearGradient(0, 0, 0, ch);
       gr.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1361,7 +1364,9 @@ const CS = (() => {
       // hand-made mode: hold each frame for 1/15 s and repaint the brushwork a little differently
       if ((!still || !drawn) && (!state.handmade || acc >= 1 / 15)) {
         acc = 0;
-        if (painter) painter.P.boil = state.handmade ? [(++boilF * 0.6180339) % 1, (boilF * 0.4142135) % 1] : [0, 0];
+        if (state.handmade) boilF++;
+        state.boilF = boilF; // scenes can redraw their own shapes a little differently each hand-made frame
+        if (painter) painter.P.boil = state.handmade ? [(boilF * 0.6180339) % 1, (boilF * 0.4142135) % 1] : [0, 0];
         draw();
         drawn = true;
       }
