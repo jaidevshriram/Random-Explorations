@@ -427,8 +427,9 @@
         LX.lv[i].proj = FIX[i].back ? 0 : 1.05 + 0.45 * kick;
         LX.lv[i].burst = on ? 1.25 : 0;
       });
-      LX.spot = 1.15 + 0.3 * kick;
-      LX.spotCol = WHITE;
+      // she stays a small figure under it all: the spot drops to about half, breathing with the kick
+      LX.spot = 0.48 + 0.14 * kick;
+      LX.spotCol = [214, 220, 232];
       LX.eye = on ? 1 : 0.2;
       LX.eyeCol = WHITE;
     } else {
@@ -940,6 +941,7 @@
     const rg = rcvStatic.getContext('2d');
     rg.filter = 'grayscale(1) brightness(2.6) contrast(1.15)';
     rg.drawImage(arenaFlat, 0, 0, W / 2, H / 2);
+    viewBuild();
   }
   // rebuild the arena layer with some knobs overridden; same seed so the layout is identical
   function buildVariant(over) {
@@ -966,6 +968,7 @@
   window.__arena = {
     TUNE, rebuild, LX, LIVE, FIX, ORDER, CAMERA, ORB, SHOW_GROUPS, groupOf, get GOBOS() { return GOBO_NAMES; },
     get CHAPTERS() { return CHAPTERS[LX.program]; },
+    get SEATS() { return SEATS; }, setView: v => setView(v), get view() { return VIEW; },
     get SHOW_LENGTH() { return PROGRAMS[LX.program]; },
     PROGRAMS: Object.keys(PROGRAMS),
     setProgram(p) { if (PROGRAMS[p]) LX.program = p; },
@@ -1174,7 +1177,26 @@
   const O3 = [((ORB.x - CAM.cx) * Z0) / CAM.F, ((ORB.y - CAM.cy) * Z0) / CAM.F, Z0]; // satellite centre
   const RING3 = (ORB.ring * Z0) / CAM.F, RS = (ORB.rx * Z0) / CAM.F, RB = 46, ROOF = O3[1] - 22, ZNEAR = 4;
   const CROWN_Z = Math.sqrt(RS * RS - RING3 * RING3); // how far forward of the centre the ring of heads sits
-  const proj0 = P => [CAM.cx + (CAM.F * P[0]) / P[2], CAM.cy + (CAM.F * P[1]) / P[2]];
+  // The eye. At rest it is the painting's own (origin, level, F 1000). Another seat moves it (E),
+  // turns it (yaw, + to the right), tips it (pitch, + looking down) and zooms; toCam maps the world
+  // into that eye's frame. With the eye at rest every function below reduces to the original.
+  const VIEW = { E: [0, 0, 0], yaw: 0, pitch: 0, zoom: 1, on: false, cyw: 1, syw: 0, cp: 1, sp: 0, Fz: CAM.F, Oc: null };
+  const camDir = v => {
+    if (!VIEW.on) return v;
+    let [x, y, z] = v;
+    [x, z] = [x * VIEW.cyw - z * VIEW.syw, x * VIEW.syw + z * VIEW.cyw];
+    [y, z] = [y * VIEW.cp - z * VIEW.sp, y * VIEW.sp + z * VIEW.cp];
+    return [x, y, z];
+  };
+  const toCam = P => (VIEW.on ? camDir([P[0] - VIEW.E[0], P[1] - VIEW.E[1], P[2] - VIEW.E[2]]) : P);
+  const camDepth = P => (VIEW.on ? toCam(P)[2] : P[2]);
+  const proj0 = P => { const c = toCam(P); return [CAM.cx + (VIEW.Fz * c[0]) / c[2], CAM.cy + (VIEW.Fz * c[1]) / c[2]]; };
+  // the ball and the stage on screen from the current eye (at rest: the painting's)
+  const ORBV = { x: ORB.x, y: ORB.y, rx: ORB.rx, ry: ORB.ry, s: 1 };
+  const STAGEV = { x: STAGE.x, y: STAGE.y, s: 1, sq: 1 };
+  // draw stage-anchored 2D art (deck, pools, spill) as seen from the current eye
+  const stageXf = g => { if (VIEW.on) g.transform(STAGEV.s, 0, 0, STAGEV.s * STAGEV.sq, STAGEV.x - STAGEV.s * STAGE.x, STAGEV.y - STAGEV.s * STAGEV.sq * STAGE.y); };
+  const stagePt = (x, y) => [STAGEV.x + STAGEV.s * (x - STAGE.x), STAGEV.y + STAGEV.s * STAGEV.sq * (y - STAGE.y)];
   // The painter drew the satellite square-on although we look up at it. Geometry on and near the
   // sphere is projected about the sphere's centre (perspective scale, no skew), blending into the
   // true projection a little way out, so the lamp sits mid-sphere at rest as in the painting.
@@ -1182,7 +1204,8 @@
     const dx = P[0] - O3[0], dy = P[1] - O3[1], dz = P[2] - O3[2], r = Math.hypot(dx, dy, dz);
     const q = proj0(P);
     if (r > RS * 3.5) return q;
-    const k = Z0 / P[2], o = [ORB.x + (CAM.F * dx * k) / Z0, ORB.y + (CAM.F * dy * k) / Z0];
+    const Pc = toCam(P), Oc = VIEW.on ? VIEW.Oc : O3, k = Oc[2] / Pc[2];
+    const o = [ORBV.x + (VIEW.Fz * (Pc[0] - Oc[0]) * k) / Oc[2], ORBV.y + (VIEW.Fz * (Pc[1] - Oc[1]) * k) / Oc[2]];
     const w = CS.clamp((r - RS * 1.5) / (RS * 2), 0, 1);
     return [o[0] + (q[0] - o[0]) * w, o[1] + (q[1] - o[1]) * w];
   }
@@ -1229,7 +1252,7 @@
   function beam3(C, d, half) {
     const h = hit3(C, d), S2 = proj(C), E = proj(h.P);
     const len = Math.max(1, Math.hypot(E[0] - S2[0], E[1] - S2[1]));
-    const wEnd = (CAM.F * 2 * h.t * Math.tan(half * D2R)) / h.P[2];
+    const wEnd = (VIEW.Fz * 2 * h.t * Math.tan(half * D2R)) / camDepth(h.P);
     return { x: S2[0], y: S2[1], a: Math.atan2(E[1] - S2[1], E[0] - S2[0]), len, half: Math.atan(wEnd / 2 / len) / D2R, ex: E[0], ey: E[1], floor: h.floor, surf: h.surf, t: h.t, P: h.P };
   }
   // a head's aim in the satellite's own frame: its direction in the ring, tilted out of the ring by
@@ -1283,9 +1306,10 @@
   const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   // haze scatters mostly forward: a cone swung toward the camera glows far brighter than one aimed
   // away (1 for a cone across the view, ~2.25 straight at us, ~0.45 straight away)
-  const fwdScatter = (C, d) => Math.pow(1.5, -2 * dot3(d, C) / Math.hypot(C[0], C[1], C[2]));
+  const fromEye = C => (VIEW.on ? sub3(C, VIEW.E) : C);
+  const fwdScatter = (C, d) => { const v = fromEye(C); return Math.pow(1.5, -2 * dot3(d, v) / Math.hypot(v[0], v[1], v[2])); };
   // angle (degrees) between a ray from C along d and the line from C to the camera
-  const offLens = (C, d) => Math.acos(CS.clamp(-dot3(d, C) / Math.hypot(C[0], C[1], C[2]), -1, 1)) / D2R;
+  const offLens = (C, d) => { const v = fromEye(C); return Math.acos(CS.clamp(-dot3(d, v) / Math.hypot(v[0], v[1], v[2]), -1, 1)) / D2R; };
 
   // Hand-made frames: each one redraws the lights a touch differently, as an animator redrawing
   // every cel would: aims wander a fraction of a degree, cones breathe, levels flicker. hb is the
@@ -1574,8 +1598,8 @@
   // (on screen 1/z runs linearly along the line, so a trapezoid is exact)
   function laserQuad(g, s2, wMul, alpha, cut = 1) {
     const [x0, y0] = s2.s0, x1 = x0 + (s2.s1[0] - x0) * cut, y1 = y0 + (s2.s1[1] - y0) * cut;
-    const z1 = s2.P0[2] + (s2.P1[2] - s2.P0[2]) * cut;
-    const w0 = (wMul * CAM.F) / s2.P0[2] * 0.05, w1 = Math.min(60, (wMul * CAM.F) / Math.max(1, z1) * 0.05);
+    const z0 = camDepth(s2.P0), z1 = z0 + (camDepth(s2.P1) - z0) * cut;
+    const w0 = (wMul * VIEW.Fz) / z0 * 0.05, w1 = Math.min(60, (wMul * VIEW.Fz) / Math.max(1, z1) * 0.05);
     const L2 = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L2, ny = (x1 - x0) / L2;
     g.globalAlpha = CS.clamp(alpha, 0, 1);
     g.beginPath();
@@ -1587,7 +1611,7 @@
   // where a laser lands: a hot spot sized by its distance from the camera
   function laserHit(g, s2, alpha, mul = 1) {
     if (s2.surf !== 'floor' && s2.surf !== 'stand') return;
-    const r = Math.min(70, (CAM.F / s2.P1[2]) * 0.09 * mul);
+    const r = Math.min(70, (VIEW.Fz / camDepth(s2.P1)) * 0.09 * mul);
     g.globalAlpha = CS.clamp(alpha, 0, 1);
     g.drawImage(glowFor(s2.col), s2.s1[0] - r, s2.s1[1] - r * 0.6, r * 2, r * 1.2);
     g.globalAlpha = 1;
@@ -1655,7 +1679,7 @@
   }
   const facingCam = (P, n) => -dot3(n, norm3(P)); // >0: the surface at P with normal n faces the lens
   // the satellite is drawn square-on (see proj), so what of it faces us is judged along the view axis
-  const facingOrb = n => -n[2];
+  const facingOrb = n => -camDir(n)[2];
 
   function drawCan(g, cn, I) {
     const { f, idx, C, d } = cn;
@@ -1678,14 +1702,14 @@
       // looking straight down it
       const lit = (f.len ? 1 : 0.35) * Math.min(1, 0.05 * Math.min(1, amb) + 0.95 * Math.min(1, lvl));
       const hot = mixc(lc, [255, 255, 255], 0.8), mid = mixc(lc, [255, 255, 255], 0.35), edge = lc.map(v => v * 0.6);
-      const r = 10.5 * (O3[2] / T[2]);
+      const ocz = VIEW.on ? VIEW.Oc[2] : O3[2], r = 10.5 * ORBV.s * (ocz / camDepth(T));
       const lens = g.createRadialGradient(sT[0], sT[1], 0, sT[0], sT[1], r);
       lens.addColorStop(0, `rgba(${hot.map(v => v | 0)},${lit})`);
       lens.addColorStop(0.5, `rgba(${mid.map(v => v | 0)},${lit})`);
       lens.addColorStop(1, `rgba(${edge.map(v => v | 0)},${lit * 0.8})`);
       // the lens rim projects to an ellipse: full height across the can, foreshortened along it
       // (kept a few pixels wide edge-on, as the painting shows it)
-      const k = O3[2] / T[2], ang = Math.atan2(sT[1] - sA[1], sT[0] - sA[0]);
+      const k = ORBV.s * (ocz / camDepth(T)), ang = Math.atan2(sT[1] - sA[1], sT[0] - sA[0]);
       const lr = 10.5 * k, lw = Math.max(3.2 * k, lr * Math.abs(d[2]));
       g.save();
       g.translate(sT[0], sT[1]); g.rotate(ang);
@@ -1714,7 +1738,7 @@
   // ring band round its face where the heads mount, a seam round its middle, heads on whichever
   // side faces us, and the front lamp. Lights only ever leave it outward.
   function drawOrb3D(g, t, I) {
-    const { x, y, rx, ry } = ORB, lit = Math.min(1, amb), bl = 0.1 + 0.9 * lit;
+    const { x, y, rx, ry } = ORBV, lit = Math.min(1, amb), bl = 0.1 + 0.9 * lit;
     const sh = c => `rgb(${(c[0] * bl) | 0},${(c[1] * bl) | 0},${(c[2] * bl) | 0})`;
     g.strokeStyle = sh([15, 39, 51]);
     g.lineWidth = 1.2;
@@ -1769,7 +1793,7 @@
     if (fc > 0) {
       const ec = LX.eyeCol, ev = LX.eye * (0.35 + 0.65 * fc);
       const rgbs = c => c.map(v => Math.min(255, v) | 0).join(',');
-      const sp = proj(P), r = (15 * O3[2]) / P[2];
+      const sp = proj(P), r = 15 * ORBV.s * ((VIEW.on ? VIEW.Oc[2] : O3[2]) / camDepth(P));
       g.fillStyle = '#03090c';
       poly(g, disc3(P, e, 1.0, 24)); g.fill();
       const fl = g.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], r);
@@ -1830,13 +1854,15 @@
 
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
-    g.drawImage(LX.on ? arenaBase : arena, 0, 0);
+    const base = VIEW.on ? viewBase : arenaBase;
+    g.drawImage(LX.on ? base : arena, 0, 0);
     if (amb < 1) { g.fillStyle = `rgba(0,0,0,${1 - amb})`; g.fillRect(0, 0, W, H); }
-    else if (amb > 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = amb - 1; g.drawImage(arenaBase, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    else if (amb > 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = amb - 1; g.drawImage(base, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     const sc = LX.on ? LX.spotCol : SPOT_TEAL, scs = sc.map(v => v | 0).join(',');
 
     // stage light hanging in the air at crowd level behind the stage: silhouettes the far floor
     g.save();
+    stageXf(g);
     g.translate(STAGE.x, 655);
     g.scale(1, 0.16);
     let fh = g.createRadialGradient(0, 0, 0, 0, 0, 820);
@@ -1864,7 +1890,7 @@
       list.forEach(L => { if (!L.f.spot) { const k = Math.max(L.lv.beam, L.lv.proj * 0.8, L.lv.laser * 0.4, L.lv.fan * 0.6, L.lv.burst * 0.6); wsum += k; for (let j = 0; j < 3; j++) wc[j] += L.col[j] * k; } });
       domCol = null;
       if (wsum > 0) {
-        const wash = g.createRadialGradient(ORB.x, ORB.y + 150, 50, ORB.x, ORB.y + 150, 950);
+        const wash = g.createRadialGradient(ORBV.x, ORBV.y + 150 * ORBV.s, 50 * ORBV.s, ORBV.x, ORBV.y + 150 * ORBV.s, 950 * ORBV.s);
         const c = wc.map(v => (v / wsum) | 0), k = Math.min(1, wsum / 6);
         domCol = { c, k };
         wash.addColorStop(0, `rgba(${c},${0.12 * k * I})`);
@@ -1891,13 +1917,13 @@
     }
 
     // halo of scattered light around the orb
-    const halo = g.createRadialGradient(ORB.x, ORB.y, 60, ORB.x, ORB.y, 300);
+    const halo = g.createRadialGradient(ORBV.x, ORBV.y, 60 * ORBV.s, ORBV.x, ORBV.y, 300 * ORBV.s);
     const hc = LX.on ? rigColour().map(v => v | 0).join(',') : '40,170,175';
     halo.addColorStop(0, `rgba(${hc},${(LX.on ? 0.08 * Math.min(1, amb) : TUNE.halo) * I})`);
     halo.addColorStop(0.25, `rgba(${hc},${(LX.on ? 0.03 * Math.min(1, amb) : TUNE.halo * 0.35) * I})`);
     halo.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = halo;
-    g.fillRect(ORB.x - 300, ORB.y - 300, 600, 600);
+    g.fillRect(ORBV.x - 300 * ORBV.s, ORBV.y - 300 * ORBV.s, 600 * ORBV.s, 600 * ORBV.s);
 
     // dust in the follow spot
     g.globalCompositeOperation = 'lighter';
@@ -1936,12 +1962,12 @@
     };
     const person = p => {
       if (!LX.on) { CS.drawBaked(g, p, tA, po); return; }
-      CS.drawBaked(cf, p, tA, po, 'base');
-      if (p.r < 2.2) return; // too small to carry a visible rim
+      personOn(cf, p, tA, po, 'base');
+      if (p.r * (VIEW.on ? p.vs : 1) < 2.2) return; // too small to carry a visible rim
       rc.globalCompositeOperation = 'destination-out';
-      CS.drawBaked(rc, p, tA, po, 'base');
+      personOn(rc, p, tA, po, 'base');
       rc.globalCompositeOperation = 'source-over';
-      CS.drawBaked(rc, p, tA, po, 'lite');
+      personOn(rc, p, tA, po, 'lite');
     };
     const flushRims = keep => {
       if (!LX.on) return;
@@ -1959,12 +1985,18 @@
     };
     if (LX.on) { pg.clearRect(0, 0, W, H); rc.clearRect(0, 0, W, H); }
     let i = 0;
-    for (; i < people.length && (people[i].sortY ?? people[i].y) < STAGE.y + 4; i++) person(people[i]);
+    if (VIEW.on) VIEW.back.forEach(person);
+    else for (; i < people.length && (people[i].sortY ?? people[i].y) < STAGE.y + 4; i++) person(people[i]);
     flushPeople();
     flushRims(false);
+    g.save();
+    stageXf(g);
     drawStage(g, I, spot);
-    CS.drawPerformer(g, PERF.x, PERF.y, PERF.s, tP, S.bpm, 'lit', spot, sc, ...perfHaze());
-    for (; i < people.length; i++) person(people[i]);
+    g.restore();
+    const pp = stagePt(PERF.x, PERF.y);
+    CS.drawPerformer(g, pp[0], pp[1], PERF.s * STAGEV.s, tP, S.bpm, 'lit', spot, sc, ...perfHaze());
+    if (VIEW.on) VIEW.front.forEach(person);
+    else for (; i < people.length; i++) person(people[i]);
     flushPeople();
     flushRims(true);
     if (LX.on) {
@@ -2002,7 +2034,7 @@
       }
       const rg = rcvCv.getContext('2d');
       rg.globalCompositeOperation = 'copy';
-      rg.drawImage(rcvStatic, 0, 0);
+      rg.drawImage(VIEW.on ? viewRcv : rcvStatic, 0, 0);
       rg.globalCompositeOperation = 'source-over';
       rg.filter = 'grayscale(1) brightness(7)';
       rg.drawImage(pplCv, 0, 0, rcvCv.width, rcvCv.height);
@@ -2018,6 +2050,7 @@
     // stage spill washing over the nearest heads around it
     g.globalCompositeOperation = 'lighter';
     g.save();
+    stageXf(g);
     g.translate(STAGE.x, STAGE.y + 30);
     g.scale(1, 0.3);
     fh = g.createRadialGradient(0, 0, 0, 0, 0, 480);
@@ -2054,7 +2087,8 @@
       const a = 0.45 + 0.3 * Math.sin(tA * p.sp + p.ph) + 0.25 * Math.sin(tA * p.sp * 2.7 + p.ph * 3);
       if (a <= 0.05) continue;
       layer.globalAlpha = Math.min(1, a * TUNE.twinkle * (p.a0 ?? 1));
-      layer.drawImage(glowWarm, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+      if (VIEW.on) { const z = p.s * p.vs; layer.drawImage(glowWarm, p.vx - z / 2, p.vy - z / 2, z, z); }
+      else layer.drawImage(glowWarm, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
     }
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'source-over';
@@ -2062,7 +2096,7 @@
     if (LX.on && frontLights.length) {
       // light leaving the ball's face toward us crosses in front of it on the crisp layer too
       layer.save();
-      layer.beginPath(); layer.ellipse(ORB.x, ORB.y, ORB.rx + 2, ORB.ry + 2, 0, 0, TAU); layer.clip();
+      layer.beginPath(); layer.ellipse(ORBV.x, ORBV.y, ORBV.rx + 2, ORBV.ry + 2, 0, 0, TAU); layer.clip();
       layer.globalCompositeOperation = 'lighter';
       layer.globalAlpha = 0.85;
       layer.drawImage(hzF, 0, 0, W, H);
@@ -2078,7 +2112,7 @@
     // rim light, hair edges and raised arms the paint filter would smear away
     const cl = crowdLayer.getContext('2d');
     cl.clearRect(0, 0, W, H);
-    for (const p of people) if ((p.sortY ?? p.y) >= STAGE.y + 4) CS.drawBaked(cl, p, tA, crowdOpts, LX.on ? 'base' : 'c');
+    for (const p of VIEW.on ? VIEW.front : people) if ((p.sortY ?? p.y) >= STAGE.y + 4) personOn(cl, p, tA, crowdOpts, LX.on ? 'base' : 'c');
     if (LX.on && amb < 1) { cl.globalCompositeOperation = 'source-atop'; cl.fillStyle = `rgba(0,0,0,${1 - amb})`; cl.fillRect(0, 0, W, H); cl.globalCompositeOperation = 'source-over'; }
     if (LX.on) {
       cl.globalCompositeOperation = 'lighter';
@@ -2141,10 +2175,10 @@
   // vanishes behind anyone nearer the camera; where it lands it lights the head it hits.
   const NEAR_Y = 600; // above this on screen nobody in the near crowd can cover a laser
   function laserPiece(g, s2, t0, t1, wMul, alpha, off = 0) {
-    const wl0 = (wMul * CAM.F) / s2.P0[2] * 0.05; // the line's width where it leaves the ball
+    const wl0 = (wMul * VIEW.Fz) / camDepth(s2.P0) * 0.05; // the line's width where it leaves the ball
     const P0 = add3(s2.P0, sub3(s2.P1, s2.P0), t0), P1 = add3(s2.P0, sub3(s2.P1, s2.P0), t1);
     const a = proj(P0), b = proj(P1);
-    const w0 = (wMul * CAM.F) / P0[2] * 0.05, w1 = Math.min(60, (wMul * CAM.F) / Math.max(1, P1[2]) * 0.05);
+    const w0 = (wMul * VIEW.Fz) / camDepth(P0) * 0.05, w1 = Math.min(60, (wMul * VIEW.Fz) / Math.max(1, camDepth(P1)) * 0.05);
     const L2 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / L2, ny = (b[0] - a[0]) / L2;
     // offset sideways (dispersion fringes), growing toward the near end like the line's width
     if (off) { const o0 = (off * w0) / Math.max(0.3, wl0), o1 = (off * w1) / Math.max(0.3, wl0); a[0] += nx * o0; a[1] += ny * o0; b[0] += nx * o1; b[1] += ny * o1; }
@@ -2166,14 +2200,16 @@
       s2.cCore = `rgb(${mixc(s2.col, [255, 255, 255], 0.55).map(v => v | 0)})`;
       s2.aGlow = s2.a * 0.4 * fwd;
       s2.aCore = s2.a * 0.95 * fwd;
-      // the stretch above NEAR_Y can't be covered: one piece; below it, pieces every ~1.5 units deep
-      const d = sub3(s2.P1, s2.P0), yc = NEAR_Y - CAM.cy;
-      let tc = (yc * s2.P0[2] - CAM.F * s2.P0[1]) / (CAM.F * d[1] - yc * d[2]);
+      // in the eye's frame: the stretch above NEAR_Y can't be covered by the crowd; below it, pieces
+      // every ~1.5 units deep. Depths are distances along the eye's view axis.
+      const P0 = toCam(s2.P0), d = sub3(toCam(s2.P1), P0), yc = NEAR_Y - CAM.cy, F = VIEW.Fz;
+      let tc = (yc * P0[2] - F * P0[1]) / (F * d[1] - yc * d[2]);
       if (!(tc > 0 && tc < 1)) tc = s2.s1[1] < NEAR_Y ? 1 : s2.s0[1] < NEAR_Y ? 1 : 0;
+      const zAt = u => P0[2] + d[2] * u;
       if (tc > 0) {
         // above the crowd nobody can cover it, but the ball can: give it real depth, split where it
         // passes the ball's centre plane, so only what is behind the ball gets hidden
-        const zAt = u => s2.P0[2] + d[2] * u, tz = Math.abs(d[2]) > 1e-6 ? (O3[2] - s2.P0[2]) / d[2] : -1;
+        const oz = VIEW.on ? VIEW.Oc[2] : O3[2], tz = Math.abs(d[2]) > 1e-6 ? (oz - P0[2]) / d[2] : -1;
         if (tz > 0 && tz < tc) { pieces.push({ s2, t0: 0, t1: tz, z: zAt(tz / 2) }); pieces.push({ s2, t0: tz, t1: tc, z: zAt((tz + tc) / 2) }); }
         else pieces.push({ s2, t0: 0, t1: tc, z: zAt(tc / 2) });
       }
@@ -2181,10 +2217,10 @@
         const dz = Math.abs(d[2]) * (1 - tc), n = CS.clamp(Math.ceil(dz / 1.5), 1, 24);
         for (let k = 0; k < n; k++) {
           const t0 = tc + ((1 - tc) * k) / n, t1 = tc + ((1 - tc) * (k + 1)) / n;
-          pieces.push({ s2, t0, t1, z: s2.P0[2] + d[2] * (t0 + t1) / 2 });
+          pieces.push({ s2, t0, t1, z: zAt((t0 + t1) / 2) });
         }
       }
-      if (s2.surf === 'floor' || s2.surf === 'stand') pieces.push({ s2, hit: true, z: s2.P1[2] - 0.8 });
+      if (s2.surf === 'floor' || s2.surf === 'stand') pieces.push({ s2, hit: true, z: zAt(1) - 0.8 });
     }
     pieces.sort((a, b) => b.z - a.z);
     let pi = 0;
@@ -2204,26 +2240,30 @@
     };
     const erase = fn => { lg.globalCompositeOperation = 'destination-out'; fn(); lg.globalCompositeOperation = 'lighter'; lg.globalAlpha = 1; };
     // the satellite is a solid ball: it hides whatever goes on behind it
-    drawTo(O3[2]);
-    erase(() => { lg.fillStyle = '#000'; lg.beginPath(); lg.ellipse(ORB.x, ORB.y, ORB.rx, ORB.ry, 0, 0, TAU); lg.fill(); });
+    drawTo(VIEW.on ? VIEW.Oc[2] : O3[2]);
+    erase(() => { lg.fillStyle = '#000'; lg.beginPath(); lg.ellipse(ORBV.x, ORBV.y, ORBV.rx, ORBV.ry, 0, 0, TAU); lg.fill(); });
     // performer and stage at the stage's depth
-    drawTo(Z0 - 1);
+    drawTo((VIEW.on ? camDepth([PERF3[0], HF, Z0]) : Z0) - 1);
     const pf = CS.drawPerformer.last;
     erase(() => {
       if (pf) lg.drawImage(pf.cv, pf.x, pf.y, pf.w, pf.h);
+      lg.save();
+      stageXf(lg);
       lg.fillStyle = '#000';
       lg.beginPath(); lg.ellipse(STAGE.x, STAGE.y, STAGE.rx, STAGE.ry, 0, 0, TAU); lg.rect(STAGE.x - STAGE.rx, STAGE.y, STAGE.rx * 2, STAGE.d); lg.ellipse(STAGE.x, STAGE.y + STAGE.d, STAGE.rx, STAGE.ry, 0, 0, TAU); lg.fill();
+      lg.restore();
     });
-    for (const p of people) {
+    for (const p of VIEW.on ? VIEW.front : people) {
       const py = p.sortY ?? p.y;
       if (py < STAGE.y + 4) continue;
-      drawTo((CAM.F * HF) / Math.max(1, py - CAM.cy));
+      drawTo(VIEW.on ? p.vz : (CAM.F * HF) / Math.max(1, py - CAM.cy));
       if (pi >= pieces.length) break;
-      erase(() => CS.drawBaked(lg, p, tA, crowdOpts, 'base'));
+      erase(() => personOn(lg, p, tA, crowdOpts, 'base'));
     }
     drawTo(-1e9);
     lg.globalCompositeOperation = 'source-over';
   }
+
 
   // the beams' haze for a set of lights into a half-size buffer (black = no light)
   let frontLights = [];
@@ -2258,6 +2298,85 @@
     g.globalCompositeOperation = 'source-over';
   }
 
+  // ---------- seats ----------
+  // A different seat re-projects the scene. The lights and the ball are true 3D already. The painted
+  // bowl is re-projected through the room's geometry (floor, stands, roof) as the painting's eye saw
+  // it; people on the floor are put back on the head plane and redrawn at their new size and depth
+  // order; the stage, the performer and the phone lights move with the room.
+  const SEATS = {
+    painting: { E: [0, 0, 0], yaw: 0, pitch: 0, zoom: 1 },
+    // a lower-bowl seat: up a few rows and a little to the right, looking down onto the floor, zoomed in a touch
+    lower: { E: [7, -12, -5], yaw: -7, pitch: 10, zoom: 1.3 },
+  };
+  let viewBase = null, viewRcv = null;
+  function setView(v) {
+    Object.assign(VIEW, v);
+    VIEW.on = !!(VIEW.E[0] || VIEW.E[1] || VIEW.E[2] || VIEW.yaw || VIEW.pitch || VIEW.zoom !== 1);
+    VIEW.cyw = Math.cos(VIEW.yaw * D2R); VIEW.syw = Math.sin(VIEW.yaw * D2R);
+    VIEW.cp = Math.cos(VIEW.pitch * D2R); VIEW.sp = Math.sin(VIEW.pitch * D2R);
+    VIEW.Fz = CAM.F * VIEW.zoom;
+    VIEW.Oc = toCam(O3);
+    if (!VIEW.on) {
+      Object.assign(ORBV, { x: ORB.x, y: ORB.y, rx: ORB.rx, ry: ORB.ry, s: 1 });
+      Object.assign(STAGEV, { x: STAGE.x, y: STAGE.y, s: 1, sq: 1 });
+      return;
+    }
+    const oc = proj0(O3), so = (VIEW.Fz / VIEW.Oc[2]) / (CAM.F / Z0);
+    Object.assign(ORBV, { x: oc[0], y: oc[1], rx: ORB.rx * so, ry: ORB.ry * so, s: so });
+    // the stage deck: where its centre lands, its size, and how much rounder it reads from above
+    const Ws = [((STAGE.x - CAM.cx) * Z0) / CAM.F, HF, Z0], sc = proj0(Ws), zs = camDepth(Ws), vE = sub3(Ws, VIEW.E);
+    const elev = Math.atan2(vE[1], Math.hypot(vE[0], vE[2])), elev0 = Math.atan2(HF, Z0);
+    Object.assign(STAGEV, { x: sc[0], y: sc[1], s: (VIEW.Fz / zs) / (CAM.F / Z0), sq: Math.max(0.3, Math.sin(elev) / Math.sin(elev0)) });
+    // a seat is only drawn with the live 3D rig, never the painting's flat beams
+    if (!LX.on) { LX.on = true; LX.mode = 'live'; }
+    viewBuild();
+  }
+  function viewBuild() {
+    if (!VIEW.on || !arenaBase) return;
+    for (const p of people) {
+      // back onto the head plane: depth from where they stand; children on shoulders sit higher
+      const by = p.sortY ?? p.y, z = (CAM.F * HF) / Math.max(1, by - CAM.cy);
+      const Wp = [((p.x - CAM.cx) * z) / CAM.F, HF - ((by - p.y) * z) / CAM.F, z];
+      const q = proj0(Wp), zc = camDepth(Wp);
+      p.vx = q[0]; p.vy = q[1]; p.vz = zc; p.vs = (VIEW.Fz / zc) / (CAM.F / z);
+    }
+    VIEW.back = people.filter(p => (p.sortY ?? p.y) < STAGE.y + 4).sort((a, b) => b.vz - a.vz);
+    VIEW.front = people.filter(p => (p.sortY ?? p.y) >= STAGE.y + 4).sort((a, b) => b.vz - a.vz);
+    for (const tw of twinkles) {
+      const P = hit3([0, 0, 0], [(tw.x - CAM.cx) / CAM.F, (tw.y - CAM.cy) / CAM.F, 1]).P, q = proj0(P), zc = camDepth(P);
+      tw.vx = q[0]; tw.vy = q[1]; tw.vs = (VIEW.Fz / zc) / (CAM.F / P[2]);
+    }
+    viewBase = reproject(arenaBase, 1);
+    viewRcv = reproject(rcvStatic, 0.5);
+  }
+  // the painted bowl as seen from the seat: each pixel's ray meets the room, and that point is read
+  // back from the painting (sc: the canvas's scale relative to the frame)
+  function reproject(src, sc) {
+    const w = src.width, h = src.height, sd = src.getContext('2d').getImageData(0, 0, w, h).data;
+    const out = CS.canvas(w, h), og = out.getContext('2d'), id = og.createImageData(w, h), od = id.data;
+    for (let v = 0; v < h; v++) for (let u = 0; u < w; u++) {
+      let x = (u / sc - CAM.cx) / VIEW.Fz, y = (v / sc - CAM.cy) / VIEW.Fz, z = 1;
+      [y, z] = [y * VIEW.cp + z * VIEW.sp, -y * VIEW.sp + z * VIEW.cp]; // undo the pitch, then the yaw
+      [x, z] = [x * VIEW.cyw + z * VIEW.syw, -x * VIEW.syw + z * VIEW.cyw];
+      const P = hit3(VIEW.E, [x, y, z]).P, o = (v * w + u) * 4;
+      let su = -1, sv = -1;
+      if (P[2] > 0.5) { su = Math.round((CAM.cx + (CAM.F * P[0]) / P[2]) * sc); sv = Math.round((CAM.cy + (CAM.F * P[1]) / P[2]) * sc); }
+      if (su >= 0 && su < w && sv >= 0 && sv < h) { const i = (sv * w + su) * 4; od[o] = sd[i]; od[o + 1] = sd[i + 1]; od[o + 2] = sd[i + 2]; }
+      else { od[o] = 2; od[o + 1] = 6; od[o + 2] = 14; } // floor nearer than the painting showed
+      od[o + 3] = 255;
+    }
+    og.putImageData(id, 0, 0);
+    return out;
+  }
+  // a person drawn from the current seat
+  function personOn(ctx, p, t, o, layer) {
+    if (!VIEW.on) { CS.drawBaked(ctx, p, t, o, layer); return; }
+    ctx.save();
+    ctx.transform(p.vs, 0, 0, p.vs, p.vx - p.vs * p.x, p.vy - p.vs * p.y);
+    CS.drawBaked(ctx, p, t, o, layer);
+    ctx.restore();
+  }
+
   // draw an image additively at a strength that may exceed 1
   function addTimes(g, img, k, w, h) {
     for (; k > 0.001; k -= 1) { g.globalAlpha = Math.min(1, k); g.drawImage(img, 0, 0, w, h); }
@@ -2270,7 +2389,7 @@
     if (!LX.on || !CAMERA.on || CAMERA.glare <= 0) { S.lens = null; aeExpo = 1; aeT = null; return; }
     const src = glare.map(q => { const P = proj(q.C); return { x: P[0], y: P[1], k: q.k * CAMERA.glare, col: q.col, size: q.size }; });
     // the front lamp looks at the audience: a small steady star whenever it faces us
-    const e = rot3([0, 0, -1]), eC = add3(O3, e, RS * 0.99), ef = Math.max(0, -dot3(e, norm3(eC)));
+    const e = rot3([0, 0, -1]), eC = add3(O3, e, RS * 0.99), ef = Math.max(0, -dot3(e, norm3(fromEye(eC))));
     if (LX.eye > 0 && ef > 0.5) { const P = proj(eC); src.push({ x: P[0], y: P[1], k: 0.25 * LX.eye * S.intensity * ef ** 6 * CAMERA.glare, col: LX.eyeCol, size: 0.008 }); }
     src.sort((a, b) => b.k - a.k);
     const top = src.slice(0, 6), total = top.reduce((a, q) => a + q.k, 0);
@@ -2315,5 +2434,7 @@
     ui.append(btn);
   }
 
+  const seatQ = new URLSearchParams(location.search).get('seat');
+  if (seatQ && SEATS[seatQ]) requestAnimationFrame(() => setView(SEATS[seatQ]));
   CS.run({ W, H, bpm: 84, file: 'arena-spotlight', toggles: ['performer', 'lights', 'audience'], paint: { radius: 4, wobble: 1.8 }, init, render, renderTop, extraUI, ui: !window.LIGHT_DESK });
 })();

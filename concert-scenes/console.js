@@ -318,6 +318,19 @@
   };
   $('quality').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setQuality(b.dataset.q); });
   if (!painter) $('quality').querySelectorAll('button').forEach(b => (b.disabled = b.dataset.q !== 'raw'));
+  // seats: re-projecting the painted bowl takes a moment, so the button says so first
+  $('seat').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    $('seat').querySelectorAll('button').forEach(x => press(x, x === b));
+    const label = b.textContent;
+    b.textContent = 'Moving…';
+    setTimeout(() => {
+      if (A.mode() === 'paint' && b.dataset.seat !== 'painting') setMode('live');
+      A.setView(A.SEATS[b.dataset.seat]);
+      b.textContent = label;
+    }, 30);
+  });
   $('motion').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
