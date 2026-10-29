@@ -7,7 +7,9 @@ Offline helpers for turning the arena scene into video.
   Convert an mp3 first: `ffmpeg -i song.mp3 -ac 1 -ar 22050 song.wav`.
 - `render-frames.js from to fps outDir [frameList] [programme]`: renders frames of the showcase
   (`main`, `beams`, or `song`) with headless Chromium, hand-made 15 fps style. For `song`, set
-  `SONG=out.json` so the music programme can read the cue sheet. Frame `f` is time `f / fps`, so
+  `SONG=out.json` so the music programme can read the cue sheet. `PSCALE` sets the paint
+  pass's internal resolution (0.5 default; 0.35 for quicker previews) and `SEAT=lower` renders
+  from the lower-bowl seat instead of the painting's eye. Frame `f` is time `f / fps`, so
   muxing the song from 0 keeps picture and sound in sync:
 
 ```

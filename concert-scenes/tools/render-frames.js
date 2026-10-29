@@ -6,10 +6,12 @@ const [, , from = '0', to = '900', fps = '30', outDir = 'frames', times = '', pr
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1536, height: 1300 } });
   p.on('pageerror', e => console.log('PAGE ERROR', e.message));
-  await p.goto('file://' + require('path').resolve(__dirname, '..', 'arena.html') + '?still&show=' + prog + '&pscale=0.5&t=0', { timeout: 120000 });
+  await p.goto('file://' + require('path').resolve(__dirname, '..', 'arena.html') + '?still&show=' + prog + '&pscale=' + (process.env.PSCALE || '0.5') + (process.env.SEAT ? '&seat=' + process.env.SEAT : '') + '&t=0', { timeout: 120000 });
   await p.waitForFunction(() => window.__scene, null, { timeout: 100000 });
   // a song cue sheet for the music programme
   if (process.env.SONG) await p.evaluate(c => { window.SONG = c; }, JSON.parse(fs.readFileSync(process.env.SONG, 'utf8')));
+  // another seat: set it explicitly (re-projection takes a moment, once)
+  if (process.env.SEAT) await p.evaluate(s => { if (window.__arena.SEATS) window.__arena.setView(window.__arena.SEATS[s]); }, process.env.SEAT);
   const t0 = Date.now();
   let last = Date.now();
   const list = times ? times.split(',').map(Number) : null;
