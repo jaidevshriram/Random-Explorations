@@ -103,6 +103,8 @@
   toggle('strobe-on', () => LIVE.strobe > 0, on => (LIVE.strobe = on ? strobeRate : 0));
   fader('strobe-rate', () => strobeRate, v => { strobeRate = v; if (LIVE.strobe > 0) LIVE.strobe = v; });
   fader('strobe-duty', () => LIVE.strobeDuty, v => (LIVE.strobeDuty = v));
+  fader('strobe-frac', () => LIVE.strobeFrac, v => (LIVE.strobeFrac = v));
+  fader('strobe-shuffle', () => LIVE.strobeShuffle, v => (LIVE.strobeShuffle = v));
   toggle('strobe-white', () => LIVE.strobeWhite, on => (LIVE.strobeWhite = on));
   toggle('strobe-reaim', () => LIVE.strobeReaim, on => (LIVE.strobeReaim = on));
   toggle('strobe-vary', () => LIVE.strobeVary, on => (LIVE.strobeVary = on));

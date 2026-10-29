@@ -61,6 +61,7 @@
     // raking from the far stands down to the people at the camera)
     laserTilt: 0, laserScan: 0, fanTwist: 0,
     burstCount: 44, burstSpread: 6, burstPh: 0, // burst: single beams evenly in every direction off the sphere, each wandering a little
+    fireFrac: 1, fireWin: 0, // share of laser lines firing at once, and which draw of that share (changes as fireWin steps)
     // every can is a moving head on the ring: it tilts out of the ring toward the audience (+) or
     // away (-), each by its own amount when tiltScan is up
     tilt: 0, tiltScan: 0, tiltPh: 0,
@@ -93,6 +94,7 @@
     // strobe (rate 0 = off): gates the heads on and off; options for white flashes, re-aiming the
     // burst every flash, varying its density per flash, and flashing the spot and front lamp too
     strobe: 0, strobeDuty: 0.45, strobeWhite: true, strobeReaim: true, strobeVary: true, strobeAll: false,
+    strobeFrac: 0.6, strobeShuffle: 0.1, // while strobing, only this share of laser lines fires, re-drawn every strobeShuffle seconds
     spot: 1, spotCol: [120, 210, 218], goboSpeed: 1.8, gobo: 'dots', goboZoom: 17, prism: 0, fanSpread: 26, fanScan: 14, rainbow: false,
     laserTilt: 0, laserScan: 20, fanTwist: 0, tilt: 0, tiltScan: 0, tiltSpeed: 0.8, burstCount: 44, burstSpread: 6, burstSpeed: 1,
     eye: 1, eyeCol: null, // null: follow the rig's colour
@@ -105,7 +107,7 @@
       LX.mode = 'live';
       try {
         const o = JSON.parse(q || '{}');
-        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll']) if (k in o) LIVE[k] = o[k];
+        for (const k of ['rot', 'spin', 'yaw', 'turn', 'pitch', 'tumble', 'spotLock', 'spot', 'spotCol', 'goboSpeed', 'gobo', 'goboZoom', 'prism', 'fanSpread', 'fanScan', 'rainbow', 'eye', 'eyeCol', 'laserTilt', 'laserScan', 'fanTwist', 'tilt', 'tiltScan', 'tiltSpeed', 'burstCount', 'burstSpread', 'burstSpeed', 'autoRot', 'strobe', 'strobeDuty', 'strobeWhite', 'strobeReaim', 'strobeVary', 'strobeAll', 'strobeFrac', 'strobeShuffle']) if (k in o) LIVE[k] = o[k];
         if ('crowd' in o) LX.crowd = o.crowd;
         for (const k in CAMERA) if (k in o) CAMERA[k] = o[k];
         LIVE.fx.forEach((F, i) => { if (FIX[i].spot) return; for (const k of ['col', 'beam', 'proj', 'laser', 'fan', 'burst']) if (k in o) F[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
@@ -114,7 +116,7 @@
   }
   // Speeds (spin, turn, gobo wheel, drifts) accumulate frame by frame, so moving a speed fader never
   // makes the rig jump.
-  const ACC = { t: null, spin: 0, turn: 0, gobo: 0, tilt: 0, burst: 0, auto: 0, strobe: 0 };
+  const ACC = { t: null, spin: 0, turn: 0, gobo: 0, tilt: 0, burst: 0, auto: 0, strobe: 0, shuffle: 0 };
   function liveAt(t) {
     const dt = ACC.t === null ? 0 : CS.clamp(t - ACC.t, 0, 0.2);
     ACC.t = t;
@@ -125,6 +127,7 @@
     ACC.burst += LIVE.burstSpeed * dt;
     ACC.auto += LIVE.autoRot * dt;
     ACC.strobe += LIVE.strobe * dt;
+    ACC.shuffle += dt / Math.max(0.02, LIVE.strobeShuffle);
     // auto-rotate: turning, nodding and rolling at once, at uneven rates so it never repeats exactly
     const au = ACC.auto, auto = LIVE.autoRot > 0 || au !== 0;
     LX.rot = LIVE.rot + ACC.spin + (auto ? 14 * au : 0);
@@ -156,6 +159,8 @@
     });
     LX.eye = LIVE.eye;
     LX.eyeCol = LIVE.eyeCol ? LIVE.eyeCol.slice() : rigColour();
+    LX.fireFrac = LIVE.strobe > 0 ? LIVE.strobeFrac : 1;
+    LX.fireWin = Math.floor(ACC.shuffle);
     if (LIVE.strobe > 0) {
       // the strobe gates the heads; each flash can re-aim the burst and pick its own density
       const n = Math.floor(ACC.strobe), on = ACC.strobe - n < LIVE.strobeDuty;
@@ -191,6 +196,7 @@
   const STROBE = { at: 24.5, len: 4.5 };
   const PROGRAMS = { main: 30 + STROBE.len, beams: 20 };
   function showAt(t) {
+    LX.fireFrac = 1;
     if (LX.program === 'beams') { beamsAt(t); return; }
     const L = PROGRAMS.main;
     t = ((t % L) + L) % L;
@@ -211,6 +217,9 @@
     LX.burstCount = Math.round(STROBE_DENSITY[step] * (0.75 + 0.5 * r1));
     LX.burstSpread = 14;
     LX.burstPh = n * 3.7;
+    // only 60% of the spray fires at once, and which 60% changes every tenth of a second
+    LX.fireFrac = 0.6;
+    LX.fireWin = Math.floor(u / 0.1);
     const env = seg(u, 0, 0.15) * (1 - seg(u, STROBE.len - 0.15, STROBE.len));
     ORDER.forEach(i => {
       Object.assign(LX.lv[i], { beam: 0, proj: 0, laser: 0, fan: 0, burst: on ? 1.3 * env : 0 });
@@ -791,7 +800,7 @@
     setProgram(p) { if (PROGRAMS[p]) LX.program = p; },
     // forget accumulated spin/turn (after "square on" or taking over from the showcase)
     resetMotion() { ACC.spin = 0; ACC.turn = 0; ACC.auto = 0; },
-    debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, canvases: () => ({ lightCv, rcvCv, pplCv }) },
+    debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, lasers: () => [lasers.length, lasers.slice(0, 64).map(l => Math.round(l.P1[0] * 7 + l.P1[2] * 3) % 97).join(',').slice(0, 40)], canvases: () => ({ lightCv, rcvCv, pplCv }) },
     get crowd() { return crowdOpts; },
     setMode(m) { LX.on = m !== 'paint'; LX.mode = m === 'live' ? 'live' : 'show'; },
     mode() { return LX.on ? (LX.mode === 'live' ? 'live' : 'show') : 'paint'; },
@@ -1077,8 +1086,11 @@
   const hj = k => { if (hb === null) return 0; const x = Math.sin(k * 127.1 + hb * 311.7) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; };
   const hjv = (k, amp) => [hj(k) * amp, hj(k + 0.37) * amp, hj(k + 0.71) * amp];
 
+  // whether laser line `id` is among the share firing in this draw (a fresh random pick per fireWin)
+  const fires = id => { if (LX.fireFrac >= 1) return true; const x = Math.sin(id * 12.9898 + LX.fireWin * 78.233) * 43758.5453; return x - Math.floor(x) < LX.fireFrac; };
   // one laser line from C along dir; strength k; reaches the lens → glare
-  function shootFrom(C, dir, k, col, start) {
+  function shootFrom(C, dir, k, col, start, id) {
+    if (id !== undefined && !fires(id)) return;
     if (hb !== null) { dir = norm3(add3(dir, hjv(lasers.length * 3 + 101, 0.0025))); k *= 1 + 0.08 * hj(lasers.length + 501); }
     const h = hit3(C, dir), P0 = add3(C, dir, start), P1 = h.P;
     lasers.push({ P0, P1, s0: proj(P0), s1: proj(P1), col, a: k, surf: h.surf, toward: Math.max(0, -dir[2]) });
@@ -1151,25 +1163,25 @@
       // the floor and the people right at the camera
       const ab = f.a * D2R, side = [-Math.sin(ab), Math.cos(ab), 0];
       const dl = norm3(rot3(aimBody(f, i, LX.laserTilt + LX.laserScan * Math.sin(i * 1.7))));
-      const shoot = (dir, k) => shootFrom(C, dir, k * I, col, 0.35);
-      if (lv.laser > 0) shoot(dl, lv.laser);
+      const shoot = (dir, k, id) => shootFrom(C, dir, k * I, col, 0.35, id);
+      if (lv.laser > 0) shoot(dl, lv.laser, 1000 + i);
       if (lv.fan > 0) {
         // the fan opens about an axis that turns with the satellite: fanTwist 0 lays it in the
         // ring's plane, 90 stands it up as a sheet from the far stands to the front rows
         const n = rot3([0, 0, 1]), sw = rot3(side), tw = LX.fanTwist * D2R;
         const axis = norm3(add3(n.map(v => v * Math.cos(tw)), sw, Math.sin(tw)));
-        for (let k = 0; k < 13; k++) shoot(norm3(axisRot(dl, axis, (LX.fanScan + (k / 12 - 0.5) * LX.fanSpread) * D2R)), lv.fan * 0.8);
+        for (let k = 0; k < 13; k++) shoot(norm3(axisRot(dl, axis, (LX.fanScan + (k / 12 - 0.5) * LX.fanSpread) * D2R)), lv.fan * 0.8, 2000 + i * 16 + k);
       }
     });
     if (LX.on) {
       const tW = Math.tan(LX.burstSpread * D2R);
-      for (const b of burstDirs(LX.burstCount)) {
+      for (const [bk, b] of burstDirs(LX.burstCount).entries()) {
         const lvb = LX.lv[b.head].burst;
         if (!(lvb > 0)) continue;
         const ph = LX.burstPh * b.sp, u = Math.sin(ph + b.p1) * tW, v = Math.cos(ph * 0.83 + b.p2) * tW;
         const db = norm3(add3(b.d, add3(b.e1.map(c => c * u), b.e2, v)));
         const dw = rot3(db);
-        shootFrom(add3(O3, dw, RS * 1.02), dw, lvb * b.k * I, LX.col[b.head], 0);
+        shootFrom(add3(O3, dw, RS * 1.02), dw, lvb * b.k * I, LX.col[b.head], 0, bk);
       }
     }
     return list;
