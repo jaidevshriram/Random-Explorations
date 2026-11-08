@@ -33,6 +33,8 @@ class NScene(Scene):
     """A scene narrated beat by beat: say() starts the next clip and returns its length,
     sync() waits until it has finished."""
 
+    narration = NARRATION  # scene name -> list of beats; other videos override this
+
     def setup(self):
         self._beat, self._end, self._timing = 0, 0.0, []
 
@@ -45,7 +47,7 @@ class NScene(Scene):
         d = wav_duration(path)
         t = self.renderer.time
         self.add_sound(path)
-        self._timing.append((t, t + d, subtitle(NARRATION[name][i])))
+        self._timing.append((t, t + d, subtitle(self.narration[name][i])))
         self._end = t + d
         return d
 

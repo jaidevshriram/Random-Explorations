@@ -28,7 +28,17 @@ BUILD = os.path.join(HERE, "build")
 AUDIO = os.path.join(BUILD, "audio")
 sys.path.insert(0, HERE)
 from music import make_music  # noqa: E402
-from narration import NARRATION, subtitle  # noqa: E402
+import importlib  # noqa: E402
+
+from narration import subtitle  # noqa: E402
+
+# video name -> (narration module, scene file, default output)
+PROJECTS = {
+    "main": ("narration", "scenes.py", "regression_vs_classification.mp4"),
+    "mini": ("narration_mini", "scenes_mini.py", "mini_maptr_explainer.mp4"),
+}
+NARRATION = importlib.import_module("narration").NARRATION
+SCENE_FILE = "scenes.py"
 
 VOICE = "en_US-ryan-high"
 VOICE_URL = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/{VOICE}.onnx"
@@ -158,7 +168,7 @@ def render(scenes, quality):
 
     def one(scene):
         cmd = ["manim", *flags, "--media_dir", os.path.join(BUILD, "media"), "--disable_caching",
-               "-o", f"{scene}.mp4", os.path.join(HERE, "scenes.py"), scene]
+               "-o", f"{scene}.mp4", os.path.join(HERE, SCENE_FILE), scene]
         r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True)
         if r.returncode:  # parallel renders can race on manim's shared LaTeX cache; retry once
             r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True)
@@ -178,7 +188,7 @@ QUALITY_DIR = {"high": "1080p30", "low": "480p15"}
 
 
 def find_video(scene, quality):
-    path = os.path.join(BUILD, "media", "videos", "scenes", QUALITY_DIR[quality], f"{scene}.mp4")
+    path = os.path.join(BUILD, "media", "videos", os.path.splitext(SCENE_FILE)[0], QUALITY_DIR[quality], f"{scene}.mp4")
     if not os.path.exists(path):
         raise FileNotFoundError(path)
     return path
@@ -242,13 +252,19 @@ def assemble(scenes, out, quality="high", music=True):
 
 
 def main():
+    global NARRATION, SCENE_FILE
     ap = argparse.ArgumentParser()
+    ap.add_argument("--project", choices=list(PROJECTS), default="main")
     ap.add_argument("--quality", choices=["high", "low"], default="high")
     ap.add_argument("--voice", choices=["elevenlabs", "piper"], default="elevenlabs")
     ap.add_argument("--no-music", action="store_true")
-    ap.add_argument("--scenes", nargs="*", default=list(NARRATION))
-    ap.add_argument("--out", default=os.path.join(HERE, "regression_vs_classification.mp4"))
+    ap.add_argument("--scenes", nargs="*", default=None)
+    ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    mod, SCENE_FILE, out = PROJECTS[args.project]
+    NARRATION = importlib.import_module(mod).NARRATION
+    args.scenes = args.scenes or list(NARRATION)
+    args.out = args.out or os.path.join(HERE, out)
     extract_data()
     make_audio(args.voice)
     render(args.scenes, args.quality)
