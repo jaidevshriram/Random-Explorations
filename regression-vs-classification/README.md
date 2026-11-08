@@ -157,7 +157,7 @@ See [`PLAN_SVG_ABLATION.md`](PLAN_SVG_ABLATION.md) for how to run this compariso
 
 ## Next step: the real model
 
-[`maptrv2-bins/PLAN.md`](maptrv2-bins/PLAN.md) is the plan for testing this on MapTRv2 trained on Modal. It covers the exact code locations to change, the run matrix, evaluation, data preparation, and a cost estimate.
+[`maptrv2-bins/PLAN.md`](maptrv2-bins/PLAN.md) is the plan for testing this on MapTRv2 on rented GPUs. It covers the exact code locations to change, the run matrix, evaluation, data preparation, and a cost estimate.
 
 ## Files
 

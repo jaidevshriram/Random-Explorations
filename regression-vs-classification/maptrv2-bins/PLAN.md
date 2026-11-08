@@ -1,4 +1,4 @@
-# Plan: bin (classification) coordinate head in MapTRv2, trained on Modal
+# Plan: bin (classification) coordinate head in MapTRv2
 
 Goal: test the toy experiment's main finding in a real model. Train MapTRv2 twice with identical settings: once with its L1 point regression, once with a per-coordinate bin head (softmax + HL-Gauss cross-entropy). Compare map quality, convergence and matching stability.
 
@@ -74,6 +74,8 @@ All runs: R50, nuScenes, the authors' 24-epoch schedule, same seed and same numb
 
 Before any full run, train A and B on nuScenes-mini for about 200 iterations. That checks for a falling loss, a sensible matching flip rate and identical data pipelines, and gives the real seconds per iteration used to fix the budget (§6).
 
+Start with **12 epochs per arm** (see §6), and extend to 24 only if the curves are interesting.
+
 ## 5. Evaluation and logging
 
 - **Built-in:** `tools/dist_test_map.sh` gives AP per class (divider, pedestrian crossing, boundary) at 0.5 / 1.0 / 1.5 m and the mAP. Evaluate every 2 epochs (checkpoint interval is already 2) to get convergence curves, not just final numbers.
@@ -82,45 +84,51 @@ Before any full run, train A and B on nuScenes-mini for about 200 iterations. Th
 - **Ghost / self-consistency check:** the fraction of predicted points more than 1 m from their matched ground-truth polyline but less than 0.5 m from a different one. That is points borrowed from another element, the shape-level ghost.
 - **Optional:** rasterised IoU of predicted vs ground-truth polylines, drawn 2 px wide on a 200×400 grid.
 
-## 6. Compute on Modal: cost and constraints
+## 6. Compute: cost and constraints
 
-**Prices** are from [modal.com/pricing](https://modal.com/pricing), checked 2026-11-08:
-- A100 40 GB ≈ $2.10/h
-- A100 80 GB ≈ $2.50/h
-- H100 ≈ $3.95/h
-- The Starter plan includes $30/month of credit.
-- Modal advertises startup credits and up to $10k of credits for academics.
+**Measured, not guessed.** The authors' published training log for MapTR-tiny (R50, 24 epochs, 8× RTX 3090) runs from 2022-11-06 20:55 to 2022-11-07 09:53:
+- about **13 h wall-clock**, which is about **104 GPU-hours** (880 iterations per epoch, about 1.1–2 s per iteration, 10.3 GB per GPU);
+- final mAP 50.0.
 
-**H100s are not an option.** MapTRv2 pins PyTorch 1.9.1 + CUDA 11.1, which predates the H100 (it needs CUDA ≥ 11.8). A100s (sm_80) are supported.
+MapTRv2 adds one-to-many queries and auxiliary segmentation and depth losses. Allow about 1.2–1.5×, so **about 125–160 3090-hours per 24-epoch run**. Step 0 (§4) replaces this with a measured figure.
 
-**Rough budget.** The authors trained on 8× RTX 3090 and don't publish wall-clock times, so the figures below are an estimate to replace with the measurement from step 0.
+**Which GPUs.**
+- MapTRv2 pins PyTorch 1.9.1 + CUDA 11.1.
+- That supports the RTX 3090 / A5000 / A6000 / A40 (sm_86) and the A100 (sm_80).
+- It does **not** support the RTX 4090 / L40S (sm_89) or the H100 (sm_90).
+- The 3090 is what the authors used, so the baseline is directly comparable to their log.
 
-| Item | Estimate |
+| Provider (prices checked 2026-11-08) | GPU | $/GPU-h | One 24-epoch run | One 12-epoch run |
+|---|---|---|---|---|
+| RunPod Community Cloud | RTX 3090 | 0.22 | **≈ $28–35** | ≈ $14–18 |
+| RunPod Secure Cloud | RTX 3090 | 0.50 | ≈ $63–80 | ≈ $32–40 |
+| Vast.ai marketplace | RTX 3090 | ≈ 0.08–0.27 (varies, can be interrupted) | ≈ $10–43 | ≈ $5–22 |
+| Modal | A100 40 GB (≈1.7× a 3090, an assumption) | 2.10 | ≈ $155–200 | ≈ $78–100 |
+
+**Recommended budget.**
+
+| Item | Cost |
 |---|---|
-| Image build (compile mmcv-full and the GKT op, one-off and then cached) | ~1 h of CPU, a few $ |
-| nuScenes-mini debugging and timing (1 GPU) | $5–15 |
-| One full 24-epoch R50 run, 8× A100 40 GB | ~100–200 GPU-h ≈ $210–420 |
-| A + B | ≈ $420–840 |
-| + C | + $210–420 |
+| Debugging on nuScenes-mini (any one GPU, or a free Kaggle/Colab T4) | $0–5 |
+| Runs A + B, 12 epochs each, RunPod community 3090s | ≈ $30–40 |
+| Extending A + B to 24 epochs if the 12-epoch curves are interesting | + ≈ $30–40 |
+| Run C | + ≈ $15–35 |
+| Storage for nuScenes (about 300 GB on a network volume, roughly $0.05–0.10/GB-month) | ≈ $15–30 per month while it's kept |
 
-**Cheaper alternatives,** applied to every arm alike:
-- Halve the schedule to 12 epochs; MapTRv2 converges quickly, and the convergence curves are part of the result.
-- Use the R18 backbone.
-- Use 4 GPUs: the same GPU-hours, but double the wall-clock time.
+**Why 12 epochs is a fair first test.** The hypothesis is about early training, when the matching is still unstable. So the mAP-vs-epoch curves of A and B over the first 12 epochs already answer the main question, and both arms get the same schedule.
 
-**Modal specifics the launcher must handle:**
-- **Image:** `nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04`, Python 3.8, `torch==1.9.1+cu111`.
-- **mmcv:** `mmcv-full==1.4.0` built from source with `MMCV_WITH_OPS=1 TORCH_CUDA_ARCH_LIST="8.0"`.
-- **Other packages:** `mmdet==2.14.0`, `mmsegmentation==0.14.1`, `timm`, `mmdetection3d` installed with `setup.py develop`, the `geometric_kernel_attn` op, and `requirement.txt`.
-- **Volumes:** one for nuScenes data (`/data/nuscenes`, `/data/can_bus`) and one for run outputs (checkpoints, logs, evaluation JSON).
-- **Time limits:** Modal caps how long one function call may run, so a 24-epoch run must be chunked. Each call trains N epochs and resumes from the last checkpoint in the volume (`--resume-from`). Checkpoint every epoch, not every 2.
-- **Multi-GPU:** one container with `gpu="A100:8"` running `tools/dist_train.sh`.
+**Practical notes:**
+- **Interruptions:** community and marketplace GPUs can be interrupted. Checkpoint every epoch and resume with `--resume-from`.
+- **Image:** use one Docker image, the same one on any provider. `nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04`, Python 3.8, `torch==1.9.1+cu111`, `mmcv-full==1.4.0` built with `MMCV_WITH_OPS=1 TORCH_CUDA_ARCH_LIST="8.0;8.6"`, `mmdet==2.14.0`, `mmsegmentation==0.14.1`, `timm`, `mmdetection3d` with `setup.py develop`, the `geometric_kernel_attn` op, and `requirement.txt`.
+- **GPUs per machine:** 8×3090 machines are not always available. 4×3090 gives the same GPU-hours over twice the wall-clock time, and the same cost.
+- **Keep the effective batch size** the same as the authors' (8 GPUs × 4) by adjusting `samples_per_gpu` or using gradient accumulation, so the learning rate stays valid.
+- **Modal** remains an option if you have credits, e.g. their academic programme (up to $10k) or startup credits. Same image, A100s only; it caps per-call runtime, so chunk the run and resume.
 
 ## 7. Data (your part: it needs your nuScenes account)
 
 1. Create a free account at nuscenes.org and accept the terms.
 2. Download the v1.0 trainval metadata and sensor blobs (about 300 GB in total), the map expansion v1.3 and the CAN bus expansion.
-3. Put them on the data volume, either with `modal volume put` from a machine that has the files, or with a Modal function that downloads from the links nuScenes gives you. Keep those links private: not in chat, not in the repo.
+3. Put them on the provider's persistent network volume. Either download directly on a cheap CPU pod using the links nuScenes gives you, or upload from a machine that has the files. Keep those links private: not in chat, not in the repo.
 4. Run the converter once, on CPU, inside the image:
    `python tools/maptrv2/custom_nusc_map_converter.py --root-path /data/nuscenes --out-dir /data/nuscenes --extra-tag nuscenes --version v1.0 --canbus /data`.
    It writes the `nuscenes_map_infos_temporal_{train,val}.pkl` files the configs expect.
@@ -132,7 +140,7 @@ Before any full run, train A and B on nuScenes-mini for about 200 iterations. Th
    - the HL-Gauss labels and the cross-entropy;
    - the decode, checking sub-bin precision and that one of two modes is picked rather than the middle;
    - the NLL cost against a brute-force loop, including the min over orders.
-2. **Modal launcher:** the image, the volumes, and `prepare_data`, `train` (chunked and resumable) and `evaluate` functions.
+2. **Launcher:** a Docker image plus scripts for `prepare_data`, `train` (resumable) and `evaluate`, runnable on RunPod/Vast (default) or Modal.
 3. **Smoke test** on nuScenes-mini, then measure seconds per iteration to fix the budget.
 4. **Full runs** A and B, then C, and analysis (§5).
 
