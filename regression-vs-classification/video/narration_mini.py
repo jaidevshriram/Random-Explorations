@@ -37,4 +37,25 @@ NARRATION = {
         "We also track how often the matching changes its mind: the fraction of shapes whose matched query "
         "changes between checkpoints. Each setup was trained three times, for eight thousand steps.",
     ],
+    "M06_Result1": [
+        "Here's the result with clean labels. Red is the L1 baseline. Blue is bins with the L1 matching cost. "
+        "Purple is bins with the likelihood matching cost. Each band shows the spread over three training runs.",
+        "L1 wins, at every threshold. The bin heads start slowly: they barely score anything for the first "
+        "fifteen hundred steps, and they never catch up. The likelihood matching cost is the weakest of all.",
+        "And the matching? It settles at about the same rate for all three. The instability that bins were "
+        "supposed to absorb just isn't what's holding the model back here.",
+    ],
+    "M07_Why": [
+        "Why? In this world, every shape is drawn exactly where its label says. Once a query is matched, its "
+        "target has a single right answer. So bins have nothing extra to offer: there's no second answer to keep "
+        "alive. They just have a harder job, sixty four outputs per coordinate instead of one.",
+        "Remember the toy problem: bins won only where the labels were ambiguous. So let's add ambiguity.",
+    ],
+    "M08_Ambiguous": [
+        "Real maps have exactly this kind of ambiguity: a double lane marking, where one annotator follows the "
+        "left stroke and another follows the right. So now every open curve is drawn as a double line, and its "
+        "label follows one of the two strokes, at random.",
+        "At test time, either stroke counts as correct. A prediction between the two strokes counts as wrong at "
+        "the strict thresholds: it's two and a half pixels from both.",
+    ],
 }

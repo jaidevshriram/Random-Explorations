@@ -19,7 +19,7 @@ class MScene(NScene):
 
 def sample_images(seed, n):
     rng = np.random.default_rng(seed)
-    return [mm.make_sample(rng) for _ in range(n)]
+    return [mm.make_sample(rng)[:3] for _ in range(n)]  # (image, labels, points)
 
 
 def image_mob(img, size):
@@ -272,4 +272,169 @@ class M05_Score(MScene):
         self.play(FadeIn(c2), FadeIn(flip), run_time=1.2)
         runs = Tex(r"3 setups $\times$ 3 training runs $\times$ 8{,}000 steps", font_size=36, color=GREY_A).to_edge(DOWN, buff=0.8)
         self.play(Write(runs), run_time=1.5)
+        self.sync(pad=0.8)
+
+
+# ----------------------------------------------------------------------------- results
+
+RUN_COLORS = {"l1": C_L2, "bins": C_BIN, "bins_nll": "#9467bd"}
+RUN_NAMES = {"l1": "L1 regression", "bins": "bins, L1 cost", "bins_nll": "bins, NLL cost"}
+
+
+def load_runs(folder):
+    import glob
+    import json
+    runs = {}
+    for f in sorted(glob.glob(os.path.join(HERE, "..", "maptr-mini", folder, "*.json"))):
+        r = json.load(open(f))
+        runs.setdefault(r["head"], []).append(r)
+    return runs
+
+
+def curve(ax, runs, head, key):
+    """Mean line and min-max band over seeds for one head."""
+    rs = runs[head]
+    steps = np.array([e["step"] for e in rs[0]["evals"]])
+    v = np.array([[np.nan if e[key] is None else e[key] for e in r["evals"]] for r in rs], dtype=float)
+    ok = ~np.isnan(v).all(0)
+    steps, v = steps[ok], v[:, ok]
+    lo, hi, mean = v.min(0), v.max(0), v.mean(0)
+    col = RUN_COLORS[head]
+    band = Polygon(*[ax.c2p(s, y) for s, y in zip(steps, hi)], *[ax.c2p(s, y) for s, y in zip(steps[::-1], lo[::-1])],
+                   stroke_width=0, fill_color=col, fill_opacity=0.25)
+    line = VMobject(color=col, stroke_width=5).set_points_as_corners([ax.c2p(s, y) for s, y in zip(steps, mean)])
+    return band, line, mean[-1]
+
+
+def result_axes(y_max, y_step, y_label, width=9.0, height=5.0):
+    ax = Axes(x_range=[0, 8000, 2000], y_range=[0, y_max, y_step], x_length=width, y_length=height, tips=False,
+              axis_config={"color": GREY_B, "include_numbers": True, "font_size": 26},
+              x_axis_config={"decimal_number_config": {"num_decimal_places": 0}},
+              y_axis_config={"decimal_number_config": {"num_decimal_places": 2}})
+    xl = Tex("training step", font_size=30, color=GREY_B).next_to(ax.x_axis, DOWN, buff=0.45)
+    yl = Tex(y_label, font_size=30, color=GREY_B).rotate(PI / 2).next_to(ax.y_axis, LEFT, buff=0.6)
+    return ax, VGroup(xl, yl)
+
+
+class M06_Result1(MScene):
+    def construct(self):
+        runs = load_runs("runs")
+        title = Tex("Result 1: clean labels", font_size=44).to_edge(UP, buff=0.3)
+        ax, labels = result_axes(0.32, 0.1, "mAP")
+        VGroup(ax, labels).shift(1.4 * LEFT + 0.35 * DOWN)
+
+        d = self.say()
+        self.play(Write(title), Create(ax), FadeIn(labels), run_time=1.5)
+        finals = {}
+        for head in ("l1", "bins", "bins_nll"):
+            band, line, final = curve(ax, runs, head, "mAP")
+            finals[head] = final
+            lab = Tex(RUN_NAMES[head], font_size=30, color=RUN_COLORS[head])
+            self.play(FadeIn(band), Create(line), run_time=max(1.2, (d - 2) / 3.6), rate_func=linear)
+            lab.next_to(line.get_end(), RIGHT, buff=0.2)
+            self.add(lab)
+        self.sync()
+
+        d = self.say()
+        early = Rectangle(width=ax.c2p(1500, 0)[0] - ax.c2p(0, 0)[0], height=ax.y_length, color=C_Y, fill_opacity=0.08,
+                          stroke_width=2).move_to(ax.c2p(750, 0.16))
+        et = Tex("bins: a slow start", font_size=30, color=C_Y).next_to(early, UP, buff=0.1)
+        self.play(Create(early), FadeIn(et), run_time=1.2)
+        tab = VGroup(*[Tex(f"{RUN_NAMES[h]}: {finals[h]:.3f}", font_size=32, color=RUN_COLORS[h])
+                       for h in ("l1", "bins", "bins_nll")]).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
+        tab.to_corner(DR, buff=0.5).shift(0.6 * UP)
+        th = Tex("final mAP", font_size=32, color=GREY_A).next_to(tab, UP, buff=0.2, aligned_edge=LEFT)
+        self.play(FadeIn(th), LaggedStart(*[FadeIn(t) for t in tab], lag_ratio=0.3), run_time=1.5)
+        self.sync()
+
+        d = self.say()
+        self.play(FadeOut(Group(*[m for m in self.mobjects if m is not title])), run_time=0.8)
+        ax2, labels2 = result_axes(0.25, 0.05, "matching flip rate")
+        VGroup(ax2, labels2).shift(1.0 * LEFT + 0.35 * DOWN)
+        self.play(Create(ax2), FadeIn(labels2), run_time=1.0)
+        for head in ("l1", "bins", "bins_nll"):
+            band, line, _ = curve(ax2, runs, head, "flip_rate")
+            self.play(FadeIn(band), Create(line), run_time=1.0, rate_func=linear)
+        same = Tex("about the same for all three", font_size=34, color=GREY_A).move_to(ax2.c2p(5200, 0.18))
+        self.play(FadeIn(same), run_time=0.8)
+        self.sync(pad=0.8)
+
+
+class M07_Why(MScene):
+    def construct(self):
+        img, labels, pts, _ = mm.make_sample(np.random.default_rng(21))
+        size = 4.0
+        im = image_mob(img, size).move_to(LEFT * 3.6 + 0.2 * DOWN)
+        fr = frame_box(im)
+        k = 0
+        sh = shape_mob(im, size, pts[k], bool(labels[k]), C_GOOD)
+        tl = Tex(r"label: exactly on the stroke", font_size=32, color=C_GOOD).next_to(fr, DOWN, buff=0.3)
+
+        d = self.say()
+        self.play(FadeIn(im), Create(fr), run_time=1.0)
+        self.play(Create(sh), FadeIn(tl), run_time=1.5)
+        one = Tex(r"one right answer\\per point", font_size=36, color=C_GOOD).move_to(RIGHT * 3.2 + 1.8 * UP)
+        self.play(FadeIn(one), run_time=0.8)
+        nl1 = NumberLine(x_range=[0, 1, 1], length=3.4, color=GREY_B, include_ticks=False).move_to(RIGHT * 3.2 + 0.1 * DOWN)
+        hb = bars_from(nl1, mixture_hist(32, w=(0.0, 1.0), mu=(0.3, 0.55), sd=0.03), 3.0)
+        r1 = Tex(r"bins: one peak, 64 outputs", font_size=30, color=C_BIN).next_to(nl1, DOWN, buff=0.15)
+        r2 = Tex(r"L1: one number", font_size=30, color=C_L2).next_to(r1, DOWN, buff=0.35)
+        self.play(Create(nl1), LaggedStart(*[GrowFromEdge(b, DOWN) for b in hb], lag_ratio=0.02), FadeIn(r1), run_time=1.5)
+        self.play(FadeIn(r2), run_time=0.8)
+        self.sync()
+
+        d = self.say()
+        self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
+        nl = number_line(y=-0.6, length=8)
+        bars = bars_from(nl, mixture_hist(40, w=(0.5, 0.5), mu=(0.25, 0.75), sd=0.03), 7)
+        tri = Triangle(color=C_L2, fill_opacity=1, stroke_width=0).scale(0.15).move_to(nl.n2p(0.5) + 0.25 * DOWN)
+        rec = Tex(r"the toy problem: bins won only with \emph{two} right answers", font_size=36).to_edge(UP, buff=1.0)
+        self.play(Write(rec), Create(nl), LaggedStart(*[GrowFromEdge(b, DOWN) for b in bars], lag_ratio=0.02),
+                  FadeIn(tri), run_time=2.0)
+        add = Tex("so: add ambiguity", font_size=42, color=C_Y).to_edge(DOWN, buff=1.0)
+        self.play(Write(add), run_time=1.0)
+        self.sync(pad=0.8)
+
+
+class M08_Ambiguous(MScene):
+    def construct(self):
+        title = Tex("Experiment 2: double lines", font_size=44).to_edge(UP, buff=0.4)
+        rng = np.random.default_rng(31)
+        samples = []
+        while len(samples) < 3:  # images whose first element is an open curve
+            s = mm.make_sample(rng, ambiguous=True)
+            if s[1][0] == 0:
+                samples.append(s)
+        size = 3.4
+        ims = Group(*[image_mob(s[0], size) for s in samples]).arrange(RIGHT, buff=0.6).shift(0.1 * DOWN)
+        frames = VGroup(*[frame_box(m) for m in ims])
+
+        d = self.say()
+        self.play(Write(title), LaggedStart(*[FadeIn(Group(m, f)) for m, f in zip(ims, frames)], lag_ratio=0.3), run_time=2.0)
+        labs = VGroup()
+        for m, (img, labels, pts, alts) in zip(ims, samples):
+            labs.add(shape_mob(m, size, pts[0], False, C_Y, width=3))
+        self.play(ims.animate.set_opacity(0.6), run_time=0.4)
+        self.play(LaggedStart(*[Create(l_) for l_ in labs], lag_ratio=0.3), run_time=2.0)
+        lt = Tex(r"label: one of the two strokes, at random", font_size=34, color=C_Y).next_to(ims, DOWN, buff=0.4)
+        self.play(FadeIn(lt), run_time=0.8)
+        # flip each label to the other stroke and back: two annotators
+        other = VGroup()
+        for m, (img, labels, pts, alts) in zip(ims, samples):
+            alt = alts[0][1] if np.allclose(alts[0][0], pts[0]) else alts[0][0]
+            other.add(shape_mob(m, size, alt, False, C_Y, width=3))
+        self.play(Transform(labs, other), run_time=1.2)
+        self.sync()
+
+        d = self.say()
+        self.play(FadeOut(lt), run_time=0.4)
+        m0 = ims[0]
+        a0, b0 = samples[0][3][0]
+        okA = shape_mob(m0, size, a0, False, C_GOOD, width=3, dots=False)
+        okB = shape_mob(m0, size, b0, False, C_GOOD, width=3, dots=False)
+        mid = shape_mob(m0, size, (a0 + b0) / 2, False, C_L2, width=3, dots=False)
+        ok_t = Tex(r"either stroke: correct", font_size=32, color=C_GOOD).next_to(ims, DOWN, buff=0.4)
+        mid_t = Tex(r"in between: 2.5 px from both, wrong at 1 and 2 px", font_size=32, color=C_L2).next_to(ok_t, DOWN, buff=0.2)
+        self.play(FadeOut(labs), Create(okA), Create(okB), FadeIn(ok_t), run_time=1.5)
+        self.play(Create(mid), FadeIn(mid_t), run_time=1.5)
         self.sync(pad=0.8)

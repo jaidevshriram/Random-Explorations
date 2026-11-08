@@ -338,6 +338,9 @@ def run(job):
             log["evals"].append(res)
             print(f"{head:9s} seed {seed} step {step:5d}  loss {float(loss.detach()):.3f}  mAP {res['mAP']:.3f}  "
                   f"flip {res['flip_rate']}", flush=True)
+    if cfg.get("save_models"):
+        os.makedirs(os.path.join(HERE, "models"), exist_ok=True)
+        torch.save(model.state_dict(), os.path.join(HERE, "models", f"{cfg['out']}_{head}_s{seed}.pt"))
     os.makedirs(os.path.join(HERE, cfg["out"]), exist_ok=True)
     with open(os.path.join(HERE, cfg["out"], f"{head}_s{seed}.json"), "w") as f:
         json.dump(log, f)
@@ -351,9 +354,12 @@ def main():
     ap.add_argument("--steps", type=int, default=8000)
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--ambiguous", action="store_true", help="open curves become double lines labelled on either stroke")
+    ap.add_argument("--save-models", action="store_true", help="also save the final weights to models/")
+    ap.add_argument("--runs-dir", default=None, help="where to write the logs (default: runs/ or runs_amb/)")
     args = ap.parse_args()
     tag = "_amb" if args.ambiguous else ""
-    cfg = dict(steps=args.steps, batch=32, lr=3e-4, eval_every=500, data=f"data{tag}.npz", out=f"runs{tag}")
+    cfg = dict(steps=args.steps, batch=32, lr=3e-4, eval_every=500, data=f"data{tag}.npz", out=args.runs_dir or f"runs{tag}",
+               save_models=args.save_models)
     n_tr, n_va = 20000, 1000
     if args.quick:
         cfg.update(steps=60, eval_every=30)

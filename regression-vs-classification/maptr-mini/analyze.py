@@ -29,7 +29,6 @@ for head, rs in runs.items():
     steps = [e["step"] for e in rs[0]["evals"]]
     for ax, key in zip(axes, ["mAP", "AP@1px", "flip_rate"]):
         v = np.array([[np.nan if e[key] is None else e[key] for e in r["evals"]] for r in rs], dtype=float)
-        v[:, np.all(np.isnan(v), 0)] = np.nan if key != "flip_rate" else v[:, np.all(np.isnan(v), 0)]
         ax.plot(steps, np.nanmean(v, 0), color=COLORS[head], label=f"{NAMES[head]} ({len(rs)} seeds)", lw=2)
         ax.fill_between(steps, np.nanmin(v, 0), np.nanmax(v, 0), color=COLORS[head], alpha=0.2)
 for ax, t in zip(axes, ["mAP (Chamfer AP at 1/2/3 px, mean)", "AP at the strict 1 px threshold",
