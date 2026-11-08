@@ -1,0 +1,625 @@
+{
+ "image": "lego_r19",
+ "pieces": [
+  {
+   "id": 1,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 2,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 3,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 4,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 5,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 6,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 7,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 8,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 9,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 10,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 11,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 12,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 13,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 14,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 15,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 16,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 17,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 18,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 19,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 20,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 21,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 22,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 23,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 24,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 25,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 26,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 27,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 28,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 29,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 30,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 31,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 32,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 33,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 34,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 35,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 36,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 37,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 38,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 39,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 40,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 41,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 42,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 43,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 44,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 45,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 46,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 47,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 48,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 49,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 50,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 51,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 52,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 53,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 54,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 55,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 56,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 57,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 58,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 59,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 60,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 61,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 62,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 63,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 64,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 65,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 66,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 67,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 68,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 69,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 70,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 71,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 72,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 73,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 74,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 75,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 76,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 77,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 78,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 79,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 80,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 81,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 82,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 83,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 84,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 85,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 86,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 87,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 88,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 89,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 90,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 91,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 92,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 93,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 94,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 95,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 96,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 97,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 98,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 99,
+   "name": "",
+   "source": "sam-auto"
+  },
+  {
+   "id": 100,
+   "name": "boom/lift-arm beam",
+   "source": "prompted"
+  },
+  {
+   "id": 101,
+   "name": "boom/bricks behind grille",
+   "source": "prompted"
+  },
+  {
+   "id": 102,
+   "name": "cab/roof plate",
+   "source": "prompted"
+  },
+  {
+   "id": 103,
+   "name": "cab/roof support front-left",
+   "source": "prompted"
+  },
+  {
+   "id": 104,
+   "name": "body/block under cab (left)",
+   "source": "prompted"
+  },
+  {
+   "id": 105,
+   "name": "bucket/shell (right wall and bottom)",
+   "source": "prompted"
+  },
+  {
+   "id": 106,
+   "name": "plate/front brown plate left",
+   "source": "prompted"
+  },
+  {
+   "id": 107,
+   "name": "plate/brown tile on top",
+   "source": "prompted"
+  },
+  {
+   "id": 108,
+   "name": "plate/front brown strip right",
+   "source": "prompted"
+  },
+  {
+   "id": 109,
+   "name": "plate/brown brick upper right",
+   "source": "prompted"
+  },
+  {
+   "id": 110,
+   "name": "plate/brown plates by tracks",
+   "source": "prompted"
+  },
+  {
+   "id": 111,
+   "name": "plate/back bricks",
+   "source": "prompted"
+  },
+  {
+   "id": 112,
+   "name": "plate/side face",
+   "source": "prompted"
+  },
+  {
+   "id": 113,
+   "name": "boom/diagonal beam",
+   "source": "prompted"
+  },
+  {
+   "id": 114,
+   "name": "body/brick under cab front (upper)",
+   "source": "prompted"
+  },
+  {
+   "id": 115,
+   "name": "body/front beam (lower)",
+   "source": "prompted"
+  },
+  {
+   "id": 116,
+   "name": "boom/piston",
+   "source": "prompted"
+  },
+  {
+   "id": 117,
+   "name": "body/small piece left",
+   "source": "prompted"
+  },
+  {
+   "id": 118,
+   "name": "plate/front brown plate (long, left)",
+   "source": "prompted"
+  },
+  {
+   "id": 119,
+   "name": "plate/brown brick tall",
+   "source": "prompted"
+  },
+  {
+   "id": 120,
+   "name": "plate/brown brick centre",
+   "source": "prompted"
+  },
+  {
+   "id": 121,
+   "name": "plate/brown bricks right of centre",
+   "source": "prompted"
+  },
+  {
+   "id": 122,
+   "name": "plate/brown brick by tracks (front)",
+   "source": "prompted"
+  },
+  {
+   "id": 123,
+   "name": "plate/back bricks left",
+   "source": "prompted"
+  },
+  {
+   "id": 124,
+   "name": "plate/top right of tracks",
+   "source": "prompted"
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+{
+  "model": "Claude (Claude Code session)",
+  "kind": "semantic vectorizer",
+  "notes": "Structure from a piece segmentation (segmentation/: SAM 2.1 masks plus prompts placed by eye; 124 pieces, 91% coverage, rest marked unsegmented). vectorize.py traces each piece and the shading regions inside it at 2x, with gradient fills, half-pixel-corrected geometry, self-coloured strokes and an ownership-based colour refit. No blur, no byte limit. viewer.html inspects object > piece > shade > part. Needs opencv-python-headless."
+}

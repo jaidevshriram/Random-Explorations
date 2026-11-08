@@ -1,0 +1,22 @@
+[
+ {"name": "boom/lift-arm beam", "pos": [[397, 212], [388, 262], [383, 300]], "neg": [[352, 282]]},
+ {"name": "boom/diagonal beam", "pos": [[335, 270], [360, 292], [380, 312]], "neg": [[392, 262]]},
+ {"name": "boom/bricks behind grille", "pos": [[320, 335], [360, 342]]},
+ {"name": "cab/roof plate", "box": [466, 186, 623, 227], "pos": [[500, 212], [590, 216]]},
+ {"name": "cab/roof support front-left", "pos": [[486, 222]]},
+ {"name": "body/block under cab (left)", "pos": [[470, 330], [505, 346]]},
+ {"name": "bucket/right side wall", "pos": [[312, 180], [318, 225]], "neg": [[250, 200]]},
+ {"name": "bucket/floor", "pos": [[240, 225], [220, 242]], "neg": [[312, 190]]},
+ {"name": "plate/front brown plate left", "pos": [[200, 612], [255, 600]]},
+ {"name": "plate/brown brick tall", "pos": [[320, 583]]},
+ {"name": "plate/brown tile on top", "pos": [[340, 564]]},
+ {"name": "plate/brown brick centre", "pos": [[372, 576]]},
+ {"name": "plate/brown bricks right of centre", "pos": [[432, 556]]},
+ {"name": "plate/front brown strip right", "pos": [[560, 500], [620, 487]]},
+ {"name": "plate/brown brick upper right", "pos": [[700, 466]]},
+ {"name": "plate/brown plates by tracks", "pos": [[490, 523]]},
+ {"name": "plate/back brown plate", "pos": [[270, 590]]},
+ {"name": "plate/side face", "pos": [[300, 630], [500, 565], [700, 483]]},
+ {"name": "plate/back brick left end", "pos": [[52, 490]]},
+ {"name": "plate/back bricks", "pos": [[200, 448], [255, 436]]}
+]

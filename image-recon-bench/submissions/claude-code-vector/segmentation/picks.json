@@ -1,0 +1,5 @@
+{
+ "note": "Which of SAM's three alternatives was kept for each prompt (index into prompts*.json), chosen by eye from altsheet.py contact sheets. Prompts not listed were rejected.",
+ "prompts1.json": {"0": 2, "2": 0, "3": 2, "4": 2, "5": 0, "6": 0, "8": 0, "10": 0, "13": 0, "14": 0, "15": 0, "19": 0},
+ "prompts2.json": {"0": 0, "1": 2, "2": 0, "3": 2, "4": 2, "5": 2, "7": 2, "8": 2, "9": 2, "10": 2, "11": 2, "12": 2, "13": 0}
+}

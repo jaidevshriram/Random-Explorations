@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+<defs><filter id="s"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="t"><feGaussianBlur stdDeviation="4"/></filter></defs>
+<rect width="800" height="800" fill="#fff"/><g filter="url(#s)">
+<polygon points="40,490 527,371 742,457 742,465 180,640" fill="#d9c398"/>
+<polygon points="180,640 742,465 742,476 184,655" fill="#e6c49a"/>
+<polygon points="40,490 180,640 184,655 40,500" fill="#d8b086"/>
+<polygon points="40,482 300,420 303,436 44,498" fill="#8e5a3c"/>
+<polygon points="180,622 742,451 742,465 180,640" fill="#98633f"/>
+<polygon points="395,470 520,445 665,440 690,470 520,528 430,528" fill="#7a6a4c"/>
+</g><g filter="url(#t)">
+<polygon points="286,380 306,378 311,448 292,446" fill="#1f1f22"/>
+<polygon points="280,332 314,328 316,382 284,384" fill="#4a4a50"/>
+<polygon points="300,378 346,372 348,452 304,454" fill="#1f1f22"/>
+<polygon points="300,386 346,382 346,390 300,394" fill="#9a9aa2"/>
+<polygon points="300,400 346,396 346,404 300,408" fill="#9a9aa2"/>
+<polygon points="300,413 346,409 346,417 300,421" fill="#9a9aa2"/>
+<polygon points="300,426 346,422 346,430 300,434" fill="#9a9aa2"/>
+<polygon points="300,439 346,435 346,443 300,447" fill="#9a9aa2"/>
+<polygon points="305,420 390,418 392,466 307,463" fill="#d6a015"/>
+<polygon points="350,344 363,460 393,456 380,340" fill="#d6a015"/>
+<polygon points="392,305 540,295 635,305 637,372 392,404" fill="#d6a015"/>
+<polygon points="473,323 633,323 633,370 475,372" fill="#e0b020"/>
+<polygon points="475,370 633,368 633,384 480,396" fill="#c89410"/>
+<polygon points="395,380 472,374 474,404 395,408" fill="#8a8a92"/>
+<circle cx="555" cy="312" r="16" fill="#8a8a92"/>
+<circle cx="492" cy="385" r="17" fill="#8a8a92"/>
+<polygon points="590,310 634,312 636,372 592,372" fill="#d6a015"/>
+<path d="M632,322 Q662,345 650,385" fill="none" stroke="#d6d6de" stroke-width="7"/>
+<path d="M398,402 L636,370 Q660,385 660,420 Q660,446 650,452 L436,522 Q396,522 392,475 Q390,415 398,402 Z" fill="#1f1f22"/>
+<polygon points="450,418 605,394 612,442 455,466" fill="#c89410"/>
+<circle cx="457" cy="462" r="41" fill="#8a8a92"/>
+<circle cx="457" cy="462" r="16" fill="#8d8d96"/>
+<circle cx="610" cy="428" r="36" fill="#8a8a92"/>
+<circle cx="610" cy="428" r="14" fill="#8d8d96"/>
+<polygon points="475,193 615,195 617,203 477,203" fill="#ffd43c"/>
+<polygon points="477,203 617,203 618,215 478,215" fill="#eab616"/>
+<polygon points="550,215 595,215 595,228 552,228" fill="#c89410"/>
+<polygon points="550,217 562,217 562,297 550,297" fill="#c89410"/>
+<polygon points="468,210 405,379 435,391 498,222" fill="#d6a015"/>
+<polygon points="519,212 493,328 511,332 537,216" fill="#d6a015"/>
+<polygon points="598,205 620,205 616,318 596,318" fill="#d6a015"/>
+<polygon points="443,247 460,247 460,280 443,280" fill="#1f1f22"/>
+<polygon points="542,177 552,177 552,195 542,195" fill="#d4141a"/>
+<polygon points="288,273 410,355 430,325 308,243" fill="#d6a015"/>
+<polygon points="379,199 351,333 381,339 409,205" fill="#d6a015"/>
+<polygon points="345,280 470,290 476,360 395,395 352,335" fill="#d6a015"/>
+<polygon points="282,256 338,258 336,292 292,288" fill="#c89410"/>
+<polygon points="187,117 312,122 330,150 342,197 340,225 325,240 300,258 272,273 230,272 150,258 95,240 90,228 127,220" fill="#d6a015"/>
+<polygon points="200,124 308,128 316,222 200,222" fill="#ffd43c"/>
+<polygon points="90,228 127,220 260,245 272,273 230,272 150,258 95,240" fill="#f6c22a"/>
+<line x1="325" y1="145" x2="380" y2="210" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>
+<line x1="400" y1="240" x2="455" y2="305" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>
+<line x1="487" y1="242" x2="600" y2="285" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>
+<line x1="423" y1="370" x2="537" y2="343" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>
+<line x1="460" y1="300" x2="493" y2="310" stroke="#1e1e22" stroke-width="5" stroke-linecap="round"/>
+<circle cx="325" cy="147" r="8" fill="#a8a8b0"/>
+<circle cx="400" cy="240" r="8" fill="#a8a8b0"/>
+<circle cx="453" cy="298" r="8" fill="#a8a8b0"/>
+<circle cx="537" cy="248" r="8" fill="#a8a8b0"/>
+<circle cx="615" cy="288" r="8" fill="#a8a8b0"/>
+<circle cx="520" cy="320" r="8" fill="#a8a8b0"/>
+<circle cx="530" cy="343" r="8" fill="#a8a8b0"/>
+<circle cx="433" cy="370" r="8" fill="#a8a8b0"/>
+<circle cx="350" cy="315" r="8" fill="#a8a8b0"/>
+<circle cx="453" cy="450" r="8" fill="#a8a8b0"/>
+</g></svg>

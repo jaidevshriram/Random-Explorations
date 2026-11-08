@@ -1,0 +1,16 @@
+[
+ {"name": "plate/side face", "pos": [[300, 610], [500, 551], [700, 484]]},
+ {"name": "boom/diagonal beam", "box": [318, 254, 402, 332], "pos": [[350, 282], [375, 300]]},
+ {"name": "body/brick under cab front (upper)", "pos": [[470, 322], [495, 337]]},
+ {"name": "body/brick under cab front (lower)", "pos": [[500, 377], [522, 386]]},
+ {"name": "boom/piston rod (middle)", "pos": [[440, 277]]},
+ {"name": "body/small piece left", "pos": [[385, 343]]},
+ {"name": "bucket/floor patch", "pos": [[205, 205]]},
+ {"name": "plate/front brown plate (long, left)", "box": [174, 586, 302, 622], "pos": [[220, 606], [270, 596]]},
+ {"name": "plate/brown brick tall", "box": [300, 570, 345, 594]},
+ {"name": "plate/brown brick centre", "box": [343, 557, 403, 593]},
+ {"name": "plate/brown bricks right of centre", "box": [400, 537, 473, 573]},
+ {"name": "plate/brown brick by tracks (front)", "box": [467, 500, 521, 549]},
+ {"name": "plate/back bricks left", "box": [35, 470, 126, 506]},
+ {"name": "plate/right end", "pos": [[680, 458]]}
+]
