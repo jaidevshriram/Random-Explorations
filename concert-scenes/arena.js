@@ -1005,6 +1005,10 @@
     setProgram(p) { if (PROGRAMS[p]) LX.program = p; },
     // forget accumulated spin/turn (after "square on" or taking over from the showcase)
     resetMotion() { ACC.spin = 0; ACC.turn = 0; ACC.auto = 0; },
+    // what carries from one frame to the next (motion accumulators, auto-exposure), so a render can
+    // stop and pick up again from any frame exactly where it was
+    snapshot() { return { ACC: { ...ACC }, ae: [aeExpo, aeT] }; },
+    restore(s) { Object.assign(ACC, s.ACC); [aeExpo, aeT] = s.ae; },
     debug: { SHOWP, showGlare: t => { showAt(t); frameLights({ clocks: { lights: t }, intensity: 1, bpm: 84 }); return glare.reduce((a, q) => a + q.k, 0); }, fixture3: (...a) => fixture3(...a), offLens: (...a) => offLens(...a), glare: () => glare, lasers: () => [lasers.length, lasers.slice(0, 64).map(l => Math.round(l.P1[0] * 7 + l.P1[2] * 3) % 97).join(',').slice(0, 40)], canvases: () => ({ lightCv, rcvCv, pplCv }) },
     get crowd() { return crowdOpts; },
     setMode(m) { LX.on = m !== 'paint'; LX.mode = m === 'live' ? 'live' : 'show'; },
