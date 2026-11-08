@@ -50,35 +50,59 @@ NARRATION = {
         "more precise than the arg max. So the best recipe is: pick the peak, then average within it.",
     ],
     "S06_Results": [
-        "Here's what that looks like for real. The same small network, trained on four regions: clean labels, "
-        "outliers, seventy thirty, and fifty fifty.",
-        "With L2, the prediction falls into the gap as soon as the labels become ambiguous.",
-        "L1 sticks with the majority, then drifts once the split is even.",
-        "The bin head lights up both curves. Its arg max hops between them, but every point it lands on is a correct "
-        "answer. In the ambiguous regions, its error is about a hundred times smaller.",
+        "Now let's see it on real training runs. Until now we froze a single input. Here, the input x varies "
+        "along the horizontal axis, and the label y is on the vertical axis.",
+        "Each vertical slice of this plot is one of the number lines from before. Take the slice at x equals "
+        "zero point eight seven five. Its labels pile up in two places: two possible answers.",
+        "The plot has four regions. First, one clean answer. Then one answer with a few junk labels. Then two "
+        "answers, seventy thirty. And finally two answers, fifty fifty.",
+        "Here's the network trained with L2. It's fine while there's one answer. But as soon as there are two, "
+        "it falls into the gap between them, just like the springs predicted.",
+        "Trained with L1, it follows the majority answer at seventy thirty, but at fifty fifty it wanders.",
+        "The bin head predicts a whole histogram at every x. Brighter means more probability. It lights up both "
+        "curves. On our slice, it has two peaks, right where the labels are.",
+        "Its argmax picks one peak at each x. In the fifty fifty region it jumps back and forth, but every point "
+        "it picks is on a real curve.",
+        "Here's how far each prediction lands from the nearest correct answer, in the two ambiguous regions. "
+        "L2 is off by zero point one seven. L1 by zero point zero four. The bins by zero point zero zero two. "
+        "About a hundred times better.",
     ],
     "S07_CoarseFine": [
-        "What about very many bins? Two-level bins first choose one of sixteen coarse bins, then one of sixteen "
-        "fine bins inside it.",
-        "If the fine choice depends on the coarse one, this is just the same two hundred fifty six way soft max, "
-        "factored into two steps. Same loss, same results.",
-        "But if one fine distribution is shared by every coarse bin, the two modes have to agree on where they sit "
-        "inside their bins. When they don't, one of them borrows the other's position, and lands in the wrong place.",
+        "A practical question: what if you need thousands of bins? One trick is to pick in two steps. "
+        "First, which of sixteen coarse bins.",
+        "Then zoom into that coarse bin, and pick one of sixteen fine bins inside it.",
+        "If every coarse bin gets its own fine histogram, this is exactly one big softmax with two hundred fifty "
+        "six bins, just split into two steps. Nothing is lost.",
+        "A cheaper version uses one fine histogram for all coarse bins. Here's the catch. Our two answers sit in "
+        "different coarse bins, and at different spots inside them. Answer A is near the left of its bin. "
+        "Answer B is near the right of its bin.",
+        "A single shared fine histogram has to hold both spots at once. So we can end up with answer A's coarse "
+        "bin, combined with answer B's spot. That point is neither answer.",
+        "So, give each coarse bin its own fine histogram, or just use one big softmax.",
     ],
     "S08_LetterO": [
-        "Now, two dimensions, which is closer to vector graphics. A point travels around the letter O. In some "
-        "stretches, it might belong to the outer contour, or to the inner one.",
-        "L2 averages the two possibilities, and draws a phantom ring between them. A contour that doesn't exist.",
-        "The bin head mostly snaps onto a real contour. But look closely at the fifty fifty stretch.",
-        "With separate soft maxes for x and for y, each axis makes its own choice. Their product puts probability "
-        "on four corners. Two real points, and two ghosts, which take x from the outer point, and y from the inner one.",
-        "A single soft max over x y cells can say, this point, or that point. And the ghosts disappear.",
+        "Now let's move to two dimensions, which is closer to your vector shapes. Picture the letter O. "
+        "It has an outer ring, and an inner ring.",
+        "The input is a position along the path. The output is a point, with an x and a y coordinate. "
+        "Usually, the label is a point on the outer ring.",
+        "But in this one quarter, it's ambiguous. Half of the labels put the point on the outer ring, "
+        "and half put it on the inner ring.",
+        "L2 averages the two, and lands halfway between the rings. Do that all the way around, and L2 draws "
+        "a ring that isn't in the letter at all.",
+        "The bin head lands on the real rings. Well, mostly. Let's zoom into the ambiguous quarter.",
+        "This is one input, in that quarter. The model has one histogram for x, along the bottom, and a separate "
+        "histogram for y, on the left. Each has two peaks: one for the outer ring, and one for the inner ring.",
+        "Because x and y are picked separately, any combination is possible. That's four points. Two of them "
+        "are real. The other two take the outer ring's x and the inner ring's y. They're ghosts, on neither ring.",
+        "A single histogram over x and y together only puts probability on the two real points. "
+        "The ghosts are gone.",
     ],
     "S09_Summary": [
-        "Back to the vector model. With Hungarian matching, early in training, a query gets matched to different "
-        "shapes from one batch to the next. That's an ambiguous target, and regression responds by averaging "
-        "the shapes together.",
-        "A bin head can hold several hypotheses while the matching settles, and commit later.",
+        "Back to your vector model. Each query predicts a whole shape. Early in training, the Hungarian matching "
+        "keeps changing its mind. In one batch, this query is matched to the circle. In the next, to the square.",
+        "That's the same ambiguity as before, now for a whole shape. Regression averages the two targets, "
+        "and predicts a blob that is neither shape.",
+        "A bin head can keep both shapes as possibilities while the matching settles, and then commit to one.",
         "So. L2 predicts the mean. L1 predicts the median. Bins learn the whole distribution. Then decode with care: "
         "take the peak, refine inside it, and watch out for ghosts.",
     ],

@@ -1,16 +1,16 @@
 # Video explainer
 
-`regression_vs_classification.mp4` is a 6.1-minute animation narrated with the ElevenLabs "Chris" voice over an original ambient piano track, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
+`regression_vs_classification.mp4` is an 8.4-minute animation narrated with the ElevenLabs "Chris" voice over an original ambient piano track, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
 
 1. **Intro**: regression vs. bins for one coordinate of a vector shape.
 2. **L2 = springs**: the prediction settles at the mean, which falls in the gap when the labels are bimodal. Includes the loss "bowl".
 3. **L1 = ropes**: a vote, so it settles at the median. At 50/50 the loss is flat and the prediction drifts. Then: how hard each loss pushes.
 4. **Bins**: each label raises only its own bin, so both peaks grow and there is no tug of war. Also covers soft (HL-Gauss) labels.
 5. **Decoding**: argmax picks a real answer. The expected value is the histogram's balance point, which is the mean again. Best recipe: take the peak, then average inside it.
-6. **Real results** from `experiment.py`: L2 and L1 lines and the bin head's predicted density.
-7. **Coarse-to-fine bins**: with the fine level conditioned on the coarse one, it is the same as one big softmax. With a shared fine level, one mode borrows the other mode's offset.
-8. **Letter O (2D)**: L2 draws a phantom ring. With separate softmaxes for x and y, the product puts mass on ghost points; a joint softmax removes them.
-9. **Back to SVG and Hungarian matching**, then a summary.
+6. **Real results** from `experiment.py`: each vertical slice of the x–y plot is one of the earlier number lines. A side panel follows one 50/50 slice while the L2, L1 and bin-head predictions are added, and the final errors are shown as bars.
+7. **Coarse-to-fine bins**: with a fine histogram per coarse bin, it is the same as one big softmax. A worked example shows how a shared fine histogram combines answer A's coarse bin with answer B's spot.
+8. **Letter O (2D)**: what the input and output are, the ambiguous quarter, and L2's phantom ring. Then a zoom into one input, where the x and y histograms combine into two real points and two ghosts; a joint (x, y) softmax removes the ghosts.
+9. **Back to your SVG model**: the Hungarian matching flips a query between two shapes from batch to batch, regression averages them, and bins keep both. Then a summary.
 
 ## Re-rendering
 

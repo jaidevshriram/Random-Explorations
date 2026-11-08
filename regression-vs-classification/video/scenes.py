@@ -557,10 +557,10 @@ class S05_Decode(NScene):
 
 class S06_Results(NScene):
     def construct(self):
-        ax = Axes(x_range=[0, 1, 0.25], y_range=[0, 1, 0.5], x_length=11.5, y_length=5.4, tips=False,
-                  axis_config={"color": GREY_C, "include_ticks": False}).shift(0.45 * DOWN)
-        xl = MathTex("x", color=GREY_B).next_to(ax.x_axis, DOWN, buff=0.1)
-        yl = MathTex("y", color=GREY_B).next_to(ax.y_axis, LEFT, buff=0.1)
+        ax = Axes(x_range=[0, 1, 0.25], y_range=[0, 1, 0.5], x_length=8.4, y_length=5.0, tips=False,
+                  axis_config={"color": GREY_C, "include_ticks": False}).shift(2.4 * LEFT + 0.55 * DOWN)
+        xl = Tex(r"input $x$", font_size=34, color=GREY_B).next_to(ax.x_axis, DOWN, buff=0.15)
+        yl = Tex(r"label $y$", font_size=34, color=GREY_B).rotate(PI / 2).next_to(ax.y_axis, LEFT, buff=0.15)
         rng = np.random.default_rng(0)
         x = rng.random(700)
         reg = np.minimum((x * 4).astype(int), 3)
@@ -570,230 +570,369 @@ class S06_Results(NScene):
         y = np.where(pick, lo, up) + 0.015 * rng.standard_normal(700)
         out = (reg == 1) & (rng.random(700) < 0.1)
         y = np.clip(np.where(out, rng.random(700), y), 0, 1)
-        pts = VGroup(*[Dot(ax.c2p(a, b), radius=0.018, color=C_LAB, fill_opacity=0.7) for a, b in zip(x, y)])
-        divs = VGroup(*[DashedLine(ax.c2p(b, 0), ax.c2p(b, 1), color=GREY_D) for b in (0.25, 0.5, 0.75)])
-        names = ["clean", "outliers", r"70/30", r"50/50"]
-        rl = VGroup(*[Tex(nm, font_size=30, color=c).next_to(ax.c2p(0.125 + 0.25 * i, 1), UP, buff=0.12)
-                      for i, (nm, c) in enumerate(zip(names, REGION_COLORS))])
+        pts = VGroup(*[Dot(ax.c2p(a, b), radius=0.022, color=C_LAB, fill_opacity=0.8) for a, b in zip(x, y)])
         gx = np.linspace(0, 1, len(DATA["l2_1d"]))
+        X0 = 0.875
+        k0 = int(np.argmin(np.abs(gx - X0)))
 
-        # beat 0
+        # slice panel on the right: a vertical number line for y at x = X0
+        top, bot = ax.c2p(0, 1)[1], ax.c2p(0, 0)[1]
+        px = 4.3
+
+        def p_of(v):
+            return np.array([px, bot + v * (top - bot), 0])
+
+        pline = Line(p_of(0), p_of(1), color=GREY_B)
+        ptitle = Tex(r"one slice:\\ $x = 0.875$", font_size=30, color=C_Y).next_to(pline, UP, buff=0.2)
+
+        # beat 0: the new axes
         d = self.say()
-        self.play(Create(ax), FadeIn(xl), FadeIn(yl), run_time=1)
-        self.play(LaggedStart(*[FadeIn(p) for p in pts], lag_ratio=0.002), run_time=2)
-        self.play(Create(divs), LaggedStart(*[Write(r) for r in rl], lag_ratio=0.3), run_time=2)
+        self.play(Create(ax), Write(xl), Write(yl), run_time=1.5)
+        self.play(LaggedStart(*[FadeIn(p) for p in pts], lag_ratio=0.002), run_time=d * 0.45)
         self.sync()
 
-        # beat 1: L2
+        # beat 1: each vertical slice is one number line from before
+        d = self.say()
+        strip = Rectangle(width=ax.x_length * 0.04, height=ax.y_length, color=C_Y, stroke_width=3,
+                          fill_opacity=0.08).move_to(ax.c2p(X0, 0.5))
+        self.play(Create(strip), run_time=1.0)
+        sel = [i for i in range(len(x)) if abs(x[i] - X0) < 0.02]
+        copies = VGroup(*[pts[i].copy().set_color(C_Y) for i in sel])
+        self.play(Create(pline), Write(ptitle), run_time=1.0)
+        self.play(*[c.animate.move_to(p_of(y[i]) + RIGHT * (0.12 + 0.1 * (j % 4))) for j, (c, i) in enumerate(zip(copies, sel))],
+                  run_time=2.0)
+        c = (np.arange(40) + 0.5) / 40
+        true_h = 0.5 * np.exp(-0.5 * ((c - (0.28 + 0.07 * np.sin(4 * np.pi * X0 + 1))) / 0.02) ** 2) + \
+            0.5 * np.exp(-0.5 * ((c - (0.72 + 0.07 * np.sin(4 * np.pi * X0))) / 0.02) ** 2)
+        true_h /= true_h.max()
+        hist = VGroup(*[Rectangle(width=1.6 * h + 0.001, height=(top - bot) / 40 * 0.85, stroke_width=0, fill_color=GREY_B,
+                                  fill_opacity=0.6).move_to(p_of(cc), aligned_edge=LEFT) for cc, h in zip(c, true_h)])
+        self.play(FadeOut(copies), LaggedStart(*[GrowFromEdge(b, LEFT) for b in hist], lag_ratio=0.02), run_time=1.5)
+        two = Tex("two answers", font_size=30, color=GREY_B).next_to(pline, DOWN, buff=0.15)
+        self.play(FadeIn(two), run_time=0.6)
+        self.sync()
+
+        # beat 2: the four regions
+        d = self.say()
+        names = ["one clean\\\\answer", "a few junk\\\\labels", "two answers\\\\70/30", "two answers\\\\50/50"]
+        shades = VGroup(*[Rectangle(width=ax.x_length / 4, height=ax.y_length, stroke_width=0, fill_color=c,
+                                    fill_opacity=0.1).move_to(ax.c2p(0.125 + 0.25 * i, 0.5))
+                          for i, c in enumerate(REGION_COLORS)])
+        rl = VGroup(*[Tex(n, font_size=28, color=c).next_to(ax.c2p(0.125 + 0.25 * i, 1), UP, buff=0.1)
+                      for i, (n, c) in enumerate(zip(names, REGION_COLORS))])
+        for i in range(4):
+            self.play(FadeIn(shades[i]), Write(rl[i]), run_time=min(1.2, d / 5))
+        self.sync()
+
+        def side_marker(v, color, label):
+            tri = Triangle(color=color, fill_opacity=1, stroke_width=0).scale(0.11).rotate(-PI / 2).move_to(p_of(v) + 0.2 * LEFT)
+            lab = Tex(label, font_size=28, color=color).next_to(tri, LEFT, buff=0.08)
+            return VGroup(tri, lab)
+
+        # beat 3: L2
         d = self.say()
         l2 = polyline(ax, gx, DATA["l2_1d"], color=C_L2, stroke_width=5)
-        t2 = Tex("L2", color=C_L2, font_size=36).next_to(ax.c2p(1, DATA["l2_1d"][-1]), RIGHT)
-        self.play(Create(l2), run_time=d * 0.6, rate_func=linear)
-        self.play(FadeIn(t2), run_time=0.4)
+        self.play(Create(l2), run_time=d * 0.5, rate_func=linear)
+        m2 = side_marker(DATA["l2_1d"][k0], C_L2, "L2")
+        self.play(FadeIn(m2, shift=0.2 * LEFT), run_time=0.8)
         self.sync()
 
-        # beat 2: L1
+        # beat 4: L1
         d = self.say()
         l1 = polyline(ax, gx, DATA["l1_1d"], color=C_L1, stroke_width=5)
-        t1 = Tex("L1", color=C_L1, font_size=36).next_to(ax.c2p(1, DATA["l1_1d"][-1]), RIGHT)
-        self.play(Create(l1), run_time=d * 0.6, rate_func=linear)
-        self.play(FadeIn(t1), run_time=0.4)
+        self.play(Create(l1), run_time=d * 0.5, rate_func=linear)
+        m1 = side_marker(DATA["l1_1d"][k0], C_L1, "L1")
+        self.play(FadeIn(m1, shift=0.2 * LEFT), run_time=0.8)
         self.sync()
 
-        # beat 3: bins
+        # beat 5: the bin head's histogram for every x
         d = self.say()
         dens = DATA["bins_density_1d"].astype(np.float32)
-        a = dens / dens.max(1, keepdims=True)
-        a = np.sqrt(a).T[::-1]  # (256 y, 300 x), y up
+        a = np.sqrt(dens / dens.max(1, keepdims=True)).T[::-1]
         img = np.zeros((*a.shape, 4), dtype=np.uint8)
         img[..., 0], img[..., 1], img[..., 2] = 88, 196, 221
         img[..., 3] = (np.clip(a, 0, 1) * 230).astype(np.uint8)
-        im = ImageMobject(img).stretch_to_fit_width(ax.x_length).stretch_to_fit_height(ax.y_length)
-        im.move_to(ax.c2p(0.5, 0.5))
-        self.play(l2.animate.set_stroke(opacity=0.25), l1.animate.set_stroke(opacity=0.25), t1.animate.set_opacity(0.3),
-                  t2.animate.set_opacity(0.3), pts.animate.set_opacity(0.25), run_time=0.8)
-        self.play(FadeIn(im), run_time=1.5)
+        im = ImageMobject(img).stretch_to_fit_width(ax.x_length).stretch_to_fit_height(ax.y_length).move_to(ax.c2p(0.5, 0.5))
+        self.play(l2.animate.set_stroke(opacity=0.25), l1.animate.set_stroke(opacity=0.25), pts.animate.set_opacity(0.2),
+                  FadeOut(shades), run_time=0.8)
+        self.play(FadeIn(im), run_time=2.0)
+        pb = dens[k0] / dens[k0].max()
+        cb = (np.arange(256) + 0.5) / 256
+        pred_curve = VMobject(color=C_BIN, stroke_width=4).set_points_as_corners(
+            [p_of(cc) + RIGHT * 1.6 * h for cc, h in zip(cb, pb)])
+        self.play(Create(pred_curve), run_time=1.5)
+        self.sync()
+
+        # beat 6: argmax
+        d = self.say()
         am = polyline(ax, gx, DATA["bins_am_1d"], color=C_Y, stroke_width=3)
-        tb = Tex("bins (argmax)", color=C_Y, font_size=32).to_corner(UR, buff=0.25)
-        self.play(Create(am), FadeIn(tb), run_time=d * 0.35, rate_func=linear)
-        tab = VGroup(
-            Tex(r"error, ambiguous regions:", font_size=30),
-            Tex(r"L2 \;0.17", color=C_L2, font_size=30), Tex(r"L1 \;0.04", color=C_L1, font_size=30),
-            Tex(r"bins \;0.002", color=C_Y, font_size=30)).arrange(RIGHT, buff=0.4).to_edge(DOWN, buff=0.15)
-        self.play(FadeIn(tab), run_time=0.8)
+        self.play(Create(am), run_time=d * 0.45, rate_func=linear)
+        mb = side_marker(DATA["bins_am_1d"][k0], C_Y, "bins")
+        self.play(FadeIn(mb, shift=0.2 * LEFT), run_time=0.8)
+        self.sync()
+
+        # beat 7: the numbers, as bars
+        d = self.say()
+        everything = Group(*[m for m in self.mobjects])
+        self.play(FadeOut(everything), run_time=0.8)
+        head = Tex(r"average distance to the nearest correct answer\\(the two ambiguous regions)", font_size=38).to_edge(UP, buff=0.7)
+        vals = [("L2", 0.17, C_L2), ("L1", 0.04, C_L1), ("bins", 0.002, C_Y)]
+        rows = VGroup()
+        for i, (n, v, col) in enumerate(vals):
+            lab = Tex(n, font_size=44, color=col).move_to(LEFT * 5 + UP * (0.9 - 1.3 * i))
+            bar = Rectangle(width=max(v / 0.17 * 8, 0.03), height=0.6, stroke_width=0, fill_color=col, fill_opacity=0.9)
+            bar.next_to(lab, RIGHT, buff=0.5).align_to(LEFT * 4.2, LEFT)
+            num = Tex(f"{v:g}", font_size=40, color=col).next_to(bar, RIGHT, buff=0.25)
+            rows.add(VGroup(lab, bar, num))
+        self.play(Write(head), run_time=1.2)
+        for r in rows:
+            self.play(FadeIn(r[0]), GrowFromEdge(r[1], LEFT), FadeIn(r[2]), run_time=0.9)
+        times = Tex(r"about $100\times$ smaller", font_size=40, color=C_Y).next_to(rows[2], DOWN, buff=0.6).align_to(rows[2][1], LEFT)
+        self.play(Write(times), run_time=1.0)
         self.sync(pad=0.8)
 
 
 class S07_CoarseFine(NScene):
     def construct(self):
         K = 16
-        top = number_line(y=1.4, length=12)
-        bw = top.get_length() / K
-        cells = VGroup(*[Rectangle(width=bw, height=0.45, stroke_color=GREY_C, stroke_width=2).move_to(
-            top.n2p((i + 0.5) / K) + 0.225 * UP) for i in range(K)])
-        title = Tex("Two-level bins: coarse, then fine", font_size=44).to_edge(UP)
-        pc = MathTex(r"p(c)", color=C_BIN).next_to(cells, LEFT, buff=0.15)
+        W = 12.0
+        y_top = 2.3
+        bw = W / K
 
-        # beat 0
-        d = self.say()
-        self.play(Write(title), Create(top), Create(cells), run_time=1.5)
+        def cell_center(i):
+            return np.array([-W / 2 + (i + 0.5) * bw, y_top, 0])
+
+        cells = VGroup(*[Rectangle(width=bw, height=0.45, stroke_color=GREY_C, stroke_width=2).move_to(cell_center(i))
+                         for i in range(K)])
+        title = Tex("Many bins: coarse, then fine", font_size=42).to_edge(UP, buff=0.25)
         coarse = np.zeros(K)
-        coarse[4], coarse[11] = 0.48, 0.52
-        cb = VGroup(*[Rectangle(width=bw * 0.8, height=max(1.4 * v, 0.001), stroke_width=0, fill_color=C_BIN,
-                                fill_opacity=0.85).move_to(top.n2p((i + 0.5) / K) + 0.47 * UP, aligned_edge=DOWN)
-                      for i, v in enumerate(coarse)])
-        self.play(FadeIn(cb, shift=0.2 * UP), FadeIn(pc), run_time=1)
-        sel = 11
-        self.play(cells[sel].animate.set_stroke(C_Y, 4), run_time=0.5)
-        big = Rectangle(width=9, height=0.6, stroke_color=C_Y, stroke_width=3).move_to(2.0 * DOWN)
-        cone = VGroup(DashedLine(cells[sel].get_corner(DL), big.get_corner(UL), color=C_Y, stroke_width=2),
-                      DashedLine(cells[sel].get_corner(DR), big.get_corner(UR), color=C_Y, stroke_width=2))
-        fine_lines = VGroup(*[Line(big.get_corner(DL) + RIGHT * 9 * j / K, big.get_corner(UL) + RIGHT * 9 * j / K,
-                                   color=GREY_C, stroke_width=1.5) for j in range(1, K)])
-        fine = np.exp(-0.5 * ((np.arange(K) - 12) / 0.8) ** 2)
-        fine /= fine.sum()
-        fb = VGroup(*[Rectangle(width=9 / K * 0.8, height=max(2.6 * v, 0.001), stroke_width=0, fill_color=C_BIN,
-                                fill_opacity=0.85).move_to(big.get_corner(UL) + RIGHT * 9 * (j + 0.5) / K, aligned_edge=DOWN)
-                      for j, v in enumerate(fine)])
-        pf = MathTex(r"p(f \mid c)", color=C_BIN).next_to(big, LEFT, buff=0.2)
-        self.play(Create(cone), Create(big), run_time=1)
-        self.play(Create(fine_lines), FadeIn(fb, shift=0.2 * UP), FadeIn(pf), run_time=1.5)
+        coarse[4], coarse[11] = 0.5, 0.5
+        cbars = VGroup(*[Rectangle(width=bw * 0.7, height=max(1.1 * v, 0.001), stroke_width=0, fill_color=C_BIN,
+                                   fill_opacity=0.85).move_to(cell_center(i) + 0.26 * UP, aligned_edge=DOWN)
+                         for i, v in enumerate(coarse)])
+        lab_c = Tex(r"1.\ which of 16 coarse bins?", font_size=32, color=C_BIN).next_to(cells, DOWN, buff=0.2)
+
+        def zoom_box(i, center, width, color=C_Y):
+            box = Rectangle(width=width, height=0.6, stroke_color=color, stroke_width=3).move_to(center)
+            lines = VGroup(*[Line(box.get_corner(DL) + RIGHT * width * j / K, box.get_corner(UL) + RIGHT * width * j / K,
+                                  color=GREY_C, stroke_width=1.5) for j in range(1, K)])
+            cone = VGroup(DashedLine(cells[i].get_corner(DL), box.get_corner(UL), color=color, stroke_width=2),
+                          DashedLine(cells[i].get_corner(DR), box.get_corner(UR), color=color, stroke_width=2))
+            return box, lines, cone
+
+        def fine_bars(box, probs, color=C_BIN, scale=2.4):
+            w = box.width
+            return VGroup(*[Rectangle(width=w / K * 0.75, height=max(scale * v, 0.001), stroke_width=0, fill_color=color,
+                                      fill_opacity=0.85).move_to(box.get_corner(UL) + RIGHT * w * (j + 0.5) / K, aligned_edge=DOWN)
+                            for j, v in enumerate(probs)])
+
+        def bump(center, sd=0.8):
+            b = np.exp(-0.5 * ((np.arange(K) - center) / sd) ** 2)
+            return b / b.sum()
+
+        # beat 0: coarse
+        d = self.say()
+        self.play(Write(title), Create(cells), run_time=1.5)
+        self.play(FadeIn(cbars, shift=0.2 * UP), Write(lab_c), run_time=1.2)
         self.sync()
 
-        # beat 1: conditional == one big softmax
+        # beat 1: zoom into one coarse bin
         d = self.say()
-        eq = MathTex(r"p(c)\,p(f\mid c)", r"\;=\;", r"\text{one 256-way softmax}").next_to(big, DOWN, buff=0.6)
-        eq[0].set_color(C_BIN)
-        self.play(Write(eq), run_time=2)
-        ok = Tex(r"same loss, same results", color=C_GOOD, font_size=34).next_to(eq, DOWN, buff=0.2)
-        self.play(FadeIn(ok), run_time=0.8)
+        self.play(cells[11].animate.set_stroke(C_Y, 4), FadeOut(lab_c), run_time=0.5)
+        box, lines, cone = zoom_box(11, np.array([0, -0.3, 0]), 10)
+        fb = fine_bars(box, bump(12))
+        lab_f = Tex(r"2.\ where inside it? (16 fine bins)", font_size=32, color=C_BIN).next_to(box, DOWN, buff=0.25)
+        self.play(Create(cone), Create(box), run_time=1.2)
+        self.play(Create(lines), FadeIn(fb, shift=0.2 * UP), Write(lab_f), run_time=1.5)
         self.sync()
 
-        # beat 2: shared fine distribution borrows the other mode's offset
+        # beat 2: one fine histogram per coarse bin == one big softmax
         d = self.say()
-        shared = np.exp(-0.5 * ((np.arange(K) - 4) / 0.8) ** 2) * 0.45 + np.exp(-0.5 * ((np.arange(K) - 12) / 0.8) ** 2) * 0.55
-        shared /= shared.sum()
-        fb2 = VGroup(*[Rectangle(width=9 / K * 0.8, height=max(2.6 * v * 1.6, 0.001), stroke_width=0, fill_color=C_HUB,
-                                 fill_opacity=0.85).move_to(big.get_corner(UL) + RIGHT * 9 * (j + 0.5) / K, aligned_edge=DOWN)
-                       for j, v in enumerate(shared)])
-        pf2 = MathTex(r"p(f)", r"\text{ shared}", color=C_HUB).scale(0.9).next_to(big, LEFT, buff=0.2)
-        self.play(FadeOut(eq), FadeOut(ok), cells[sel].animate.set_stroke(GREY_C, 2), FadeOut(cone), run_time=0.6)
-        self.play(Transform(fb, fb2), Transform(pf, pf2), run_time=1.2)
-        true_a = Dot(top.n2p((4 + 0.25) / K), color=C_GOOD, radius=0.09)
-        true_b = Dot(top.n2p((11 + 0.75) / K), color=C_GOOD, radius=0.09)
-        tl = Tex("true answers", color=C_GOOD, font_size=28).next_to(true_b, DOWN, buff=0.25)
-        self.play(FadeIn(true_a), FadeIn(true_b), FadeIn(tl), run_time=0.8)
-        self.play(cells[4].animate.set_stroke(C_Y, 4), run_time=0.5)
-        pred = Cross(scale_factor=0.14, stroke_color=C_L2, stroke_width=6).move_to(top.n2p((4 + 0.75) / K))
-        pl = Tex(r"coarse bin 4 $+$ the other mode's offset", color=C_L2, font_size=28).next_to(pred, DOWN, buff=0.3)
-        self.play(FadeIn(pred, scale=1.5), Write(pl), run_time=1.5)
-        self.play(Indicate(fb[12], color=C_L2), run_time=1.0)
+        eq = Tex(r"each coarse bin gets its own fine histogram\\$=$ one big softmax with $16\times16 = 256$ bins",
+                 font_size=34).next_to(lab_f, DOWN, buff=0.45)
+        self.play(Write(eq), run_time=2.0)
+        ok = Tex("nothing lost", font_size=36, color=C_GOOD).next_to(eq, DOWN, buff=0.25)
+        self.play(FadeIn(ok, scale=1.2), run_time=0.8)
+        self.sync()
+
+        # beat 3: two answers, at different spots inside their coarse bins
+        d = self.say()
+        self.play(FadeOut(VGroup(box, lines, cone, fb, lab_f, eq, ok)), cells[11].animate.set_stroke(GREY_C, 2), run_time=0.8)
+        boxA, linesA, coneA = zoom_box(4, np.array([-3.4, 0.1, 0]), 5.6, color=C_GOOD)
+        boxB, linesB, coneB = zoom_box(11, np.array([3.4, 0.1, 0]), 5.6, color=C_L1)
+        dotA = Dot(boxA.get_left() + RIGHT * 5.6 * 0.25, color=C_GOOD, radius=0.12)
+        dotB = Dot(boxB.get_left() + RIGHT * 5.6 * 0.75, color=C_L1, radius=0.12)
+        tA = Tex(r"answer A:\\near the left of its bin", font_size=30, color=C_GOOD).next_to(boxA, DOWN, buff=0.25)
+        tB = Tex(r"answer B:\\near the right of its bin", font_size=30, color=C_L1).next_to(boxB, DOWN, buff=0.25)
+        self.play(Create(coneA), Create(boxA), Create(linesA), Create(coneB), Create(boxB), Create(linesB), run_time=1.5)
+        self.play(FadeIn(dotA, scale=1.5), Write(tA), run_time=1.2)
+        self.play(FadeIn(dotB, scale=1.5), Write(tB), run_time=1.2)
+        self.sync()
+
+        # beat 4: a shared fine histogram mixes them
+        d = self.say()
+        shared_box = Rectangle(width=7, height=0.6, stroke_color=C_HUB, stroke_width=3).move_to(2.6 * DOWN)
+        shared_lines = VGroup(*[Line(shared_box.get_corner(DL) + RIGHT * 7 * j / K, shared_box.get_corner(UL) + RIGHT * 7 * j / K,
+                                     color=GREY_C, stroke_width=1.5) for j in range(1, K)])
+        sh = 0.45 * bump(4) + 0.55 * bump(12)
+        sbars = VGroup(*[Rectangle(width=7 / K * 0.75, height=max(3.4 * v, 0.001), stroke_width=0,
+                                   fill_color=C_GOOD if j < 8 else C_L1, fill_opacity=0.85)
+                         .move_to(shared_box.get_corner(UL) + RIGHT * 7 * (j + 0.5) / K, aligned_edge=DOWN)
+                         for j, v in enumerate(sh)])
+        st = Tex("one shared fine histogram", font_size=30, color=C_HUB).next_to(shared_box, DOWN, buff=0.15)
+        self.play(FadeOut(tA), FadeOut(tB), run_time=0.4)
+        self.play(Create(shared_box), Create(shared_lines), Write(st),
+                  TransformFromCopy(dotA, sbars[:8]), TransformFromCopy(dotB, sbars[8:]), run_time=2.0)
+        self.play(cells[4].animate.set_stroke(C_GOOD, 5), Indicate(cbars[4], color=C_GOOD), run_time=1.0)
+        self.play(Indicate(sbars[12], color=C_L2, scale_factor=1.3), run_time=1.0)
+        bad = Cross(scale_factor=0.16, stroke_color=C_L2, stroke_width=7).move_to(boxA.get_left() + RIGHT * 5.6 * 0.75)
+        bl = Tex(r"A's bin $+$ B's spot $=$ neither", font_size=32, color=C_L2).next_to(boxA, DOWN, buff=0.25)
+        self.play(FadeIn(bad, scale=1.5), Write(bl), run_time=1.2)
+        self.sync()
+
+        # beat 5: the takeaway
+        d = self.say()
+        self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
+        take = VGroup(Tex(r"Give each coarse bin its own fine histogram", font_size=40, color=C_GOOD),
+                      Tex(r"--- or just use one big softmax.", font_size=40, color=C_BIN)).arrange(DOWN, buff=0.3)
+        self.play(Write(take), run_time=2.0)
         self.sync(pad=0.8)
 
 
 class S08_LetterO(NScene):
     def construct(self):
-        S = 6.2
+        S = 6.4
         ax = Axes(x_range=[0, 1, 1], y_range=[0, 1, 1], x_length=S, y_length=S, tips=False,
-                  axis_config={"color": GREY_D, "include_ticks": False}).shift(3.3 * LEFT + 0.2 * DOWN)
-        th = np.linspace(0, 2 * np.pi, 200)
-        rings = VGroup(*[polyline(ax, 0.5 + r * np.cos(th), 0.5 + r * np.sin(th), color=GREY_B, stroke_width=2)
-                         for r in (R_OUTER, R_INNER)])
-        rng = np.random.default_rng(1)
-        t = rng.random(450)
-        reg = np.minimum((t * 4).astype(int), 3)
-        inner = rng.random(450) < np.array([0, 0, 0.3, 0.5])[reg]
-        r = np.where(inner, R_INNER, R_OUTER)
-        px = 0.5 + r * np.cos(2 * np.pi * t) + 0.01 * rng.standard_normal(450)
-        py = 0.5 + r * np.sin(2 * np.pi * t) + 0.01 * rng.standard_normal(450)
-        samples = VGroup(*[Dot(ax.c2p(a, b), radius=0.025, color=REGION_COLORS[g], fill_opacity=0.8)
-                           for a, b, g in zip(px, py, reg)])
-        title = Tex(r"2D: the letter O", font_size=44).to_corner(UL)
-        legend = VGroup(*[VGroup(Dot(color=c, radius=0.06), Tex(n, font_size=26)).arrange(RIGHT, buff=0.12)
-                          for c, n in zip(REGION_COLORS, ["outer only", r"outer $+$ outliers", r"70/30 outer/inner",
-                                                          r"50/50 outer/inner"])]).arrange(DOWN, aligned_edge=LEFT, buff=0.15)
-        legend.to_edge(RIGHT, buff=0.8).shift(0.5 * UP)
+                  axis_config={"color": GREY_D, "include_ticks": False}).shift(2.9 * LEFT + 0.2 * DOWN)
+        th = np.linspace(0, 2 * np.pi, 240)
 
-        # beat 0
+        def ring_pt(t, r):
+            return 0.5 + r * np.cos(2 * np.pi * t), 0.5 + r * np.sin(2 * np.pi * t)
+
+        outer = polyline(ax, 0.5 + R_OUTER * np.cos(th), 0.5 + R_OUTER * np.sin(th), color=WHITE, stroke_width=3)
+        inner = polyline(ax, 0.5 + R_INNER * np.cos(th), 0.5 + R_INNER * np.sin(th), color=WHITE, stroke_width=3)
+        title = Tex(r"2D: the letter O", font_size=44).to_corner(UL)
+        side = RIGHT * 3.6
+
+        # beat 0: the letter
         d = self.say()
-        self.play(Write(title), Create(rings), run_time=1.5)
-        self.play(LaggedStart(*[FadeIn(s) for s in samples], lag_ratio=0.004), FadeIn(legend), run_time=2.5)
-        tt = ValueTracker(0)
-        traveler = always_redraw(lambda: Dot(ax.c2p(0.5 + R_OUTER * np.cos(2 * np.pi * tt.get_value()),
-                                                    0.5 + R_OUTER * np.sin(2 * np.pi * tt.get_value())), color=WHITE, radius=0.1))
-        self.add(traveler)
-        self.play(tt.animate.set_value(1), run_time=max(d - 4.5, 2), rate_func=linear)
-        self.remove(traveler)
+        self.play(Write(title), Create(outer), Create(inner), run_time=1.8)
+        lo_ = Tex("outer ring", font_size=30, color=GREY_B).next_to(ax.c2p(0.5, 0.5 + R_OUTER), UP, buff=0.1)
+        li_ = Tex("inner ring", font_size=30, color=GREY_B).move_to(ax.c2p(0.5, 0.5 + R_INNER + 0.06))
+        self.play(FadeIn(lo_), FadeIn(li_), run_time=0.8)
         self.sync()
 
-        # beat 1: L2 phantom ring
+        # beat 1: input = position along the path, output = a point
         d = self.say()
-        self.play(samples.animate.set_opacity(0.35), run_time=0.5)
+        tt = ValueTracker(0.05)
+        ray = always_redraw(lambda: DashedLine(ax.c2p(0.5, 0.5), ax.c2p(*ring_pt(tt.get_value(), R_OUTER + 0.08)),
+                                               color=GREY_B, stroke_width=2))
+        pt = always_redraw(lambda: Dot(ax.c2p(*ring_pt(tt.get_value(), R_OUTER)), color=C_Y, radius=0.11))
+        io = VGroup(Tex(r"input: position along the path", font_size=34, color=GREY_B),
+                    Tex(r"output: a point $(x, y)$", font_size=34, color=C_Y)).arrange(DOWN, aligned_edge=LEFT, buff=0.3)
+        io.move_to(side + 1.8 * UP)
+        self.play(Create(ray), FadeIn(pt), Write(io[0]), run_time=1.2)
+        self.play(Write(io[1]), tt.animate.set_value(0.35), run_time=d * 0.5, rate_func=smooth)
+        self.sync()
+
+        # beat 2: in one quarter, half the labels say inner
+        d = self.say()
+        quarter = AnnularSector(inner_radius=0, outer_radius=S * 0.47, angle=PI / 2, start_angle=-PI / 2,
+                                color=C_GHOST, fill_opacity=0.12, stroke_width=0).move_arc_center_to(ax.c2p(0.5, 0.5))
+        self.play(tt.animate.set_value(0.875), FadeIn(quarter), run_time=1.8)
+        po, pi_ = ax.c2p(*ring_pt(0.875, R_OUTER)), ax.c2p(*ring_pt(0.875, R_INNER))
+        rng = np.random.default_rng(2)
+        labs = VGroup(*[Dot((po if k % 2 == 0 else pi_) + 0.09 * rng.standard_normal(3) * np.array([1, 1, 0]),
+                            color=C_LAB, radius=0.045) for k in range(14)])
+        t5 = Tex(r"here: 50\% of labels on the outer ring,\\50\% on the inner ring", font_size=32,
+                 color=C_GHOST).move_to(side + 0.2 * UP)
+        self.play(LaggedStart(*[FadeIn(l_, scale=2) for l_ in labs], lag_ratio=0.15), Write(t5), run_time=d * 0.55)
+        self.sync()
+
+        # beat 3: L2 averages -> a phantom ring
+        d = self.say()
+        mid = Dot((np.array(po) + np.array(pi_)) / 2, color=C_L2, radius=0.12)
+        ml = Tex("L2: the average", font_size=30, color=C_L2).next_to(mid, RIGHT, buff=0.15)
+        self.play(FadeOut(pt), FadeIn(mid, scale=1.5), Write(ml), run_time=1.2)
         l2 = DATA["l2_2d"]
         l2c = polyline(ax, l2[:, 0], l2[:, 1], color=C_L2, stroke_width=5)
-        tl2 = Tex("L2", color=C_L2, font_size=40).next_to(legend, DOWN, buff=0.6, aligned_edge=LEFT)
-        self.play(Create(l2c), FadeIn(tl2), run_time=d * 0.55, rate_func=linear)
-        ph = Tex("a phantom ring", color=C_L2, font_size=32).next_to(tl2, DOWN, aligned_edge=LEFT)
-        self.play(FadeIn(ph), run_time=0.6)
+        tl = Tex(r"L2 over the whole path:\\a ring that isn't in the letter", font_size=32, color=C_L2).move_to(side + 1.6 * DOWN)
+        self.play(FadeOut(ml), FadeOut(ray), Create(l2c), Write(tl), run_time=d * 0.55, rate_func=linear)
         self.sync()
 
-        # beat 2: bins argmax
+        # beat 4: bins land on real rings
         d = self.say()
-        self.play(l2c.animate.set_stroke(opacity=0.2), FadeOut(ph), tl2.animate.set_opacity(0.3), run_time=0.5)
         bp = DATA["bins_am_2d"]
-        bdots = VGroup(*[Dot(ax.c2p(a, b), radius=0.04, color=C_Y) for a, b in bp])
-        tb = Tex("bins, argmax", color=C_Y, font_size=36).next_to(tl2, DOWN, aligned_edge=LEFT)
-        self.play(LaggedStart(*[FadeIn(b) for b in bdots], lag_ratio=0.01), FadeIn(tb), run_time=d * 0.5)
-        quad = Rectangle(width=S * 0.5, height=S * 0.5, color=C_GHOST).move_to(ax.c2p(0.75, 0.25))
-        self.play(Create(quad), run_time=1.0)
+        bdots = VGroup(*[Dot(ax.c2p(a, b), radius=0.04, color=C_BIN) for a, b in bp])
+        tb = Tex(r"bins (argmax): on the real rings\dots mostly", font_size=32, color=C_BIN).move_to(side + 2.6 * DOWN)
+        self.play(l2c.animate.set_stroke(opacity=0.25), mid.animate.set_opacity(0.3), FadeOut(labs), run_time=0.6)
+        self.play(LaggedStart(*[FadeIn(b) for b in bdots], lag_ratio=0.008), Write(tb), run_time=d * 0.6)
         self.sync()
 
-        # beat 3: ghosts from p(x) p(y)
+        # beat 5: zoom into the 50/50 quarter; the x and y histograms
         d = self.say()
-        left = VGroup(ax, rings, samples, l2c, bdots, quad)
-        self.play(FadeOut(legend), FadeOut(tl2), FadeOut(tb), left.animate.scale(0.62).to_edge(LEFT, buff=0.4).shift(0.3 * DOWN),
-                  run_time=1.0)
-        G = 4.6
+        self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
         g = DATA["ghost_factored"].astype(np.float64)
-        img = ImageMobject(heat_image(g, magma_like)).stretch_to_fit_width(G).stretch_to_fit_height(G)
-        img.move_to(RIGHT * 3.2 + 0.1 * DOWN)
-        frame = Rectangle(width=G, height=G, color=GREY_C).move_to(img)
-
-        def to_img(x, y):
-            return img.get_corner(DL) + np.array([x * G, y * G, 0])
-
-        px_m, py_m = g.sum(1), g.sum(0)
-        px_b = px_m.reshape(64, 4).sum(1)
-        py_b = py_m.reshape(64, 4).sum(1)
-        bx = VGroup(*[Rectangle(width=G / 64, height=0.9 * v / px_b.max(), stroke_width=0, fill_color=C_BIN, fill_opacity=0.9)
-                      .move_to(to_img((i + 0.5) / 64, 0) + 0.12 * DOWN, aligned_edge=UP) for i, v in enumerate(px_b)])
-        by = VGroup(*[Rectangle(height=G / 64, width=0.9 * v / py_b.max(), stroke_width=0, fill_color=C_BIN, fill_opacity=0.9)
-                      .move_to(to_img(0, (i + 0.5) / 64) + 0.12 * LEFT, aligned_edge=RIGHT) for i, v in enumerate(py_b)])
-        lx = MathTex(r"p(x)", color=C_BIN).scale(0.8).next_to(bx, DOWN, buff=0.1)
-        ly = MathTex(r"p(y)", color=C_BIN).scale(0.8).next_to(by, LEFT, buff=0.1)
-        self.play(FadeIn(bx, shift=0.2 * UP), FadeIn(by, shift=0.2 * RIGHT), Write(lx), Write(ly), run_time=1.5)
-        prod = MathTex(r"p(x)\,p(y)", color=WHITE).scale(0.9).next_to(frame, UP, buff=0.15)
-        self.play(FadeIn(img), Create(frame), Write(prod), run_time=1.5)
-        tq = 0.875
-        outer = (0.5 + R_OUTER * np.cos(2 * np.pi * tq), 0.5 + R_OUTER * np.sin(2 * np.pi * tq))
-        innr = (0.5 + R_INNER * np.cos(2 * np.pi * tq), 0.5 + R_INNER * np.sin(2 * np.pi * tq))
-        real = VGroup(*[Circle(radius=0.22, color=C_GOOD, stroke_width=4).move_to(to_img(*p)) for p in (outer, innr)])
-        ghosts = VGroup(*[Circle(radius=0.22, color=C_GHOST, stroke_width=4).move_to(to_img(*p))
-                          for p in ((outer[0], innr[1]), (innr[0], outer[1]))])
-        tr = Tex("real", color=C_GOOD, font_size=28).next_to(real[0], DOWN, buff=0.08)
-        tg = Tex("ghost", color=C_GHOST, font_size=28).next_to(ghosts[0], UP, buff=0.08)
-        self.play(Create(real), FadeIn(tr), run_time=1.0)
-        self.play(Create(ghosts), FadeIn(tg), run_time=1.0)
+        ix0, ix1, iy0, iy1 = 115, 243, 13, 141  # crop [0.449, 0.949] x [0.051, 0.551]
+        x0, x1, y0, y1 = ix0 / 256, ix1 / 256, iy0 / 256, iy1 / 256
+        Z = Axes(x_range=[x0, x1, 1], y_range=[y0, y1, 1], x_length=5.4, y_length=5.4, tips=False,
+                 axis_config={"color": GREY_D, "include_ticks": False}).shift(1.2 * RIGHT + 0.55 * UP)
+        tz = np.linspace(0.73, 1.02, 120)
+        zo = polyline(Z, *ring_pt(tz, R_OUTER), color=WHITE, stroke_width=3)
+        zi = polyline(Z, *ring_pt(tz, R_INNER), color=WHITE, stroke_width=3)
+        zt = Tex(r"zoom: the 50/50 quarter, one input", font_size=32, color=C_GHOST).to_corner(UL)
+        self.play(Create(Z), Create(zo), Create(zi), Write(zt), run_time=1.5)
+        xo, yo = ring_pt(0.875, R_OUTER)
+        xi, yi = ring_pt(0.875, R_INNER)
+        px_m = g.sum(1)[ix0:ix1]
+        py_m = g.sum(0)[iy0:iy1]
+        cell = 5.4 / (ix1 - ix0)
+        base_x = Z.c2p(x0, y0)[1] - 1.25
+        base_y = Z.c2p(x0, y0)[0] - 1.25
+        bx = VGroup(*[Rectangle(width=cell, height=1.0 * v / px_m.max() + 0.001, stroke_width=0, fill_color=C_BIN,
+                                fill_opacity=0.9).move_to([Z.c2p(x0 + (k + 0.5) / 256, y0)[0], base_x, 0], aligned_edge=DOWN)
+                      for k, v in enumerate(px_m)])
+        by = VGroup(*[Rectangle(height=cell, width=1.0 * v / py_m.max() + 0.001, stroke_width=0, fill_color=C_BIN,
+                                fill_opacity=0.9).move_to([base_y, Z.c2p(x0, y0 + (k + 0.5) / 256)[1], 0], aligned_edge=LEFT)
+                      for k, v in enumerate(py_m)])
+        lx = Tex(r"histogram for $x$", font_size=30, color=C_BIN).next_to(bx, DOWN, buff=0.12)
+        ly = Tex(r"histogram\\for $y$", font_size=30, color=C_BIN).next_to(by, LEFT, buff=0.15)
+        self.play(FadeIn(bx, shift=0.2 * UP), Write(lx), run_time=1.5)
+        self.play(FadeIn(by, shift=0.2 * RIGHT), Write(ly), run_time=1.5)
         self.sync()
 
-        # beat 4: joint softmax
+        # beat 6: picking x and y separately -> four combinations, two are ghosts
+        d = self.say()
+        guides = VGroup(*[DashedLine([Z.c2p(v, y0)[0], base_x + 1.0, 0], Z.c2p(v, y1), color=GREY_B, stroke_width=2)
+                          for v in (xo, xi)],
+                        *[DashedLine([base_y + 1.0, Z.c2p(x0, v)[1], 0], Z.c2p(x1, v), color=GREY_B, stroke_width=2)
+                          for v in (yo, yi)])
+        self.play(Create(guides), run_time=1.5)
+        img = ImageMobject(heat_image(g[ix0:ix1, iy0:iy1], magma_like)).stretch_to_fit_width(5.4).stretch_to_fit_height(5.4)
+        img.move_to(Z.c2p((x0 + x1) / 2, (y0 + y1) / 2))
+        self.play(FadeIn(img), run_time=1.0)
+        real = VGroup(*[Circle(radius=0.3, color=C_GOOD, stroke_width=5).move_to(Z.c2p(*p)) for p in ((xo, yo), (xi, yi))])
+        ghosts = VGroup(*[Circle(radius=0.3, color=C_GHOST, stroke_width=5).move_to(Z.c2p(*p)) for p in ((xo, yi), (xi, yo))])
+        tr = VGroup(*[Tex("real", font_size=30, color=C_GOOD).next_to(c_, DR, buff=0.02) for c_ in real])
+        tg = VGroup(*[Tex("ghost", font_size=30, color=C_GHOST).next_to(c_, UR, buff=0.02) for c_ in ghosts])
+        self.play(Create(real), FadeIn(tr), run_time=1.2)
+        self.play(Create(ghosts), FadeIn(tg), run_time=1.2)
+        expl = Tex(r"ghost $=$ outer ring's $x$\\ $+$ inner ring's $y$", font_size=30, color=C_GHOST).to_corner(UR).shift(0.6 * DOWN)
+        self.play(Write(expl), run_time=1.2)
+        self.sync()
+
+        # beat 7: one histogram over (x, y) together
         d = self.say()
         gj = DATA["ghost_joint"].astype(np.float64)
-        imj = ImageMobject(heat_image(gj, magma_like)).stretch_to_fit_width(G).stretch_to_fit_height(G).move_to(img)
-        prodj = MathTex(r"p(x, y)", r"\text{ (joint)}").scale(0.9).move_to(prod)
-        self.play(FadeOut(bx), FadeOut(by), FadeOut(lx), FadeOut(ly), run_time=0.6)
-        self.play(FadeTransform(img, imj), Transform(prod, prodj), run_time=1.6)
-        self.play(FadeOut(ghosts), FadeOut(tg), run_time=0.8)
+        jx0, jx1, jy0, jy1 = 29, 61, 3, 35  # [0.453, 0.953] x [0.047, 0.547]
+        imj = ImageMobject(heat_image(gj[jx0:jx1, jy0:jy1], magma_like))
+        imj.stretch_to_fit_width(Z.c2p(jx1 / 64, y0)[0] - Z.c2p(jx0 / 64, y0)[0])
+        imj.stretch_to_fit_height(Z.c2p(x0, jy1 / 64)[1] - Z.c2p(x0, jy0 / 64)[1])
+        imj.move_to(Z.c2p((jx0 + jx1) / 128, (jy0 + jy1) / 128))
+        jt = Tex(r"one histogram over $(x, y)$ together:\\only the two real points", font_size=30,
+                 color=C_GOOD).to_corner(UR).shift(0.6 * DOWN)
+        self.play(FadeOut(VGroup(bx, by, lx, ly, guides, expl)), run_time=0.6)
+        self.play(FadeTransform(img, imj), FadeOut(ghosts), FadeOut(tg), Write(jt), run_time=1.8)
         self.sync(pad=0.8)
 
 
@@ -801,49 +940,57 @@ class S09_Summary(NScene):
     def construct(self):
         n = 32
         s = np.linspace(0, 1, n, endpoint=False)
-        circ = np.stack([np.cos(2 * np.pi * s), np.sin(2 * np.pi * s)], 1) * 1.2 + np.array([-4.2, 0.6])
-        # square traced with the same parameter, same start point and direction
+        circ = np.stack([np.cos(2 * np.pi * s), np.sin(2 * np.pi * s)], 1) * 1.2 + np.array([-3.6, 0.9])
         ang = 2 * np.pi * s
         sq = np.stack([np.cos(ang), np.sin(ang)], 1)
-        sq = sq / np.abs(sq).max(1, keepdims=True) * 1.1 + np.array([1.4, 0.6])
+        sq = sq / np.abs(sq).max(1, keepdims=True) * 1.1 + np.array([3.6, 0.9])
 
         def path(p, **kw):
             return VMobject(**kw).set_points_as_corners([np.array([x, y, 0]) for x, y in np.vstack([p, p[:1]])])
 
+        title = Tex("Back to your vector model", font_size=44).to_edge(UP, buff=0.3)
         gt_c = path(circ, color=C_GOOD, stroke_width=4)
         gt_s = path(sq, color=C_GOOD, stroke_width=4)
-        lab_gt = Tex("two ground-truth shapes", color=C_GOOD, font_size=30).move_to(2.6 * UP + 1.4 * LEFT)
-        q0 = 0.35 * np.stack([np.cos(2 * np.pi * s), np.sin(2 * np.pi * s)], 1) * (1 + 0.3 * np.sin(5 * 2 * np.pi * s))[:, None] + np.array([-1.4, -2.3])
+        gl = VGroup(Tex("target: circle", font_size=30, color=C_GOOD).next_to(gt_c, UP, buff=0.2),
+                    Tex("target: square", font_size=30, color=C_GOOD).next_to(gt_s, UP, buff=0.2))
+        q0 = 0.5 * np.stack([np.cos(2 * np.pi * s), np.sin(2 * np.pi * s)], 1) * (1 + 0.25 * np.sin(5 * 2 * np.pi * s))[:, None] \
+            + np.array([0, -2.2])
         query = path(q0, color=C_Y, stroke_width=4)
-        ql = Tex("one query", color=C_Y, font_size=30).next_to(query, DOWN, buff=0.15)
+        ql = Tex("one query's prediction", font_size=30, color=C_Y).next_to(query, DOWN, buff=0.15)
 
-        # beat 0: matching flips; regression averages
+        # beat 0: the matching flips between batches
         d = self.say()
-        self.play(Create(gt_c), Create(gt_s), FadeIn(lab_gt), run_time=1.2)
+        self.play(Write(title), Create(gt_c), Create(gt_s), FadeIn(gl), run_time=1.5)
         self.play(Create(query), FadeIn(ql), run_time=1.0)
-        for tgt in (gt_c, gt_s, gt_c, gt_s):
-            ln = DashedLine(query.get_top(), tgt.get_bottom(), color=GREY_B)
-            self.play(Create(ln), Indicate(tgt, color=C_Y, scale_factor=1.05), run_time=0.7)
-            self.play(FadeOut(ln), run_time=0.25)
-        avg = path((circ + sq) / 2, color=C_L2, stroke_width=5)
-        tl2 = Tex("regression: the average of both", color=C_L2, font_size=32).next_to(avg, DOWN, buff=0.3)
-        self.play(Transform(query, avg), FadeOut(ql), run_time=2)
-        self.play(FadeIn(tl2), run_time=0.6)
+        for b, tgt in enumerate((gt_c, gt_s, gt_c, gt_s)):
+            arr = Arrow(query.get_top(), tgt.get_bottom(), color=C_Y, buff=0.2)
+            bl = Tex(f"batch {b + 1}", font_size=32, color=C_Y).next_to(arr.get_center(), LEFT if b % 2 == 0 else RIGHT, buff=0.2)
+            self.play(GrowArrow(arr), FadeIn(bl), Indicate(tgt, color=C_Y, scale_factor=1.05), run_time=1.0 if b < 2 else 0.6)
+            self.play(FadeOut(arr), FadeOut(bl), run_time=0.3)
         self.sync()
 
-        # beat 1: bins keep both hypotheses
+        # beat 1: regression averages the two targets
+        d = self.say()
+        avg = path((circ + sq) / 2 + np.array([0, -0.4]), color=C_L2, stroke_width=5)
+        tl2 = Tex(r"regression: the average of both --- neither shape", font_size=32, color=C_L2).next_to(avg, DOWN, buff=0.3)
+        self.play(Transform(query, avg), FadeOut(ql), run_time=2.2)
+        self.play(Write(tl2), run_time=1.0)
+        self.sync()
+
+        # beat 2: bins keep both, then commit
         d = self.say()
         h1, h2 = query.copy(), query.copy()
-        self.play(Transform(h1, path(circ, color=C_BIN, stroke_width=6)), Transform(h2, path(sq, color=C_BIN, stroke_width=6)),
+        self.play(Transform(h1, path(circ, color=C_BIN, stroke_width=7)), Transform(h2, path(sq, color=C_BIN, stroke_width=7)),
                   FadeOut(query), FadeOut(tl2), run_time=2)
-        tb = Tex("bins: keep both hypotheses, commit later", color=C_BIN, font_size=32).move_to(2.3 * DOWN)
+        tb = Tex(r"bins: keep both possibilities\dots", font_size=34, color=C_BIN).move_to(2.2 * DOWN)
         self.play(FadeIn(tb), run_time=0.8)
-        self.play(h2.animate.set_stroke(opacity=0.15), h1.animate.set_stroke(C_Y, 7), run_time=1.0)
+        tc = Tex(r"\dots then commit to one", font_size=34, color=C_Y).next_to(tb, DOWN, buff=0.2)
+        self.play(h2.animate.set_stroke(opacity=0.15), h1.animate.set_stroke(C_Y, 8), FadeIn(tc), run_time=1.2)
         self.sync()
 
-        # beat 2: summary card
+        # beat 3: summary card
         d = self.say()
-        self.play(*[FadeOut(m) for m in (gt_c, gt_s, lab_gt, h1, h2, tb)], run_time=0.8)
+        self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
         lines = VGroup(
             Tex(r"L2 $\;\rightarrow\;$ the mean", color=C_L2),
             Tex(r"L1 $\;\rightarrow\;$ the median", color=C_L1),
@@ -852,4 +999,4 @@ class S09_Summary(NScene):
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.45).move_to(ORIGIN)
         for ln in lines:
             self.play(Write(ln), run_time=min(1.6, d / 5))
-        self.sync(pad=2.0)
+        self.sync(pad=2.5)

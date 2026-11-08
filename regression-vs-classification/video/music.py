@@ -79,7 +79,8 @@ def make_music(duration, path, seed=0):
         seg = pad_chord([midi_hz(bass), midi_hz(tones[0] - 12), midi_hz(tones[1] - 12), midi_hz(tones[2] - 12)],
                         CHORD_SECONDS + 1.5)
         a = int(t0 * SR)
-        pad[a:a + len(seg)] += seg[: n - a]
+        if a < n:
+            pad[a:a + len(seg)] += seg[: n - a]
         for j, idx in enumerate(ARP):
             if rng.random() < 0.18:  # leave some gaps so it breathes
                 continue
@@ -87,6 +88,8 @@ def make_music(duration, path, seed=0):
             vel = 0.55 + 0.3 * rng.random() + (0.15 if j == 0 else 0)
             note = piano_note(midi_hz(tones[idx]), 3.0, vel, rng)
             a = int(max(start, 0) * SR)
+            if a >= n:
+                continue
             piano[a:a + len(note)] += note[: n - a]
         c += 1
         t0 += CHORD_SECONDS

@@ -79,66 +79,110 @@ If instead we take the expected value, the probability weighted average, we're f
 And the balance point is the mean. Right back in the gap. Exactly the L2 answer.
 
 21
-00:03:21,567 --> 00:03:35,824
+00:03:21,567 --> 00:03:33,502
 The expected value isn't useless, though. Inside a single peak it interpolates between bins, and it's more precise than the argmax. So the best recipe is: pick the peak, then average within it.
 
 22
-00:03:37,300 --> 00:03:46,960
-Here's what that looks like for real. The same small network, trained on four regions: clean labels, outliers, seventy thirty, and fifty fifty.
+00:03:35,000 --> 00:03:51,254
+Now let's see it on real training runs. Until now we froze a single input. Here, the input x varies along the horizontal axis, and the label y is on the vertical axis.
 
 23
-00:03:47,400 --> 00:03:52,462
-With L2, the prediction falls into the gap as soon as the labels become ambiguous.
+00:03:51,700 --> 00:04:03,171
+Each vertical slice of this plot is one of the number lines from before. Take the slice at x equals zero point eight seven five. Its labels pile up in two places: two possible answers.
 
 24
-00:03:52,900 --> 00:03:56,847
-L1 sticks with the majority, then drifts once the split is even.
+00:04:03,600 --> 00:04:14,838
+The plot has four regions. First, one clean answer. Then one answer with a few junk labels. Then two answers, seventy thirty. And finally two answers, fifty fifty.
 
 25
-00:03:57,267 --> 00:04:09,620
-The bin head lights up both curves. Its argmax hops between them, but every point it lands on is a correct answer. In the ambiguous regions, its error is about a hundred times smaller.
+00:04:15,267 --> 00:04:25,716
+Here's the network trained with L2. It's fine while there's one answer. But as soon as there are two, it falls into the gap between them, just like the springs predicted.
 
 26
-00:04:11,100 --> 00:04:19,924
-What about very many bins? Two-level bins first choose one of sixteen coarse bins, then one of sixteen fine bins inside it.
+00:04:26,133 --> 00:04:32,774
+Trained with L1, it follows the majority answer at seventy thirty, but at fifty fifty it wanders.
 
 27
-00:04:20,367 --> 00:04:30,816
-If the fine choice depends on the coarse one, this is just the same two hundred fifty six way softmax, factored into two steps. Same loss, same results.
+00:04:33,200 --> 00:04:44,438
+The bin head predicts a whole histogram at every x. Brighter means more probability. It lights up both curves. On our slice, it has two peaks, right where the labels are.
 
 28
-00:04:31,233 --> 00:04:43,447
-But if one fine distribution is shared by every coarse bin, the two modes have to agree on where they sit inside their bins. When they don't, one of them borrows the other's position, and lands in the wrong place.
+00:04:44,867 --> 00:04:53,783
+Its argmax picks one peak at each x. In the fifty fifty region it jumps back and forth, but every point it picks is on a real curve.
 
 29
-00:04:44,933 --> 00:04:55,522
-Now, two dimensions, which is closer to vector graphics. A point travels around the letter O. In some stretches, it might belong to the outer contour, or to the inner one.
+00:04:54,200 --> 00:05:10,129
+Here's how far each prediction lands from the nearest correct answer, in the two ambiguous regions. L2 is off by zero point one seven. L1 by zero point zero four. The bins by zero point zero zero two. About a hundred times better.
 
 30
-00:04:55,967 --> 00:05:02,515
-L2 averages the two possibilities, and draws a phantom ring between them. A contour that doesn't exist.
+00:05:11,600 --> 00:05:20,749
+A practical question: what if you need thousands of bins? One trick is to pick in two steps. First, which of sixteen coarse bins.
 
 31
-00:05:02,933 --> 00:05:08,413
-The bin head mostly snaps onto a real contour. But look closely at the fifty fifty stretch.
+00:05:21,167 --> 00:05:25,300
+Then zoom into that coarse bin, and pick one of sixteen fine bins inside it.
 
 32
-00:05:08,833 --> 00:05:25,227
-With separate softmaxes for x and for y, each axis makes its own choice. Their product puts probability on four corners. Two real points, and two ghosts, which take x from the outer point, and y from the inner one.
+00:05:25,733 --> 00:05:39,480
+If every coarse bin gets its own fine histogram, this is exactly one big softmax with two hundred fifty six bins, just split into two steps. Nothing is lost.
 
 33
-00:05:25,667 --> 00:05:32,540
-A single softmax over x y cells can say, this point, or that point. And the ghosts disappear.
+00:05:39,900 --> 00:05:56,386
+A cheaper version uses one fine histogram for all coarse bins. Here's the catch. Our two answers sit in different coarse bins, and at different spots inside them. Answer A is near the left of its bin. Answer B is near the right of its bin.
 
 34
-00:05:34,033 --> 00:05:46,711
-Back to the vector model. With Hungarian matching, early in training, a query gets matched to different shapes from one batch to the next. That's an ambiguous target, and regression responds by averaging the shapes together.
+00:05:56,833 --> 00:06:09,929
+A single shared fine histogram has to hold both spots at once. So we can end up with answer A's coarse bin, combined with answer B's spot. That point is neither answer.
 
 35
-00:05:47,133 --> 00:05:52,102
-A bin head can hold several hypotheses while the matching settles, and commit later.
+00:06:10,367 --> 00:06:15,614
+So, give each coarse bin its own fine histogram, or just use one big softmax.
 
 36
-00:05:52,533 --> 00:06:05,490
+00:06:17,100 --> 00:06:26,620
+Now let's move to two dimensions, which is closer to your vector shapes. Picture the letter O. It has an outer ring, and an inner ring.
+
+37
+00:06:27,067 --> 00:06:36,122
+The input is a position along the path. The output is a point, with an x and a y coordinate. Usually, the label is a point on the outer ring.
+
+38
+00:06:36,567 --> 00:06:45,483
+But in this one quarter, it's ambiguous. Half of the labels put the point on the outer ring, and half put it on the inner ring.
+
+39
+00:06:45,900 --> 00:06:54,306
+L2 averages the two, and lands halfway between the rings. Do that all the way around, and L2 draws a ring that isn't in the letter at all.
+
+40
+00:06:54,733 --> 00:07:01,746
+The bin head lands on the real rings. Well, mostly. Let's zoom into the ambiguous quarter.
+
+41
+00:07:02,167 --> 00:07:15,588
+This is one input, in that quarter. The model has one histogram for x, along the bottom, and a separate histogram for y, on the left. Each has two peaks: one for the outer ring, and one for the inner ring.
+
+42
+00:07:16,033 --> 00:07:30,337
+Because x and y are picked separately, any combination is possible. That's four points. Two of them are real. The other two take the outer ring's x and the inner ring's y. They're ghosts, on neither ring.
+
+43
+00:07:30,767 --> 00:07:39,219
+A single histogram over x and y together only puts probability on the two real points. The ghosts are gone.
+
+44
+00:07:40,700 --> 00:07:54,818
+Back to your vector model. Each query predicts a whole shape. Early in training, the Hungarian matching keeps changing its mind. In one batch, this query is matched to the circle. In the next, to the square.
+
+45
+00:07:55,267 --> 00:08:03,672
+That's the same ambiguity as before, now for a whole shape. Regression averages the two targets, and predicts a blob that is neither shape.
+
+46
+00:08:04,100 --> 00:08:11,298
+A bin head can keep both shapes as possibilities while the matching settles, and then commit to one.
+
+47
+00:08:11,733 --> 00:08:24,458
 So. L2 predicts the mean. L1 predicts the median. Bins learn the whole distribution. Then decode with care: take the peak, refine inside it, and watch out for ghosts.
 

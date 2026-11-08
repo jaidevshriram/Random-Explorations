@@ -159,6 +159,8 @@ def render(scenes, quality):
         cmd = ["manim", *flags, "--media_dir", os.path.join(BUILD, "media"), "--disable_caching",
                "-o", f"{scene}.mp4", os.path.join(HERE, "scenes.py"), scene]
         r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True)
+        if r.returncode:  # parallel renders can race on manim's shared LaTeX cache; retry once
+            r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True)
         if r.returncode:
             print(r.stdout[-3000:], r.stderr[-3000:])
             raise RuntimeError(f"render failed: {scene}")
