@@ -2,7 +2,7 @@
 
 Goal: test the toy experiment's main finding in a real model. Train MapTRv2 twice with identical settings: once with its L1 point regression, once with a per-coordinate bin head (softmax + HL-Gauss cross-entropy). Compare map quality, convergence and matching stability.
 
-All code references are to `hustvl/MapTR`, branch `maptrv2`, commit `e03f097`. This plan contains no code yet. The code and the Modal launcher will live next to this file as a patch applied on top of a fresh MapTR clone.
+All code references are to `hustvl/MapTR`, branch `maptrv2`, commit `e03f097`. This plan contains no code yet. The code and the launcher will live next to this file as a patch applied on top of a fresh MapTR clone.
 
 ---
 
