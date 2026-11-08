@@ -1947,8 +1947,9 @@
       }
     }
     if (LX.on && LX.nebula > 0) {
-      // a nebula: the smoke picks up faint, slowly shifting colour (violet, teal, amber) toward its edges
-      const sm = smokeCv.getContext('2d'), tN = LX.smokeT;
+      // a nebula: the smoke picks up faint, slowly shifting colour (violet, teal, amber) toward its edges.
+      // Past 100% it becomes the show: stronger, with a second, larger bank of cloud in magenta and blue
+      const sm = smokeCv.getContext('2d'), tN = LX.smokeT, extra = Math.max(0, LX.nebula - 1);
       sm.globalCompositeOperation = 'copy';
       fillSmoke(sm, smokeCv.width, smokeCv.height, 3.1, -tN * 4, tN * 3);
       sm.globalCompositeOperation = 'multiply';
@@ -1960,8 +1961,23 @@
       sm.fillRect(0, 0, smokeCv.width, smokeCv.height);
       sm.globalCompositeOperation = 'source-over';
       g.globalCompositeOperation = 'lighter';
-      g.globalAlpha = Math.min(1, LX.nebula * 0.22 * Math.min(1.2, amb + 0.2));
+      const lit = Math.min(1.2, amb + 0.2);
+      g.globalAlpha = Math.min(1, (0.22 * Math.min(1, LX.nebula) + 0.4 * extra) * lit);
       g.drawImage(smokeCv, 0, 0, W, H);
+      if (extra > 0) {
+        sm.globalCompositeOperation = 'copy';
+        fillSmoke(sm, smokeCv.width, smokeCv.height, 1.4, tN * 2.5, -tN * 1.5);
+        sm.globalCompositeOperation = 'multiply';
+        const g2 = sm.createLinearGradient(smokeCv.width, 0, 0, smokeCv.height);
+        g2.addColorStop(0, `hsl(${(320 + tN * 5) % 360},80%,55%)`);
+        g2.addColorStop(0.55, `hsl(${(235 + tN * 5) % 360},75%,50%)`);
+        g2.addColorStop(1, `hsl(${(285 + tN * 5) % 360},70%,50%)`);
+        sm.fillStyle = g2;
+        sm.fillRect(0, 0, smokeCv.width, smokeCv.height);
+        sm.globalCompositeOperation = 'source-over';
+        g.globalAlpha = Math.min(1, 0.32 * extra * lit);
+        g.drawImage(smokeCv, 0, 0, W, H);
+      }
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
     }
