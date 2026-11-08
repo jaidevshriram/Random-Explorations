@@ -7,3 +7,4 @@ Some random thoughts and explorations on various topics.
 - [2D RGB Gaussian - What does that mean?](./2d-rgb-gaussian/gaussian.ipynb)
 - [Image Reconstruction Bench - PSNR/SSIM of images Claude redraws as SVG](./image-recon-bench/README.md)
 - [Regression vs. classification heads for continuous outputs (L2 / L1 / bins)](./regression-vs-classification/README.md)
+- [Concert scenes - animated, painterly canvas recreations](./concert-scenes/index.html)
