@@ -155,6 +155,10 @@ Regression heads squeeze everything the data says about a coordinate into one nu
 
 See [`PLAN_SVG_ABLATION.md`](PLAN_SVG_ABLATION.md) for how to run this comparison on a MapTR-style SVG model: the bin head with Hungarian matching (NLL vs. expected-coordinate matching cost), cyclic/direction point-order invariance, sampled points vs. Bézier control points, and evaluation (Chamfer, point-error percentiles, raster IoU, ghost/self-consistency checks).
 
+## Next step: the real model
+
+[`maptrv2-bins/PLAN.md`](maptrv2-bins/PLAN.md) is the plan for testing this on MapTRv2 trained on Modal. It covers the exact code locations to change, the run matrix, evaluation, data preparation, and a cost estimate.
+
 ## Files
 
 - `experiment.py`: everything (data, heads, training, metrics, plots).
