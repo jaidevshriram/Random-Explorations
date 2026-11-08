@@ -1,3 +1,4 @@
 data*.npz
 __pycache__/
 models/
+runs_f_tmp/
