@@ -1,0 +1,14 @@
+{
+ "l1": {
+  "curves": 984,
+  "mean_fraction_of_points_choosing_the_majority_stroke": 0.7110010162601627,
+  "mean_fraction_of_points_within_1px_of_a_stroke": 0.3201219512195122,
+  "mean_fraction_of_points_within_1px_of_the_midline": 0.31942327235772355
+ },
+ "bins": {
+  "curves": 984,
+  "mean_fraction_of_points_choosing_the_majority_stroke": 0.6817835365853658,
+  "mean_fraction_of_points_within_1px_of_a_stroke": 0.3229801829268293,
+  "mean_fraction_of_points_within_1px_of_the_midline": 0.21824186991869918
+ }
+}

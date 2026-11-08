@@ -1,0 +1,38 @@
+{
+ "l1": {
+  "AP": {
+   "open": {
+    "1px": 0.0,
+    "2px": 0.016617244043843838,
+    "3px": 0.3978549378065188
+   },
+   "closed": {
+    "1px": 0.030644668359045224,
+    "2px": 0.34461322559421825,
+    "3px": 0.7795062521800984
+   }
+  },
+  "open_curves_matched": 984,
+  "fraction_closer_to_a_stroke_than_to_the_midline": 0.4400406504065041,
+  "median_px_to_nearest_stroke": 2.755621910095215,
+  "median_px_to_midline": 2.65946626663208
+ },
+ "bins": {
+  "AP": {
+   "open": {
+    "1px": 0.0,
+    "2px": 0.00121873651586203,
+    "3px": 0.13974337605969495
+   },
+   "closed": {
+    "1px": 0.007409475577734405,
+    "2px": 0.3747045001388778,
+    "3px": 0.785592671115439
+   }
+  },
+  "open_curves_matched": 984,
+  "fraction_closer_to_a_stroke_than_to_the_midline": 0.5264227642276422,
+  "median_px_to_nearest_stroke": 3.3495445251464844,
+  "median_px_to_midline": 3.431644916534424
+ }
+}
