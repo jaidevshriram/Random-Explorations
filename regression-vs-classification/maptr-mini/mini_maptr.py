@@ -50,7 +50,11 @@ def resample(pts, n, closed):
     return np.stack([np.interp(t, s, pts[:, 0]), np.interp(t, s, pts[:, 1])], 1)
 
 
-def random_element(rng):
+AMBIG_HALF_GAP = 2.5 / S  # --ambiguous: the two strokes of a double line are 5 px apart
+
+
+def random_element(rng, ambiguous=False):
+    """Returns (label, target points, [dense strokes to draw], closed, [acceptable answers])."""
     if rng.random() < 0.5:  # open: cubic Bezier
         while True:
             c = rng.uniform(0.08, 0.92, size=(4, 2))
@@ -58,39 +62,51 @@ def random_element(rng):
                 break
         t = np.linspace(0, 1, 200)[:, None]
         dense = (1 - t) ** 3 * c[0] + 3 * (1 - t) ** 2 * t * c[1] + 3 * (1 - t) * t ** 2 * c[2] + t ** 3 * c[3]
-        return 0, resample(dense, P, False), dense, False
+        if not ambiguous:
+            p = resample(dense, P, False)
+            return 0, p, [dense], False, [p]
+        # a double line: the label follows one of the two strokes at random (like a double lane marking
+        # annotated on either stroke); at evaluation either stroke counts as correct
+        tan = np.gradient(dense, axis=0)
+        nrm = np.stack([-tan[:, 1], tan[:, 0]], 1) / np.linalg.norm(tan, axis=1, keepdims=True)
+        a, b = dense + AMBIG_HALF_GAP * nrm, dense - AMBIG_HALF_GAP * nrm
+        alts = [resample(a, P, False), resample(b, P, False)]
+        return 0, alts[int(rng.random() < 0.5)], [a, b], False, alts
     r0 = rng.uniform(0.1, 0.22)  # closed: wobbly ellipse
     ctr = rng.uniform(0.1 + r0 * 1.4, 0.9 - r0 * 1.4, size=2)
     th = np.linspace(0, 2 * np.pi, 200, endpoint=False)
     k, a, phi, ecc = rng.integers(2, 5), rng.uniform(0, 0.25), rng.uniform(0, 2 * np.pi), rng.uniform(0.6, 1.4)
     r = r0 * (1 + a * np.sin(k * th + phi))
     dense = np.stack([ctr[0] + ecc * r * np.cos(th), ctr[1] + r / ecc * np.sin(th)], 1)
-    return 1, resample(dense, P, True), dense, True
+    p = resample(dense, P, True)
+    return 1, p, [dense], True, [p]
 
 
-def make_sample(rng):
+def make_sample(rng, ambiguous=False):
     n = rng.integers(1, MAX_EL + 1)
-    els = [random_element(rng) for _ in range(n)]
+    els = [random_element(rng, ambiguous) for _ in range(n)]
     img = Image.new("L", (S * 2, S * 2), 0)
     d = ImageDraw.Draw(img)
-    for _, _, dense, closed in els:
-        pts = dense * S * 2
-        if closed:
-            pts = np.vstack([pts, pts[:1]])
-        d.line([tuple(p) for p in pts], fill=255, width=4)
+    for _, _, strokes, closed, _ in els:
+        for dense in strokes:
+            pts = dense * S * 2
+            if closed:
+                pts = np.vstack([pts, pts[:1]])
+            d.line([tuple(p) for p in pts], fill=255, width=4)
     img = np.asarray(img.resize((S, S), Image.LANCZOS), dtype=np.uint8)
     labels = np.array([e[0] for e in els])
     pts = np.stack([e[1] for e in els]).astype(np.float32)
-    return img, labels, pts
+    alts = [np.stack(e[4]).astype(np.float32) for e in els]
+    return img, labels, pts, alts
 
 
-def make_dataset(n, seed):
+def make_dataset(n, seed, ambiguous=False):
     rng = np.random.default_rng(seed)
-    imgs, labels, pts = [], [], []
+    imgs, labels, pts, alts = [], [], [], []
     for _ in range(n):
-        i, l, p = make_sample(rng)
-        imgs.append(i), labels.append(l), pts.append(p)
-    return np.stack(imgs), labels, pts
+        i, l, p, a = make_sample(rng, ambiguous)
+        imgs.append(i), labels.append(l), pts.append(p), alts.append(a)
+    return np.stack(imgs), labels, pts, alts
 
 
 def orders(pts, label):
@@ -237,7 +253,7 @@ def average_precision(preds, gts, thr):
         g = gts.get(img, [])
         if not g:
             continue
-        d = np.array([chamfer_px(pts, gp) for gp in g])
+        d = np.array([min(chamfer_px(pts, a) for a in gp) for gp in g])  # gp: acceptable answers (A, P, 2)
         d[used[img]] = np.inf
         j = int(d.argmin())
         if d[j] < thr:
@@ -255,7 +271,7 @@ def average_precision(preds, gts, thr):
 
 @torch.no_grad()
 def evaluate(model, data, thrs=(1.0, 2.0, 3.0)):
-    imgs, labels, pts = data
+    imgs, labels, pts, alts = data
     model.eval()
     preds = {c: [] for c in range(len(CLASSES))}
     for s in range(0, len(imgs), 100):
@@ -269,7 +285,7 @@ def evaluate(model, data, thrs=(1.0, 2.0, 3.0)):
     for thr in thrs:
         aps = []
         for c in range(len(CLASSES)):
-            gts = {i: [p for p, l in zip(pts[i], labels[i]) if l == c] for i in range(len(imgs))}
+            gts = {i: [a for a, l in zip(alts[i], labels[i]) if l == c] for i in range(len(imgs))}
             aps.append(average_precision(preds[c], gts, thr))
         res[f"AP@{thr:g}px"] = float(np.mean(aps))
     res["mAP"] = float(np.mean([res[f"AP@{t:g}px"] for t in thrs]))
@@ -284,9 +300,10 @@ def run(job):
     torch.set_num_threads(1)
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
-    d = np.load(os.path.join(HERE, "data.npz"), allow_pickle=True)
+    d = np.load(os.path.join(HERE, cfg["data"]), allow_pickle=True)
     tr = (d["tr_img"], d["tr_lab"], d["tr_pts"])
-    va = (d["va_img"], d["va_lab"], d["va_pts"])
+    va_alt = d["va_alt"] if "va_alt" in d.files else [p[:, None] for p in d["va_pts"]]  # older data files
+    va = (d["va_img"], d["va_lab"], d["va_pts"], va_alt)
     tr_orders = [[torch.as_tensor(orders(p, l)) for p, l in zip(ps, ls)] for ps, ls in zip(tr[2], tr[1])]
     cost = "nll" if head == "bins_nll" else "l1"
     model = MiniMapTR("l1" if head == "l1" else "bins")
@@ -321,8 +338,8 @@ def run(job):
             log["evals"].append(res)
             print(f"{head:9s} seed {seed} step {step:5d}  loss {float(loss.detach()):.3f}  mAP {res['mAP']:.3f}  "
                   f"flip {res['flip_rate']}", flush=True)
-    os.makedirs(os.path.join(HERE, "runs"), exist_ok=True)
-    with open(os.path.join(HERE, "runs", f"{head}_s{seed}.json"), "w") as f:
+    os.makedirs(os.path.join(HERE, cfg["out"]), exist_ok=True)
+    with open(os.path.join(HERE, cfg["out"], f"{head}_s{seed}.json"), "w") as f:
         json.dump(log, f)
     return log
 
@@ -333,18 +350,21 @@ def main():
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--steps", type=int, default=8000)
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--ambiguous", action="store_true", help="open curves become double lines labelled on either stroke")
     args = ap.parse_args()
-    cfg = dict(steps=args.steps, batch=32, lr=3e-4, eval_every=500)
+    tag = "_amb" if args.ambiguous else ""
+    cfg = dict(steps=args.steps, batch=32, lr=3e-4, eval_every=500, data=f"data{tag}.npz", out=f"runs{tag}")
     n_tr, n_va = 20000, 1000
     if args.quick:
         cfg.update(steps=60, eval_every=30)
         n_tr, n_va = 500, 100
         args.seeds = 1
-    path = os.path.join(HERE, "data.npz")
+    path = os.path.join(HERE, cfg["data"])
     if not os.path.exists(path) or args.quick:
-        tr, va = make_dataset(n_tr, 0), make_dataset(n_va, 1)
-        np.savez_compressed(path, tr_img=tr[0], tr_lab=np.array(tr[1], dtype=object), tr_pts=np.array(tr[2], dtype=object),
-                            va_img=va[0], va_lab=np.array(va[1], dtype=object), va_pts=np.array(va[2], dtype=object))
+        tr, va = make_dataset(n_tr, 0, args.ambiguous), make_dataset(n_va, 1, args.ambiguous)
+        obj = lambda x: np.array(x + [None], dtype=object)[:-1]  # keep ragged per-image lists as object arrays
+        np.savez_compressed(path, tr_img=tr[0], tr_lab=obj(tr[1]), tr_pts=obj(tr[2]),
+                            va_img=va[0], va_lab=obj(va[1]), va_pts=obj(va[2]), va_alt=obj(va[3]))
     jobs = [(h, s, cfg) for s in range(args.seeds) for h in args.heads]
     with Pool(min(len(jobs), os.cpu_count())) as pool:
         pool.map(run, jobs)

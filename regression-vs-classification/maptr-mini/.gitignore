@@ -1,2 +1,2 @@
-data.npz
+data*.npz
 __pycache__/
