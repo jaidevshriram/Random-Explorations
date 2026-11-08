@@ -19,6 +19,7 @@ DATA = np.load(os.path.join(HERE, "video_data.npz"))
 config.background_color = "#121418"
 C_L2, C_L1, C_HUB, C_BIN = "#FC6255", "#FF9F43", "#C5D86D", "#58C4DD"
 C_Y, C_LAB, C_GOOD, C_GHOST = "#FFD93D", "#A0A4AB", "#83C167", "#FF5C8A"
+C_A, C_B = "#ECEFF1", "#90A4AE"  # two neutral shades for "answer A" / "answer B"
 REGION_COLORS = ["#83C167", "#58C4DD", "#FF9F43", "#FC6255"]
 R_OUTER, R_INNER = 0.38, 0.14
 
@@ -48,6 +49,39 @@ class NScene(Scene):
         self._end = t + d
         return d
 
+    def play(self, *args, **kwargs):
+        super().play(*args, **kwargs)
+        self._check_layout()
+
+    def _check_layout(self):
+        """Flag text that leaves the frame or overlaps other text (written out in tear_down)."""
+        texts = []
+
+        def walk(m):
+            if isinstance(m, (SingleStringMathTex, Text)):
+                # a Tex's colour lives on its parts; the object itself reports opacity 0
+                if max((p.get_fill_opacity() for p in m.family_members_with_points()), default=0) > 0.05 and m.width > 0:
+                    texts.append(m)
+            else:
+                for sm in m.submobjects:
+                    walk(sm)
+
+        for m in self.mobjects:
+            walk(m)
+        if not hasattr(self, "_layout"):
+            self._layout = {}
+        xl, yl = config.frame_width / 2 - 0.05, config.frame_height / 2 - 0.05
+        name = lambda m: getattr(m, "tex_string", None) or getattr(m, "text", "?")
+        for m in texts:
+            if m.get_left()[0] < -xl or m.get_right()[0] > xl or m.get_bottom()[1] < -yl or m.get_top()[1] > yl:
+                self._layout.setdefault(f"out of frame: {name(m)[:60]!r}", self.renderer.time)
+        for i, a in enumerate(texts):
+            for b in texts[i + 1:]:
+                w = min(a.get_right()[0], b.get_right()[0]) - max(a.get_left()[0], b.get_left()[0])
+                h = min(a.get_top()[1], b.get_top()[1]) - max(a.get_bottom()[1], b.get_bottom()[1])
+                if w > 0 and h > 0 and w * h > 0.15 * min(a.width * a.height, b.width * b.height):
+                    self._layout.setdefault(f"overlap: {name(a)[:40]!r} / {name(b)[:40]!r}", self.renderer.time)
+
     def sync(self, pad=0.45):
         rest = self._end + pad - self.renderer.time
         if rest > 0.02:
@@ -57,6 +91,9 @@ class NScene(Scene):
         os.makedirs(os.path.join(BUILD, "timing"), exist_ok=True)
         with open(os.path.join(BUILD, "timing", f"{type(self).__name__}.json"), "w") as f:
             json.dump(self._timing, f)
+        os.makedirs(os.path.join(BUILD, "layout"), exist_ok=True)
+        with open(os.path.join(BUILD, "layout", f"{type(self).__name__}.txt"), "w") as f:
+            f.write("\n".join(f"from t={t:.0f}s {msg}" for msg, t in sorted(getattr(self, "_layout", {}).items(), key=lambda kv: kv[1])))
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -109,10 +146,24 @@ def springs(nl, tracker, dots):
         g = VGroup()
         for d in dots:
             L = np.linalg.norm(d.get_center() - p)
-            g.add(spring(p, d.get_center(), stroke_width=1.6 + 0.8 * min(L / 4, 1),
-                         stroke_color=interpolate_color(ManimColor(C_BIN), ManimColor(C_L2), min(L / 4.5, 1)),
-                         stroke_opacity=0.75))
+            g.add(spring(p, d.get_center(), stroke_width=1.6 + 0.8 * min(L / 4, 1), stroke_color=C_L2, stroke_opacity=0.6))
         return g.set_z_index(-1)
+
+    return always_redraw(build)
+
+
+def net_pull(nl, tracker, dots, scale=1.0):
+    """Arrow under the marker showing the total pull of the springs (sum of label - prediction)."""
+
+    def build():
+        p = nl.n2p(tracker.get_value())
+        f = scale * np.mean([d.get_center()[0] - p[0] for d in dots])
+        y = p + 1.25 * DOWN
+        if abs(f) < 0.08:
+            return VGroup(Tex(r"net pull $= 0$", font_size=30, color=C_GOOD).move_to(y + 0.05 * DOWN))
+        arr = Arrow(y, y + RIGHT * f, buff=0, color=C_L2, stroke_width=5, max_tip_length_to_length_ratio=0.3)
+        lab = Tex("net pull", font_size=28, color=C_L2).next_to(arr, DOWN, buff=0.06)
+        return VGroup(arr, lab)
 
     return always_redraw(build)
 
@@ -251,15 +302,34 @@ class S01_Intro(NScene):
         d = self.say()
         everything = VGroup(art, net1, net1_l, arr1, out1, loss1, lab1, net2, net2_l, arr2, mini, bars, lab2, loss2)
         self.play(FadeOut(everything), run_time=1)
-        qn = Tex(r"What does each loss\\ \emph{actually} ask for?", font_size=60)
-        self.play(Write(qn), run_time=2)
+        # teaser: the same ambiguous labels, regression vs bins
+        nl = number_line(y=0.2, length=9)
+        rng = np.random.default_rng(5)
+        vals = np.sort(np.concatenate([0.25 + 0.02 * rng.standard_normal(9), 0.75 + 0.02 * rng.standard_normal(9)]))
+        dots = VGroup(*[Dot(p, radius=0.07, color=C_LAB) for p in dot_plot(nl, vals, step=0.16)])
+        tl = Tex("labels for one input", font_size=32, color=C_LAB).next_to(dots, UP, buff=0.3)
+        self.play(Create(nl), LaggedStart(*[FadeIn(dt, shift=0.4 * DOWN) for dt in dots], lag_ratio=0.05), FadeIn(tl), run_time=1.8)
+        mean = float(vals.mean())
+        tri = Triangle(color=C_L2, fill_opacity=1, stroke_width=0).scale(0.15).move_to(nl.n2p(mean) + 0.25 * DOWN)
+        rl = Tex(r"regression: \emph{here}?", font_size=34, color=C_L2).next_to(tri, DOWN, buff=0.15)
+        self.play(FadeIn(tri, shift=0.3 * UP), Write(rl), run_time=1.2)
+        nl2 = number_line(y=-2.6, length=9)
+        hb = bars_from(nl2, mixture_hist(30, w=(0.5, 0.5), mu=(0.25, 0.75), sd=0.03), 5.5)
+        bl = Tex("bins: two peaks", font_size=34, color=C_BIN).next_to(nl2, DOWN, buff=0.2)
+        self.play(Create(nl2), LaggedStart(*[GrowFromEdge(b, DOWN) for b in hb], lag_ratio=0.03), Write(bl), run_time=1.6)
+        self.wait(max(1.0, d * 0.72 - 6.6))
+        teaser = VGroup(nl, dots, tl, tri, rl, nl2, hb, bl)
+        qn = Tex(r"What does each loss \emph{actually} ask for?", font_size=56)
+        self.play(teaser.animate.scale(0.7).to_edge(DOWN, buff=0.3).set_opacity(0.8), run_time=1.0)
+        qn.to_edge(UP, buff=1.2)
+        self.play(Write(qn), run_time=1.5)
         self.sync(pad=0.8)
 
 
 class S02_Springs(NScene):
     def construct(self):
         rng = np.random.default_rng(3)
-        nl = number_line()
+        nl = number_line(y=-2.0)
         title = Tex(r"L2 loss: springs", color=C_L2, font_size=46).to_corner(UL)
         clustered = np.sort(np.clip(0.42 + 0.06 * rng.standard_normal(40), 0, 1))
         bimodal = np.sort(np.concatenate([0.27 + 0.018 * rng.standard_normal(12), 0.76 + 0.018 * rng.standard_normal(28)]))
@@ -282,8 +352,10 @@ class S02_Springs(NScene):
         formula = MathTex(r"\mathcal{L}_2 = (\hat y - y)^2", color=C_L2).to_corner(UR)
         self.play(FadeOut(lab), Write(title), Write(formula), run_time=1)
         self.play(Create(sp), run_time=1.5)
+        npull = net_pull(nl, yv, dots)
+        self.play(FadeIn(npull), run_time=0.6)
         self.play(yv.animate.set_value(clustered.mean()), run_time=d * 0.45, rate_func=smooth)
-        mean_lab = Tex("mean", color=C_Y, font_size=32).next_to(mk, DOWN, buff=0.05)
+        mean_lab = Tex("mean", color=C_Y, font_size=32).next_to(mk, RIGHT, buff=0.15)
         self.play(FadeIn(mean_lab), run_time=0.5)
         self.sync()
 
@@ -325,7 +397,7 @@ class S03_Ropes(NScene):
     def construct(self):
         rng = np.random.default_rng(3)
         rng.standard_normal(40)
-        nl = number_line()
+        nl = number_line(y=-2.0)
         bimodal = np.sort(np.concatenate([0.27 + 0.018 * rng.standard_normal(12), 0.76 + 0.018 * rng.standard_normal(28)]))
         even = np.sort(np.concatenate([0.27 + 0.018 * rng.standard_normal(20), 0.76 + 0.018 * rng.standard_normal(20)]))
         dots = VGroup(*[Dot(p, radius=0.06, color=C_LAB) for p in dot_plot(nl, bimodal)])
@@ -364,8 +436,9 @@ class S03_Ropes(NScene):
 
         # beat 2: 50/50 -> flat, drifting
         d = self.say()
-        self.play(FadeOut(med), run_time=0.3)
+        self.play(FadeOut(med), FadeOut(vt), run_time=0.3)
         self.play(*[dt.animate.move_to(p) for dt, p in zip(dots, dot_plot(nl, even))], run_time=2)
+        self.play(FadeIn(vt), run_time=0.4)
         ax = landscape_axes(nl, y_bottom=0.8, height=1.9)
         f = expected_loss(even, "l1")
         curve = ax.plot(f, color=C_L1, stroke_width=4)
@@ -442,7 +515,7 @@ class S04_Bins(NScene):
         ce = MathTex(r"\mathcal{L} = -\log p_{\,\text{bin}(y)}", color=C_BIN).next_to(formula, DOWN, aligned_edge=RIGHT)
         self.play(Write(ce), run_time=1)
         for i in range(3):
-            dt = Dot(nl.n2p(labels[i]) + 3.6 * UP, color=C_Y, radius=0.08)
+            dt = Dot(nl.n2p(labels[i]) + 3.6 * UP, color=C_LAB, radius=0.09)
             self.play(FadeIn(dt), run_time=0.25)
             self.play(dt.animate.move_to(nl.n2p(labels[i]) + 0.1 * UP), run_time=0.6)
             self.play(FadeOut(dt, scale=0.3), n.animate.set_value(i + 1), run_time=0.7)
@@ -452,7 +525,7 @@ class S04_Bins(NScene):
         d = self.say()
         rain = []
         for v in labels[3:]:
-            dt = Dot(nl.n2p(v) + (3.4 + 0.6 * rng.random()) * UP, color=C_Y, radius=0.05)
+            dt = Dot(nl.n2p(v) + (3.4 + 0.6 * rng.random()) * UP, color=C_LAB, radius=0.06)
             rain.append(dt)
         anims = [dt.animate.move_to(nl.n2p(v) + 0.1 * UP).set_opacity(0) for dt, v in zip(rain, labels[3:])]
         self.add(*rain)
@@ -476,8 +549,8 @@ class S04_Bins(NScene):
         hard[4] = 1
         soft = np.exp(-0.5 * ((np.arange(k) - 4) / 1.0) ** 2)
         soft /= soft.sum()
-        hb = bars_from(mini, hard, 1.6, color=C_Y)
-        sb = bars_from(mini, soft, 1.6 * 2.2, color=C_Y)
+        hb = bars_from(mini, hard, 1.6, color=C_LAB)
+        sb = bars_from(mini, soft, 1.6 * 2.2, color=C_LAB)
         t_h = Tex("one-hot target", font_size=30).next_to(box.get_top(), DOWN, buff=0.12)
         t_s = Tex("soft target (HL-Gauss)", font_size=30).next_to(box.get_top(), DOWN, buff=0.12)
         self.play(Create(box), Create(mini), FadeIn(hb), Write(t_h), run_time=1.5)
@@ -538,11 +611,39 @@ class S05_Decode(NScene):
         self.play(Create(gap), Write(same), run_time=1.5)
         self.sync()
 
-        # beat 3: argmax, then local mean
+        # beat 3: zoom into one peak: argmax snaps to a bin centre, the local average does not
         d = self.say()
-        self.play(FadeOut(gap), FadeOut(same), FadeOut(fulcrum), f.animate.set_value(mean), run_time=0.6)
+        self.play(FadeOut(gap), FadeOut(same), FadeOut(fulcrum), FadeOut(ev), f.animate.set_value(mean), run_time=0.6)
         self.remove(tb)
         self.add(nl, bars)
+        main = VGroup(nl, bars)
+        self.play(main.animate.set_opacity(0), run_time=0.6)
+        zl = NumberLine(x_range=[0, 7, 1], length=9, color=GREY_B, include_ticks=False).shift(0.4 * DOWN)
+        zedges = VGroup(*[Line(zl.n2p(i), zl.n2p(i) + 0.15 * UP, color=GREY_C) for i in range(8)])
+        true_v = 3.85  # in bin units: between the centres of bins 3 (3.5) and 4 (4.5)
+        zp = np.exp(-0.5 * ((np.arange(7) + 0.5 - true_v) / 0.9) ** 2)
+        zp /= zp.sum()
+        zb = VGroup(*[Rectangle(width=9 / 7 * 0.85, height=6 * v, stroke_width=0, fill_color=C_BIN, fill_opacity=0.85)
+                      .move_to(zl.n2p(i + 0.5), aligned_edge=DOWN) for i, v in enumerate(zp)])
+        zt = Tex("zoom: one peak", font_size=34, color=GREY_B).move_to(LEFT * 4.6 + UP * 2.2)
+        self.play(Create(zl), Create(zedges), LaggedStart(*[GrowFromEdge(b, DOWN) for b in zb], lag_ratio=0.08),
+                  FadeIn(zt), run_time=1.5)
+        tick = Line(zl.n2p(true_v) + 0.1 * DOWN, zl.n2p(true_v) + 2.9 * UP, color=C_GOOD, stroke_width=5)
+        tt = Tex("true value", font_size=32, color=C_GOOD).next_to(tick, UP, buff=0.1)
+        self.play(Create(tick), FadeIn(tt), run_time=1.0)
+        am_v = float(np.argmax(zp) + 0.5)
+        tri_a = Triangle(color=C_BIN, fill_opacity=1, stroke_width=0).scale(0.16).move_to(zl.n2p(am_v) + 0.3 * DOWN)
+        ta = Tex(r"argmax:\\a bin centre", font_size=30, color=C_BIN).next_to(tri_a, DOWN, buff=0.1).shift(0.9 * LEFT)
+        self.play(FadeIn(tri_a, shift=0.3 * UP), FadeIn(ta), run_time=1.0)
+        lm_v = float((zp * (np.arange(7) + 0.5)).sum())
+        tri_m = Triangle(color=C_Y, fill_opacity=1, stroke_width=0).scale(0.16).move_to(zl.n2p(lm_v) + 0.3 * DOWN)
+        tm = Tex(r"average:\\on the true value", font_size=30, color=C_Y).next_to(tri_m, DOWN, buff=0.1).shift(1.1 * RIGHT)
+        self.play(FadeIn(tri_m, shift=0.3 * UP), FadeIn(tm), run_time=1.0)
+        self.sync()
+
+        # beat 4: the recipe
+        d = self.say()
+        self.play(FadeOut(VGroup(zl, zedges, zb, zt, tick, tt, tri_a, ta, tri_m, tm)), main.animate.set_opacity(1), run_time=0.8)
         win = Rectangle(width=nl.get_length() * 0.14, height=3.2, color=C_GOOD, fill_opacity=0.08).move_to(
             nl.n2p(am) + 1.55 * UP)
         t_win = Tex(r"1.\ pick the peak", color=C_GOOD, font_size=32).next_to(win, UP, buff=0.1)
@@ -557,8 +658,8 @@ class S05_Decode(NScene):
 
 class S06_Results(NScene):
     def construct(self):
-        ax = Axes(x_range=[0, 1, 0.25], y_range=[0, 1, 0.5], x_length=8.4, y_length=5.0, tips=False,
-                  axis_config={"color": GREY_C, "include_ticks": False}).shift(2.4 * LEFT + 0.55 * DOWN)
+        ax = Axes(x_range=[0, 1, 0.25], y_range=[0, 1, 0.5], x_length=8.2, y_length=5.0, tips=False,
+                  axis_config={"color": GREY_C, "include_ticks": False}).shift(2.0 * LEFT + 0.55 * DOWN)
         xl = Tex(r"input $x$", font_size=34, color=GREY_B).next_to(ax.x_axis, DOWN, buff=0.15)
         yl = Tex(r"label $y$", font_size=34, color=GREY_B).rotate(PI / 2).next_to(ax.y_axis, LEFT, buff=0.15)
         rng = np.random.default_rng(0)
@@ -570,7 +671,7 @@ class S06_Results(NScene):
         y = np.where(pick, lo, up) + 0.015 * rng.standard_normal(700)
         out = (reg == 1) & (rng.random(700) < 0.1)
         y = np.clip(np.where(out, rng.random(700), y), 0, 1)
-        pts = VGroup(*[Dot(ax.c2p(a, b), radius=0.022, color=C_LAB, fill_opacity=0.8) for a, b in zip(x, y)])
+        pts = VGroup(*[Dot(ax.c2p(a, b), radius=0.03, color="#C8CCD2") for a, b in zip(x, y)])
         gx = np.linspace(0, 1, len(DATA["l2_1d"]))
         X0 = 0.875
         k0 = int(np.argmin(np.abs(gx - X0)))
@@ -615,11 +716,11 @@ class S06_Results(NScene):
         # beat 2: the four regions
         d = self.say()
         names = ["one clean\\\\answer", "a few junk\\\\labels", "two answers\\\\70/30", "two answers\\\\50/50"]
-        shades = VGroup(*[Rectangle(width=ax.x_length / 4, height=ax.y_length, stroke_width=0, fill_color=c,
-                                    fill_opacity=0.1).move_to(ax.c2p(0.125 + 0.25 * i, 0.5))
-                          for i, c in enumerate(REGION_COLORS)])
-        rl = VGroup(*[Tex(n, font_size=28, color=c).next_to(ax.c2p(0.125 + 0.25 * i, 1), UP, buff=0.1)
-                      for i, (n, c) in enumerate(zip(names, REGION_COLORS))])
+        shades = VGroup(*[Rectangle(width=ax.x_length / 4, height=ax.y_length, stroke_width=0, fill_color=WHITE,
+                                    fill_opacity=0.07 if i % 2 == 0 else 0.02).move_to(ax.c2p(0.125 + 0.25 * i, 0.5))
+                          for i in range(4)])
+        rl = VGroup(*[Tex(n, font_size=30, color=GREY_A).next_to(ax.c2p(0.125 + 0.25 * i, 1), UP, buff=0.1)
+                      for i, n in enumerate(names)])
         for i in range(4):
             self.play(FadeIn(shades[i]), Write(rl[i]), run_time=min(1.2, d / 5))
         self.sync()
@@ -637,12 +738,18 @@ class S06_Results(NScene):
         self.play(FadeIn(m2, shift=0.2 * LEFT), run_time=0.8)
         self.sync()
 
-        # beat 4: L1
+        # beat 4: L1, three training runs
         d = self.say()
-        l1 = polyline(ax, gx, DATA["l1_1d"], color=C_L1, stroke_width=5)
-        self.play(Create(l1), run_time=d * 0.5, rate_func=linear)
-        m1 = side_marker(DATA["l1_1d"][k0], C_L1, "L1")
+        seeds = DATA["l1_1d_seeds"]
+        l1s = VGroup(*[polyline(ax, gx, seeds[i], color=C_L1, stroke_width=4) for i in range(len(seeds))])
+        self.play(Create(l1s[0]), run_time=d * 0.35, rate_func=linear)
+        runs = Tex(r"L1: 3 training runs", font_size=30, color=C_L1).move_to(ax.c2p(0.62, 0.06))
+        self.play(Create(l1s[1]), Create(l1s[2]), FadeIn(runs), run_time=d * 0.3, rate_func=linear)
+        m1 = VGroup(*[Triangle(color=C_L1, fill_opacity=1, stroke_width=0).scale(0.09).rotate(-PI / 2)
+                      .move_to(p_of(seeds[i][k0]) + 0.2 * LEFT) for i in range(len(seeds))])
+        m1.add(Tex("L1", font_size=28, color=C_L1).next_to(m1, LEFT, buff=0.08))
         self.play(FadeIn(m1, shift=0.2 * LEFT), run_time=0.8)
+        l1 = l1s
         self.sync()
 
         # beat 5: the bin head's histogram for every x
@@ -654,7 +761,7 @@ class S06_Results(NScene):
         img[..., 3] = (np.clip(a, 0, 1) * 230).astype(np.uint8)
         im = ImageMobject(img).stretch_to_fit_width(ax.x_length).stretch_to_fit_height(ax.y_length).move_to(ax.c2p(0.5, 0.5))
         self.play(l2.animate.set_stroke(opacity=0.25), l1.animate.set_stroke(opacity=0.25), pts.animate.set_opacity(0.2),
-                  FadeOut(shades), run_time=0.8)
+                  FadeOut(shades), FadeOut(runs), run_time=0.8)
         self.play(FadeIn(im), run_time=2.0)
         pb = dens[k0] / dens[k0].max()
         cb = (np.arange(256) + 0.5) / 256
@@ -665,9 +772,10 @@ class S06_Results(NScene):
 
         # beat 6: argmax
         d = self.say()
-        am = polyline(ax, gx, DATA["bins_am_1d"], color=C_Y, stroke_width=3)
-        self.play(Create(am), run_time=d * 0.45, rate_func=linear)
-        mb = side_marker(DATA["bins_am_1d"][k0], C_Y, "bins")
+        # dots, not a line: a line would draw the jumps straight through the empty gap
+        am = VGroup(*[Dot(ax.c2p(a, b), radius=0.035, color=WHITE) for a, b in zip(gx[::2], DATA["bins_am_1d"][::2])])
+        self.play(LaggedStart(*[FadeIn(p) for p in am], lag_ratio=0.01), run_time=d * 0.45)
+        mb = side_marker(DATA["bins_am_1d"][k0], WHITE, "bins")
         self.play(FadeIn(mb, shift=0.2 * LEFT), run_time=0.8)
         self.sync()
 
@@ -675,8 +783,8 @@ class S06_Results(NScene):
         d = self.say()
         everything = Group(*[m for m in self.mobjects])
         self.play(FadeOut(everything), run_time=0.8)
-        head = Tex(r"average distance to the nearest correct answer\\(the two ambiguous regions)", font_size=38).to_edge(UP, buff=0.7)
-        vals = [("L2", 0.17, C_L2), ("L1", 0.04, C_L1), ("bins", 0.002, C_Y)]
+        head = Tex(r"average distance to the \emph{nearest} correct answer\\(the two ambiguous regions)", font_size=38).to_edge(UP, buff=0.5)
+        vals = [("L2", 0.17, C_L2), ("L1", 0.04, C_L1), ("bins", 0.002, C_BIN)]
         rows = VGroup()
         for i, (n, v, col) in enumerate(vals):
             lab = Tex(n, font_size=44, color=col).move_to(LEFT * 5 + UP * (0.9 - 1.3 * i))
@@ -687,7 +795,8 @@ class S06_Results(NScene):
         self.play(Write(head), run_time=1.2)
         for r in rows:
             self.play(FadeIn(r[0]), GrowFromEdge(r[1], LEFT), FadeIn(r[2]), run_time=0.9)
-        times = Tex(r"about $100\times$ smaller", font_size=40, color=C_Y).next_to(rows[2], DOWN, buff=0.6).align_to(rows[2][1], LEFT)
+        times = Tex(r"$\approx 85\times$ better than L2, $20\times$ better than L1", font_size=38,
+                    color=C_BIN).next_to(rows[2], DOWN, buff=0.6).align_to(rows[2][1], LEFT)
         self.play(Write(times), run_time=1.0)
         self.sync(pad=0.8)
 
@@ -730,8 +839,14 @@ class S07_CoarseFine(NScene):
             b = np.exp(-0.5 * ((np.arange(K) - center) / sd) ** 2)
             return b / b.sum()
 
-        # beat 0: coarse
+        # beat 0: the cost of a joint histogram motivates the two-step trick
         d = self.say()
+        cost = VGroup(Tex(r"a joint $(x, y)$ histogram at 256 bins per axis:", font_size=40),
+                      Tex(r"$256 \times 256 = 65{,}536$ bins per point", font_size=52, color=C_L2)).arrange(DOWN, buff=0.35)
+        self.play(Write(cost[0]), run_time=1.2)
+        self.play(Write(cost[1]), run_time=1.2)
+        self.wait(max(0.5, d * 0.35 - 2.4))
+        self.play(FadeOut(cost), run_time=0.6)
         self.play(Write(title), Create(cells), run_time=1.5)
         self.play(FadeIn(cbars, shift=0.2 * UP), Write(lab_c), run_time=1.2)
         self.sync()
@@ -758,12 +873,12 @@ class S07_CoarseFine(NScene):
         # beat 3: two answers, at different spots inside their coarse bins
         d = self.say()
         self.play(FadeOut(VGroup(box, lines, cone, fb, lab_f, eq, ok)), cells[11].animate.set_stroke(GREY_C, 2), run_time=0.8)
-        boxA, linesA, coneA = zoom_box(4, np.array([-3.4, 0.1, 0]), 5.6, color=C_GOOD)
-        boxB, linesB, coneB = zoom_box(11, np.array([3.4, 0.1, 0]), 5.6, color=C_L1)
-        dotA = Dot(boxA.get_left() + RIGHT * 5.6 * 0.25, color=C_GOOD, radius=0.12)
-        dotB = Dot(boxB.get_left() + RIGHT * 5.6 * 0.75, color=C_L1, radius=0.12)
-        tA = Tex(r"answer A:\\near the left of its bin", font_size=30, color=C_GOOD).next_to(boxA, DOWN, buff=0.25)
-        tB = Tex(r"answer B:\\near the right of its bin", font_size=30, color=C_L1).next_to(boxB, DOWN, buff=0.25)
+        boxA, linesA, coneA = zoom_box(4, np.array([-3.4, 0.1, 0]), 5.6, color=C_A)
+        boxB, linesB, coneB = zoom_box(11, np.array([3.4, 0.1, 0]), 5.6, color=C_B)
+        dotA = Dot(boxA.get_left() + RIGHT * 5.6 * 0.25, color=C_A, radius=0.12)
+        dotB = Dot(boxB.get_left() + RIGHT * 5.6 * 0.75, color=C_B, radius=0.12)
+        tA = Tex(r"answer A:\\near the left of its bin", font_size=30, color=C_A).next_to(boxA, DOWN, buff=0.25)
+        tB = Tex(r"answer B:\\near the right of its bin", font_size=30, color=C_B).next_to(boxB, DOWN, buff=0.25)
         self.play(Create(coneA), Create(boxA), Create(linesA), Create(coneB), Create(boxB), Create(linesB), run_time=1.5)
         self.play(FadeIn(dotA, scale=1.5), Write(tA), run_time=1.2)
         self.play(FadeIn(dotB, scale=1.5), Write(tB), run_time=1.2)
@@ -776,14 +891,14 @@ class S07_CoarseFine(NScene):
                                      color=GREY_C, stroke_width=1.5) for j in range(1, K)])
         sh = 0.45 * bump(4) + 0.55 * bump(12)
         sbars = VGroup(*[Rectangle(width=7 / K * 0.75, height=max(3.4 * v, 0.001), stroke_width=0,
-                                   fill_color=C_GOOD if j < 8 else C_L1, fill_opacity=0.85)
+                                   fill_color=C_A if j < 8 else C_B, fill_opacity=0.85)
                          .move_to(shared_box.get_corner(UL) + RIGHT * 7 * (j + 0.5) / K, aligned_edge=DOWN)
                          for j, v in enumerate(sh)])
         st = Tex("one shared fine histogram", font_size=30, color=C_HUB).next_to(shared_box, DOWN, buff=0.15)
         self.play(FadeOut(tA), FadeOut(tB), run_time=0.4)
         self.play(Create(shared_box), Create(shared_lines), Write(st),
                   TransformFromCopy(dotA, sbars[:8]), TransformFromCopy(dotB, sbars[8:]), run_time=2.0)
-        self.play(cells[4].animate.set_stroke(C_GOOD, 5), Indicate(cbars[4], color=C_GOOD), run_time=1.0)
+        self.play(cells[4].animate.set_stroke(C_A, 5), Indicate(cbars[4], color=C_A), run_time=1.0)
         self.play(Indicate(sbars[12], color=C_L2, scale_factor=1.3), run_time=1.0)
         bad = Cross(scale_factor=0.16, stroke_color=C_L2, stroke_width=7).move_to(boxA.get_left() + RIGHT * 5.6 * 0.75)
         bl = Tex(r"A's bin $+$ B's spot $=$ neither", font_size=32, color=C_L2).next_to(boxA, DOWN, buff=0.25)
@@ -793,8 +908,9 @@ class S07_CoarseFine(NScene):
         # beat 5: the takeaway
         d = self.say()
         self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
-        take = VGroup(Tex(r"Give each coarse bin its own fine histogram", font_size=40, color=C_GOOD),
-                      Tex(r"--- or just use one big softmax.", font_size=40, color=C_BIN)).arrange(DOWN, buff=0.3)
+        take = VGroup(Tex(r"Worth it when one softmax would be huge,", font_size=40, color=C_BIN),
+                      Tex(r"like a joint $(x, y)$ histogram: pick $x$, then $y$ given $x$.", font_size=40, color=C_BIN),
+                      Tex(r"Always let the fine choice depend on the coarse one.", font_size=40, color=C_GOOD)).arrange(DOWN, buff=0.35)
         self.play(Write(take), run_time=2.0)
         self.sync(pad=0.8)
 
@@ -822,51 +938,71 @@ class S08_LetterO(NScene):
         self.play(FadeIn(lo_), FadeIn(li_), run_time=0.8)
         self.sync()
 
-        # beat 1: input = position along the path, output = a point
+        # beat 1: input = position along the path, output = a point; the same four regions, one per quarter
         d = self.say()
-        tt = ValueTracker(0.05)
+        tt = ValueTracker(0.03)
         ray = always_redraw(lambda: DashedLine(ax.c2p(0.5, 0.5), ax.c2p(*ring_pt(tt.get_value(), R_OUTER + 0.08)),
                                                color=GREY_B, stroke_width=2))
         pt = always_redraw(lambda: Dot(ax.c2p(*ring_pt(tt.get_value(), R_OUTER)), color=C_Y, radius=0.11))
         io = VGroup(Tex(r"input: position along the path", font_size=34, color=GREY_B),
                     Tex(r"output: a point $(x, y)$", font_size=34, color=C_Y)).arrange(DOWN, aligned_edge=LEFT, buff=0.3)
-        io.move_to(side + 1.8 * UP)
+        io.move_to(side + 2.4 * UP)
         self.play(Create(ray), FadeIn(pt), Write(io[0]), run_time=1.2)
-        self.play(Write(io[1]), tt.animate.set_value(0.35), run_time=d * 0.5, rate_func=smooth)
+        self.play(Write(io[1]), run_time=1.0)
+        qnames = ["clean", r"junk\\labels", "70/30", "50/50"]
+        qlab = VGroup(*[Tex(n, font_size=30, color=GREY_A).move_to(ax.c2p(*ring_pt(0.125 + 0.25 * i, 0.47)))
+                        for i, n in enumerate(qnames)])
+        for i in range(4):
+            self.play(tt.animate.set_value(0.25 * i + 0.2), FadeIn(qlab[i]), run_time=max(0.8, (d - 3) / 4.5), rate_func=smooth)
         self.sync()
 
-        # beat 2: in one quarter, half the labels say inner
+        # beat 2: the 50/50 quarter: half the labels say inner
         d = self.say()
         quarter = AnnularSector(inner_radius=0, outer_radius=S * 0.47, angle=PI / 2, start_angle=-PI / 2,
                                 color=C_GHOST, fill_opacity=0.12, stroke_width=0).move_arc_center_to(ax.c2p(0.5, 0.5))
         self.play(tt.animate.set_value(0.875), FadeIn(quarter), run_time=1.8)
         po, pi_ = ax.c2p(*ring_pt(0.875, R_OUTER)), ax.c2p(*ring_pt(0.875, R_INNER))
         rng = np.random.default_rng(2)
-        labs = VGroup(*[Dot((po if k % 2 == 0 else pi_) + 0.09 * rng.standard_normal(3) * np.array([1, 1, 0]),
-                            color=C_LAB, radius=0.045) for k in range(14)])
-        t5 = Tex(r"here: 50\% of labels on the outer ring,\\50\% on the inner ring", font_size=32,
-                 color=C_GHOST).move_to(side + 0.2 * UP)
-        self.play(LaggedStart(*[FadeIn(l_, scale=2) for l_ in labs], lag_ratio=0.15), Write(t5), run_time=d * 0.55)
+        labs = VGroup(*[Dot((po if k % 2 == 0 else pi_) + 0.07 * rng.standard_normal(3) * np.array([1, 1, 0]),
+                            color=C_LAB, radius=0.07) for k in range(12)])
+        t5 = Tex(r"same input: half the labels on\\the outer ring, half on the inner", font_size=32,
+                 color=C_GHOST).move_to(side + 0.9 * UP)
+        self.play(FadeOut(pt), LaggedStart(*[FadeIn(l_, scale=2) for l_ in labs], lag_ratio=0.15), Write(t5), run_time=d * 0.55)
         self.sync()
 
-        # beat 3: L2 averages -> a phantom ring
+        # beat 3: L2, quarter by quarter
         d = self.say()
-        mid = Dot((np.array(po) + np.array(pi_)) / 2, color=C_L2, radius=0.12)
-        ml = Tex("L2: the average", font_size=30, color=C_L2).next_to(mid, RIGHT, buff=0.15)
-        self.play(FadeOut(pt), FadeIn(mid, scale=1.5), Write(ml), run_time=1.2)
+        self.play(FadeOut(ray), FadeOut(labs), run_time=0.4)
         l2 = DATA["l2_2d"]
-        l2c = polyline(ax, l2[:, 0], l2[:, 1], color=C_L2, stroke_width=5)
-        tl = Tex(r"L2 over the whole path:\\a ring that isn't in the letter", font_size=32, color=C_L2).move_to(side + 1.6 * DOWN)
-        self.play(FadeOut(ml), FadeOut(ray), Create(l2c), Write(tl), run_time=d * 0.55, rate_func=linear)
+        tq = np.linspace(0, 1, len(l2))
+        segs = [polyline(ax, l2[(tq >= q / 4) & (tq <= (q + 1) / 4 + 0.004), 0], l2[(tq >= q / 4) & (tq <= (q + 1) / 4 + 0.004), 1],
+                         color=C_L2, stroke_width=5) for q in range(4)]
+        notes = [r"clean: on the ring", r"junk labels: pulled inward", r"70/30: 70\% of the way out",
+                 r"50/50: exactly halfway"]
+        nt = VGroup(*[Tex(n, font_size=30, color=C_L2) for n in notes]).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
+        nt.next_to(t5, DOWN, buff=0.85).align_to(t5, LEFT)
+        l2h = Tex("L2:", font_size=34, color=C_L2).next_to(nt, UP, buff=0.2).align_to(nt, LEFT)
+        self.play(FadeIn(l2h), run_time=0.4)
+        for q in range(4):
+            self.play(Create(segs[q]), FadeIn(nt[q]), run_time=max(0.9, (d - 1.5) / 4.6), rate_func=linear)
+        l2c = VGroup(*segs)
         self.sync()
 
-        # beat 4: bins land on real rings
+        # beat 4: bins land on the real rings, except for a few strays in the 50/50 quarter
         d = self.say()
         bp = DATA["bins_am_2d"]
-        bdots = VGroup(*[Dot(ax.c2p(a, b), radius=0.04, color=C_BIN) for a, b in bp])
-        tb = Tex(r"bins (argmax): on the real rings\dots mostly", font_size=32, color=C_BIN).move_to(side + 2.6 * DOWN)
-        self.play(l2c.animate.set_stroke(opacity=0.25), mid.animate.set_opacity(0.3), FadeOut(labs), run_time=0.6)
-        self.play(LaggedStart(*[FadeIn(b) for b in bdots], lag_ratio=0.008), Write(tb), run_time=d * 0.6)
+        rb = np.linalg.norm(bp - 0.5, axis=1)
+        stray = (np.abs(rb - R_OUTER) > 0.03) & (np.abs(rb - R_INNER) > 0.03)
+        bdots = VGroup(*[Dot(ax.c2p(a, b), radius=0.045, color=C_BIN) for a, b in bp])
+        tb = Tex(r"bins (argmax): on the real rings\dots", font_size=32, color=C_BIN).next_to(nt, DOWN, buff=0.4).align_to(nt, LEFT)
+        self.play(l2c.animate.set_stroke(opacity=0.25), nt.animate.set_opacity(0.4), l2h.animate.set_opacity(0.4), run_time=0.6)
+        self.play(LaggedStart(*[FadeIn(b) for b in bdots], lag_ratio=0.006), Write(tb), run_time=d * 0.45)
+        sp_ = bp[stray]
+        ring_c = Circle(radius=0.8, color=C_GHOST, stroke_width=4).move_to(ax.c2p(*sp_.mean(0)))
+        ring_c = DashedVMobject(ring_c, num_dashes=24)
+        q_ = Tex(r"\dots except these strays", font_size=32, color=C_GHOST).next_to(tb, DOWN, buff=0.2).align_to(tb, LEFT)
+        self.play(Create(ring_c), *[bdots[i].animate.set_color(C_GHOST).scale(1.4) for i in np.where(stray)[0]],
+                  Write(q_), run_time=1.5)
         self.sync()
 
         # beat 5: zoom into the 50/50 quarter; the x and y histograms
@@ -880,7 +1016,7 @@ class S08_LetterO(NScene):
         tz = np.linspace(0.73, 1.02, 120)
         zo = polyline(Z, *ring_pt(tz, R_OUTER), color=WHITE, stroke_width=3)
         zi = polyline(Z, *ring_pt(tz, R_INNER), color=WHITE, stroke_width=3)
-        zt = Tex(r"zoom: the 50/50 quarter, one input", font_size=32, color=C_GHOST).to_corner(UL)
+        zt = Tex(r"zoom:\\the 50/50 quarter,\\one input", font_size=32, color=C_GHOST).to_corner(UL)
         self.play(Create(Z), Create(zo), Create(zi), Write(zt), run_time=1.5)
         xo, yo = ring_pt(0.875, R_OUTER)
         xi, yi = ring_pt(0.875, R_INNER)
@@ -977,25 +1113,56 @@ class S09_Summary(NScene):
         self.play(Write(tl2), run_time=1.0)
         self.sync()
 
-        # beat 2: bins keep both, then commit
+        # beat 2: per-point bins: one point's histogram has two peaks
         d = self.say()
-        h1, h2 = query.copy(), query.copy()
-        self.play(Transform(h1, path(circ, color=C_BIN, stroke_width=7)), Transform(h2, path(sq, color=C_BIN, stroke_width=7)),
-                  FadeOut(query), FadeOut(tl2), run_time=2)
-        tb = Tex(r"bins: keep both possibilities\dots", font_size=34, color=C_BIN).move_to(2.2 * DOWN)
-        self.play(FadeIn(tb), run_time=0.8)
-        tc = Tex(r"\dots then commit to one", font_size=34, color=C_Y).next_to(tb, DOWN, buff=0.2)
-        self.play(h2.animate.set_stroke(opacity=0.15), h1.animate.set_stroke(C_Y, 8), FadeIn(tc), run_time=1.2)
+        self.play(FadeOut(query), FadeOut(tl2), run_time=0.8)
+        k = 4  # one point of the shape (the corner at 45 degrees)
+        pc_, ps_ = np.array([*circ[k], 0]), np.array([*sq[k], 0])
+        glow = VGroup(*[Dot(p_, radius=0.16, color=C_BIN) for p_ in (pc_, ps_)])
+        link = DashedLine(pc_, ps_, color=C_BIN, stroke_width=2)
+        tk = Tex(r"one point of the shape: its histogram has two peaks", font_size=32, color=C_BIN).move_to(1.9 * DOWN)
+        mini = NumberLine(x_range=[0, 1, 1], length=3.2, color=GREY_B, include_ticks=False).move_to(0.5 * DOWN)
+        mh = bars_from(mini, mixture_hist(20, w=(0.5, 0.5), mu=(0.2, 0.8), sd=0.05), 3.5)
+        ml = VGroup(Tex("circle", font_size=26, color=C_BIN).next_to(mini.n2p(0.2), DOWN, buff=0.1),
+                    Tex("square", font_size=26, color=C_BIN).next_to(mini.n2p(0.8), DOWN, buff=0.1))
+        self.play(FadeIn(glow, scale=2), Create(link), Write(tk), run_time=1.5)
+        self.play(Create(mini), LaggedStart(*[GrowFromEdge(b, DOWN) for b in mh], lag_ratio=0.03), FadeIn(ml), run_time=1.2)
+        self.play(Indicate(glow, color=C_BIN, scale_factor=1.4), run_time=1.0)
         self.sync()
 
-        # beat 3: summary card
+        # beat 3: every point choosing its own peak -> a chimera shape
+        d = self.say()
+        pick = np.arange(n) < n // 2  # e.g. the first half of the points chose the circle, the rest the square
+        chim = np.where(pick[:, None], circ, sq)
+        chimera = path(chim, color=C_GHOST, stroke_width=4)
+        tc_ = Tex(r"each point picks its own peak: a chimera, on neither shape", font_size=32, color=C_GHOST).move_to(2.6 * DOWN)
+        self.play(FadeOut(glow), FadeOut(link), FadeOut(mini), FadeOut(mh), FadeOut(ml), run_time=0.5)
+        cdots = VGroup(*[Dot(np.array([*p_, 0]), radius=0.07, color=C_GHOST) for p_ in chim])
+        self.play(LaggedStart(*[FadeIn(c_, scale=2) for c_ in cdots], lag_ratio=0.05), run_time=2.0)
+        self.play(Create(chimera), Write(tc_), run_time=2.0)
+        self.sync()
+
+        # beat 4: the points must decide together
+        d = self.say()
+        self.play(FadeOut(chimera), FadeOut(cdots), FadeOut(tc_), FadeOut(tk), run_time=0.8)
+        first = Dot(np.array([*circ[0], 0]), radius=0.12, color=C_Y)
+        tf = Tex(r"decode together: the first point picks the circle\dots", font_size=32, color=C_Y).move_to(1.9 * DOWN)
+        self.play(FadeIn(first, scale=2), Write(tf), run_time=1.2)
+        follow = VGroup(*[Dot(np.array([*p_, 0]), radius=0.08, color=C_Y) for p_ in circ[1:]])
+        tf2 = Tex(r"\dots and every later point follows", font_size=32, color=C_Y).next_to(tf, DOWN, buff=0.15)
+        self.play(LaggedStart(*[FadeIn(f_, scale=1.5) for f_ in follow], lag_ratio=0.08), FadeIn(tf2), run_time=2.5)
+        self.play(gt_c.animate.set_stroke(C_Y, 6), run_time=0.8)
+        self.sync()
+
+        # beat 5: summary card
         d = self.say()
         self.play(FadeOut(Group(*self.mobjects)), run_time=0.8)
         lines = VGroup(
             Tex(r"L2 $\;\rightarrow\;$ the mean", color=C_L2),
             Tex(r"L1 $\;\rightarrow\;$ the median", color=C_L1),
             Tex(r"Bins $\;\rightarrow\;$ the whole distribution", color=C_BIN),
-            Tex(r"Decode with care: take the peak, refine inside it,\\ and watch out for ghosts", color=C_Y),
+            Tex(r"Decode: take the peak, then average inside it", color=C_Y),
+            Tex(r"Choices that must agree ($x$ and $y$, the points of a shape):\\decide them together", color=C_GOOD),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.45).move_to(ORIGIN)
         for ln in lines:
             self.play(Write(ln), run_time=min(1.6, d / 5))

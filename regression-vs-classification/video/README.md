@@ -1,16 +1,25 @@
 # Video explainer
 
-`regression_vs_classification.mp4` is an 8.4-minute animation narrated with the ElevenLabs "Chris" voice over an original ambient piano track, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
+`regression_vs_classification.mp4` is a 10.6-minute animation narrated with the ElevenLabs "Chris" voice over an original ambient piano track, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
 
-1. **Intro**: regression vs. bins for one coordinate of a vector shape.
-2. **L2 = springs**: the prediction settles at the mean, which falls in the gap when the labels are bimodal. Includes the loss "bowl".
+1. **Intro**: regression vs. bins for one coordinate of a vector shape, then a teaser: ambiguous labels, regression landing in the empty gap, bins showing two peaks.
+2. **L2 = springs**: a net-pull arrow shows the springs cancelling at the mean, which falls in the gap when the labels are bimodal. Includes the loss "bowl".
 3. **L1 = ropes**: a vote, so it settles at the median. At 50/50 the loss is flat and the prediction drifts. Then: how hard each loss pushes.
-4. **Bins**: each label raises only its own bin, so both peaks grow and there is no tug of war. Also covers soft (HL-Gauss) labels.
-5. **Decoding**: argmax picks a real answer. The expected value is the histogram's balance point, which is the mean again. Best recipe: take the peak, then average inside it.
-6. **Real results** from `experiment.py`: each vertical slice of the x–y plot is one of the earlier number lines. A side panel follows one 50/50 slice while the L2, L1 and bin-head predictions are added, and the final errors are shown as bars.
-7. **Coarse-to-fine bins**: with a fine histogram per coarse bin, it is the same as one big softmax. A worked example shows how a shared fine histogram combines answer A's coarse bin with answer B's spot.
-8. **Letter O (2D)**: what the input and output are, the ambiguous quarter, and L2's phantom ring. Then a zoom into one input, where the x and y histograms combine into two real points and two ghosts; a joint (x, y) softmax removes the ghosts.
-9. **Back to your SVG model**: the Hungarian matching flips a query between two shapes from batch to batch, regression averages them, and bins keep both. Then a summary.
+4. **Bins**: each label raises its own bin and takes probability from the others, so both peaks grow until the histogram matches the label frequencies. Also covers soft (HL-Gauss) labels.
+5. **Decoding**: argmax picks a real answer. The expected value is the histogram's balance point, the mean again. A zoom shows argmax stuck on a bin centre while the local average lands on the true value: pick the peak, then average inside it.
+6. **Real results** from `experiment.py`: each vertical slice of the x–y plot is one of the earlier number lines. A side panel follows one 50/50 slice while L2, three L1 training runs and the bin head are added. The final errors are bars: about 85× better than L2 and 20× better than L1, measured as distance to the nearest correct answer.
+7. **Letter O (2D)**: the same four regions, one per quarter, and what L2 does in each. The bin head's strays lead into a zoom where separate x and y histograms create ghost points and a joint (x, y) histogram removes them.
+8. **Coarse-to-fine bins**, motivated by the cost of that joint histogram (65,536 bins). With a fine histogram per coarse bin it equals one big softmax; a shared fine histogram can combine answer A's coarse bin with answer B's spot.
+9. **Back to your SVG model**: Hungarian matching flips a query between two shapes, and regression averages them. Per-point bins alone can build a chimera (half circle, half square), so the points must be decoded together. Then a summary.
+
+## Production notes
+
+These came from an independent review and from research on what makes 3Blue1Brown-style explainers work. They're built into the pipeline:
+
+- **Show, don't assert.** Every claim gets a visual (the net-pull arrow, three L1 runs, the argmax-vs-average zoom). Open with a concrete puzzle before any formula. These follow Grant Sanderson's "concrete before abstract" advice and Mayer's multimedia principles.
+- **Colours keep one meaning:** grey = labels, red = L2, orange = L1, blue = bins/softmax, yellow = the prediction ŷ, green = correct/real, pink = ghosts. Answers A and B use neutral shades.
+- **Automatic layout check:** after every animation, `NScene` flags text that leaves the frame or overlaps other text, and `make_video.py` prints the warnings. This addresses layout errors, the most common failure in AI-made manim videos (TheoremExplainAgent, Code2Video, OmniManim).
+- **Music** stays at least 18 dB under the narration in pauses and more than 20 dB under it during speech (cf. WCAG 1.4.7).
 
 ## Re-rendering
 
@@ -25,6 +34,6 @@ python make_video.py --no-music
 
 - `narration.py`: the script. Each beat is one TTS clip, and the scenes sync their animations to the clip lengths. Edit the text and re-run; only changed clips (and their neighbours) are regenerated.
 - ElevenLabs clips are sent with the neighbouring lines as context so the intonation flows. Each new clip is transcribed with Whisper and regenerated if it contains extra speech, since ElevenLabs occasionally repeats the end of a sentence.
-- `music.py`: original background music, synthesised from code (a slow piano arpeggio in D major over a soft pad, with reverb), so there is nothing to license. In the mix the narration is loudness-normalised to -16 LUFS, and the music sits about 12 dB under it, ducking further while the voice is speaking.
+- `music.py`: original background music, synthesised from code (a slow piano arpeggio in D major over a soft pad, with reverb), so there is nothing to license. In the mix the narration is loudness-normalised to -16 LUFS, and the music sits about 18 dB under it in pauses and more than 20 dB under it while the voice is speaking while the voice is speaking.
 - `scenes.py`: one manim scene per section.
 - `video_data.npz`: trained-model outputs used in scenes 6 and 8. It is regenerated from `../logs.pkl` if that file exists.

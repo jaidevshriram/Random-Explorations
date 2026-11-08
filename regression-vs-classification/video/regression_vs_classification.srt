@@ -7,182 +7,194 @@ Suppose a neural network has to output a number. Say, the x coordinate of one po
 The obvious approach is regression. Output the number directly, and penalize its distance to the label.
 
 3
-00:00:14,600 --> 00:00:22,170
+00:00:14,600 --> 00:00:22,681
 A popular alternative sounds almost wasteful. Chop the range into bins, and treat the problem as classification.
 
 4
-00:00:22,600 --> 00:00:29,891
-Why would throwing away precision ever help? To see it, we have to look at what each loss is actually asking for.
+00:00:23,100 --> 00:00:40,515
+Why would throwing away precision ever help? Here's a hint. When the right answer is ambiguous, regression can confidently predict a value that is never right, while bins keep both answers. To see why, let's look at what each loss is actually asking for.
 
 5
-00:00:31,367 --> 00:00:40,748
+00:00:42,000 --> 00:00:51,799
 Freeze the input, and look at every training label that goes with it. Here they're tightly clustered. The prediction, this yellow marker, is a single number.
 
 6
-00:00:41,167 --> 00:00:54,263
-Squared error, or L2, connects the prediction to every label with a spring. The farther away a label is, the harder its spring pulls. The prediction settles where all the pulls cancel out. That's the mean.
+00:00:52,233 --> 00:01:08,209
+Squared error, or L2, connects the prediction to every label with a spring. The farther away a label is, the harder its spring pulls. The arrow underneath shows the total pull. The prediction slides until the pulls cancel out, and that point is the mean.
 
 7
-00:00:54,700 --> 00:01:04,545
+00:01:08,633 --> 00:01:18,850
 Now make the labels ambiguous. For the very same input, seventy percent of the labels say the point is up here, and thirty percent say it's down there.
 
 8
-00:01:04,967 --> 00:01:11,654
+00:01:19,300 --> 00:01:25,987
 The springs still cancel at the mean, and the mean lands right in the gap. A value that no label ever had.
 
 9
-00:01:12,100 --> 00:01:22,688
+00:01:26,433 --> 00:01:37,022
 This isn't a training bug. Plot the average loss for every possible prediction, and the bottom of the bowl really is in the gap. L2 found exactly what it was asked for.
 
 10
-00:01:24,167 --> 00:01:33,501
+00:01:38,500 --> 00:01:47,834
 Absolute error, or L1, swaps the springs for ropes, and every rope pulls with the same force, no matter how far away its label is.
 
 11
-00:01:33,933 --> 00:01:43,268
+00:01:48,267 --> 00:01:57,601
 So it becomes a vote. Twenty eight ropes pull right, twelve pull left, and the prediction gets dragged all the way into the majority cluster. That's the median.
 
 12
-00:01:43,700 --> 00:01:54,799
+00:01:58,033 --> 00:02:09,132
 But at fifty fifty, the vote is tied everywhere in between. The loss goes completely flat, and the prediction just drifts wherever initialization and noise happen to leave it.
 
 13
-00:01:55,233 --> 00:02:10,094
+00:02:09,567 --> 00:02:24,427
 Here's the same story as a picture of how hard each loss pushes. L2's push grows with the error, so one wild outlier can dominate. L1 pushes equally hard at any distance. Huber loss is spring-like up close, and rope-like far away.
 
 14
-00:02:11,567 --> 00:02:22,248
+00:02:25,900 --> 00:02:35,281
 Classification does something different. Cut the range into bins, and give every bin its own score. A softmax turns those scores into probabilities.
 
 15
-00:02:22,667 --> 00:02:32,280
-Cross entropy rewards putting probability on whichever bin the label falls into. Each label nudges up its own bin, and nothing else.
+00:02:35,700 --> 00:02:47,774
+Cross entropy rewards putting probability on whichever bin the label falls into. Each label nudges its own bin up, and takes a little probability away from all the others.
 
 16
-00:02:32,700 --> 00:02:44,449
-So there's no tug of war. The seventy percent and the thirty percent push on different bins, and both peaks simply grow. The network learns the whole histogram.
+00:02:48,200 --> 00:03:01,807
+So there's no tug of war over a single number. The seventy percent and the thirty percent push up different bins, and both peaks grow, until each bin's probability matches the fraction of labels that land in it. The network learns the whole histogram.
 
 17
-00:02:44,867 --> 00:02:57,034
+00:03:02,233 --> 00:03:13,425
 One refinement. Instead of a one-hot target, spread each label over its neighbors as a small Gaussian. That tells the network that neighboring bins are almost the same answer.
 
 18
-00:02:58,533 --> 00:03:07,078
+00:03:14,900 --> 00:03:23,445
 But in the end we still need one number. If we take the most likely bin, the argmax, we commit to one peak, and that is always a real answer.
 
 19
-00:03:07,500 --> 00:03:15,023
+00:03:23,867 --> 00:03:31,390
 If instead we take the expected value, the probability weighted average, we're finding the balance point of the histogram.
 
 20
-00:03:15,467 --> 00:03:21,132
+00:03:31,833 --> 00:03:37,499
 And the balance point is the mean. Right back in the gap. Exactly the L2 answer.
 
 21
-00:03:21,567 --> 00:03:33,502
-The expected value isn't useless, though. Inside a single peak it interpolates between bins, and it's more precise than the argmax. So the best recipe is: pick the peak, then average within it.
+00:03:37,933 --> 00:03:55,627
+The expected value isn't useless, though. Let's zoom into one peak. The true value sits between two bin centers. The argmax can only land on a bin's center, so it misses a little. But the average inside the peak lands right on the true value.
 
 22
-00:03:35,000 --> 00:03:51,254
-Now let's see it on real training runs. Until now we froze a single input. Here, the input x varies along the horizontal axis, and the label y is on the vertical axis.
+00:03:56,067 --> 00:04:00,432
+So the best recipe is: pick the peak, then average inside it.
 
 23
-00:03:51,700 --> 00:04:03,171
-Each vertical slice of this plot is one of the number lines from before. Take the slice at x equals zero point eight seven five. Its labels pile up in two places: two possible answers.
+00:04:01,900 --> 00:04:16,343
+Now let's see it on real training runs. Until now we froze a single input. Here, the input x varies along the horizontal axis, and the label y is on the vertical axis.
 
 24
-00:04:03,600 --> 00:04:14,838
-The plot has four regions. First, one clean answer. Then one answer with a few junk labels. Then two answers, seventy thirty. And finally two answers, fifty fifty.
+00:04:16,767 --> 00:04:28,237
+Each vertical slice of this plot is one of the number lines from before. Take the slice at x equals zero point eight seven five. Its labels pile up in two places: two possible answers.
 
 25
-00:04:15,267 --> 00:04:25,716
-Here's the network trained with L2. It's fine while there's one answer. But as soon as there are two, it falls into the gap between them, just like the springs predicted.
+00:04:28,667 --> 00:04:39,905
+The plot has four regions. First, one clean answer. Then one answer with a few junk labels. Then two answers, seventy thirty. And finally two answers, fifty fifty.
 
 26
-00:04:26,133 --> 00:04:32,774
-Trained with L1, it follows the majority answer at seventy thirty, but at fifty fifty it wanders.
+00:04:40,333 --> 00:04:49,946
+Here's the network trained with L2. It's fine while there's one answer. But as soon as there are two, it falls into the gap between them, just like the springs predicted.
 
 27
-00:04:33,200 --> 00:04:44,438
-The bin head predicts a whole histogram at every x. Brighter means more probability. It lights up both curves. On our slice, it has two peaks, right where the labels are.
+00:04:50,367 --> 00:05:04,159
+Trained with L1, it follows the majority answer at seventy thirty. But at fifty fifty it's a coin toss. Here are three training runs: they land in three different places, all off the curves.
 
 28
-00:04:44,867 --> 00:04:53,783
-Its argmax picks one peak at each x. In the fifty fifty region it jumps back and forth, but every point it picks is on a real curve.
+00:05:04,600 --> 00:05:15,095
+The bin head predicts a whole histogram at every x. Brighter means more probability. It lights up both curves. On our slice, it has two peaks, right where the labels are.
 
 29
-00:04:54,200 --> 00:05:10,129
-Here's how far each prediction lands from the nearest correct answer, in the two ambiguous regions. L2 is off by zero point one seven. L1 by zero point zero four. The bins by zero point zero zero two. About a hundred times better.
+00:05:15,533 --> 00:05:27,329
+Its argmax picks one peak at each x. In the fifty fifty region it jumps back and forth between the curves, but every point it picks is on a real curve, never in the gap.
 
 30
-00:05:11,600 --> 00:05:20,749
-A practical question: what if you need thousands of bins? One trick is to pick in two steps. First, which of sixteen coarse bins.
+00:05:27,767 --> 00:05:59,671
+Here's how far each prediction lands from the nearest correct answer, in the two ambiguous regions. We measure distance to the nearest answer, because a prediction in the gap is useless, even if it's halfway between two right answers. L2 is off by zero point one seven. L1 by zero point zero four. The bins by zero point zero zero two. That's about eighty five times better than L2, and twenty times better than L1.
 
 31
-00:05:21,167 --> 00:05:25,300
-Then zoom into that coarse bin, and pick one of sixteen fine bins inside it.
-
-32
-00:05:25,733 --> 00:05:39,480
-If every coarse bin gets its own fine histogram, this is exactly one big softmax with two hundred fifty six bins, just split into two steps. Nothing is lost.
-
-33
-00:05:39,900 --> 00:05:56,386
-A cheaper version uses one fine histogram for all coarse bins. Here's the catch. Our two answers sit in different coarse bins, and at different spots inside them. Answer A is near the left of its bin. Answer B is near the right of its bin.
-
-34
-00:05:56,833 --> 00:06:09,929
-A single shared fine histogram has to hold both spots at once. So we can end up with answer A's coarse bin, combined with answer B's spot. That point is neither answer.
-
-35
-00:06:10,367 --> 00:06:15,614
-So, give each coarse bin its own fine histogram, or just use one big softmax.
-
-36
-00:06:17,100 --> 00:06:26,620
+00:06:01,167 --> 00:06:09,665
 Now let's move to two dimensions, which is closer to your vector shapes. Picture the letter O. It has an outer ring, and an inner ring.
 
-37
-00:06:27,067 --> 00:06:36,122
-The input is a position along the path. The output is a point, with an x and a y coordinate. Usually, the label is a point on the outer ring.
+32
+00:06:10,100 --> 00:06:29,791
+The input is a position along the path. The output is a point, with an x and a y coordinate. Going around the O, we use the same four regions as before, one per quarter: clean labels, junk labels, seventy thirty, and fifty fifty. In the last two, the two answers are the outer ring and the inner ring.
 
-38
-00:06:36,567 --> 00:06:45,483
-But in this one quarter, it's ambiguous. Half of the labels put the point on the outer ring, and half put it on the inner ring.
+33
+00:06:30,233 --> 00:06:38,918
+Look at the fifty fifty quarter. For the very same input, half of the labels put the point on the outer ring, and half put it on the inner ring.
 
-39
-00:06:45,900 --> 00:06:54,306
-L2 averages the two, and lands halfway between the rings. Do that all the way around, and L2 draws a ring that isn't in the letter at all.
+34
+00:06:39,367 --> 00:06:55,574
+Here's L2, quarter by quarter. With clean labels, it follows the outer ring. The junk labels pull it inward a little. At seventy thirty, it lands seventy percent of the way out. And at fifty fifty, exactly halfway between the rings, where the letter has no ink at all.
 
-40
-00:06:54,733 --> 00:07:01,746
-The bin head lands on the real rings. Well, mostly. Let's zoom into the ambiguous quarter.
+35
+00:06:56,000 --> 00:07:05,149
+The bin head lands on the real rings. Except for these few strays, all in the fifty fifty quarter. Let's zoom in and see where they come from.
 
-41
-00:07:02,167 --> 00:07:15,588
+36
+00:07:05,567 --> 00:07:18,848
 This is one input, in that quarter. The model has one histogram for x, along the bottom, and a separate histogram for y, on the left. Each has two peaks: one for the outer ring, and one for the inner ring.
 
-42
-00:07:16,033 --> 00:07:30,337
+37
+00:07:19,267 --> 00:07:33,245
 Because x and y are picked separately, any combination is possible. That's four points. Two of them are real. The other two take the outer ring's x and the inner ring's y. They're ghosts, on neither ring.
 
+38
+00:07:33,667 --> 00:07:43,001
+A single histogram over x and y together only puts probability on the two real points. The ghosts are gone. But that histogram has a cost.
+
+39
+00:07:44,500 --> 00:08:02,054
+At two hundred fifty six bins per axis, a joint histogram over x and y has sixty five thousand bins, for every point. That brings back our question about multi-level bins. The idea is to pick in two steps. First, which of sixteen coarse bins.
+
+40
+00:08:02,500 --> 00:08:08,026
+Then zoom into that coarse bin, and pick one of sixteen fine bins inside it.
+
+41
+00:08:08,467 --> 00:08:19,844
+If every coarse bin gets its own fine histogram, the two steps together are exactly one big softmax with two hundred fifty six bins. Nothing is lost.
+
+42
+00:08:20,267 --> 00:08:37,124
+A cheaper version uses one fine histogram for all coarse bins. Here's the catch. Our two answers sit in different coarse bins, and at different spots inside them. Answer A is near the left of its bin. Answer B is near the right of its bin.
+
 43
-00:07:30,767 --> 00:07:39,219
-A single histogram over x and y together only puts probability on the two real points. The ghosts are gone.
+00:08:37,567 --> 00:08:52,288
+A single shared fine histogram has to hold both spots at once. So we can end up with answer A's coarse bin, combined with answer B's spot. That point is neither answer.
 
 44
-00:07:40,700 --> 00:07:54,818
-Back to your vector model. Each query predicts a whole shape. Early in training, the Hungarian matching keeps changing its mind. In one batch, this query is matched to the circle. In the next, to the square.
+00:08:52,733 --> 00:09:12,377
+So, in one dimension, a two hundred fifty six way softmax is cheap, and you don't need this. It's worth it when one softmax would be huge, like the joint x y histogram: pick x first, then y given x. And always let the fine choice depend on the coarse one.
 
 45
-00:07:55,267 --> 00:08:03,672
-That's the same ambiguity as before, now for a whole shape. Regression averages the two targets, and predicts a blob that is neither shape.
+00:09:13,867 --> 00:09:30,214
+Back to your vector model. Each query predicts a whole shape. Early in training, the Hungarian matching keeps changing its mind. In one batch, this query is matched to the circle. In the next, to the square.
 
 46
-00:08:04,100 --> 00:08:11,298
-A bin head can keep both shapes as possibilities while the matching settles, and then commit to one.
+00:09:30,633 --> 00:09:40,154
+That's the same ambiguity as before, now for a whole shape. Regression averages the two targets, and predicts a blob that is neither shape.
 
 47
-00:08:11,733 --> 00:08:24,458
-So. L2 predicts the mean. L1 predicts the median. Bins learn the whole distribution. Then decode with care: take the peak, refine inside it, and watch out for ghosts.
+00:09:40,600 --> 00:09:50,399
+What would bins do? Look at one point of the shape. Its histogram has two peaks: one where the circle puts that point, and one where the square puts it.
+
+48
+00:09:50,833 --> 00:10:02,397
+But if every point picks its own peak separately, some points come from the circle, and others from the square. You get a chimera that's neither shape. It's the ghost problem again, now for whole shapes.
+
+49
+00:10:02,833 --> 00:10:17,276
+So when the whole shape is ambiguous, the points have to decide together. Decode the shape jointly, or one point at a time, so that once the first point picks the circle, every later point follows. Making the matching itself more stable helps too.
+
+50
+00:10:17,700 --> 00:10:35,812
+So. L2 predicts the mean. L1 predicts the median. Bins learn the whole distribution. Decode by taking the peak, then averaging inside it. And whenever choices have to agree, like x and y, or the points of a shape, decide them together.
 

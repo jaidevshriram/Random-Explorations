@@ -52,6 +52,7 @@ def extract_data():
         dst,
         l2_1d=np.array(d1["L2"][0]["grid"]["decode"]["point"])[:, 0],
         l1_1d=np.array(d1["L1"][0]["grid"]["decode"]["point"])[:, 0],
+        l1_1d_seeds=np.stack([np.array(r["grid"]["decode"]["point"])[:, 0] for r in d1["L1"]]),
         bins_am_1d=np.array(d1["Bins256 soft"][0]["grid"]["decode"]["argmax"])[:, 0],
         bins_density_1d=d1["Bins256 soft"][0]["grid"]["density"][:, 0, :].astype(np.float16),
         l2_2d=np.array(d2["L2"][0]["grid"]["decode"]["point"]),
@@ -165,6 +166,9 @@ def render(scenes, quality):
             print(r.stdout[-3000:], r.stderr[-3000:])
             raise RuntimeError(f"render failed: {scene}")
         print("rendered", scene, flush=True)
+        report = os.path.join(BUILD, "layout", f"{scene}.txt")
+        if os.path.exists(report) and open(report).read().strip():
+            print(f"  layout warnings in {scene}:\n    " + open(report).read().strip().replace("\n", "\n    "), flush=True)
 
     with ThreadPoolExecutor(4) as ex:
         list(ex.map(one, scenes))
@@ -225,7 +229,7 @@ def assemble(scenes, out, quality="high", music=True):
         audio_in = ["-i", mus]
         mix = ["-filter_complex",
                "[0:a]loudnorm=I=-16:TP=-1.5:LRA=11,aformat=channel_layouts=stereo,asplit=2[v1][v2];"
-               "[2:a]volume=0.3[m];"
+               "[2:a]volume=0.15[m];"
                "[m][v1]sidechaincompress=threshold=0.015:ratio=5:attack=80:release=900[md];"
                "[v2][md]amix=inputs=2:duration=first:normalize=0[a]", "-map", "[a]"]
     else:
