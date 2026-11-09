@@ -1,0 +1,26 @@
+[
+ {
+  "model": "runs_f_amb_bins_s0.pt",
+  "points": 19260,
+  "fraction_bimodal": 0.9325025960539979,
+  "fraction_off_both_strokes_by_1px": 0.6007788161993769,
+  "fraction_mixed_x_y": 0.010436137071651091,
+  "fraction_of_off_stroke_points_that_are_mixed": 0.004753262466511105
+ },
+ {
+  "model": "runs_f_amb_bins_s1.pt",
+  "points": 19520,
+  "fraction_bimodal": 0.9353995901639345,
+  "fraction_off_both_strokes_by_1px": 0.623719262295082,
+  "fraction_mixed_x_y": 0.009426229508196722,
+  "fraction_of_off_stroke_points_that_are_mixed": 0.0033675564681724846
+ },
+ {
+  "model": "runs_f_amb_bins_s2.pt",
+  "points": 19560,
+  "fraction_bimodal": 0.9314928425357873,
+  "fraction_off_both_strokes_by_1px": 0.6175357873210634,
+  "fraction_mixed_x_y": 0.009049079754601227,
+  "fraction_of_off_stroke_points_that_are_mixed": 0.004304992135110522
+ }
+]

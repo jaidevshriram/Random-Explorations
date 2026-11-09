@@ -1,5 +1,73 @@
 # Mini MapTR: L1 regression vs bin heads, on CPU
 
+**Latest results: the MapTR-faithful model (`maptr_faithful.py`)**, described in the next section. The original simplified model and its diagnostics follow after it.
+
+## MapTR-faithful model
+
+This version copies MapTRv2's head mechanics from its code (`hustvl/MapTR`, branch `maptrv2`, commit `e03f097`):
+- hierarchical point queries (instance embedding + point embedding);
+- iterative reference-point refinement (`sigmoid(Δ + inverse_sigmoid(ref))`, detached);
+- decoupled inter- and intra-instance self-attention;
+- deformable cross-attention;
+- per-layer classification and regression branches;
+- focal loss and focal matching cost (weight 2);
+- L1 point loss and point matching cost summed over all coordinates (weight 5), with a direction loss;
+- AdamW 6e-4 with warm-up, cosine decay and gradient clip 35.
+
+What differs from MapTRv2:
+- a CNN feature map instead of the camera-to-BEV encoder;
+- width 64;
+- no one-to-many matching, i.e. the MapTR v1 setting. Keeping it made a run take about a day on CPU; `--k-one2many 6` turns it on.
+
+Checks and settings:
+- **Precision gate (passed):** L1 reaches a median Chamfer error of 0.59 px on closed loops, well below the 2.5 px double-line ambiguity.
+- **Bin head:** 128 bins per coordinate, plus a log-prior bump at the reference point.
+- **Bin cross-entropy weight:** chosen by a bracketed check (0.01: 0.391, 0.03: 0.522, 0.1: 0.512, 0.3: 0.441, 1.0: 0.421 mAP at 4k steps), so 0.03.
+
+Main runs: 3 seeds per head, 8,000 steps, batch 16. Full tables: `results_faithful.md`; diagnostics: `results_faithful_diagnostics.json`, `results_pairing.json`.
+
+| | L1 (MapTR) | bins |
+|---|---|---|
+| **Clean labels:** final mAP | 0.680 ± 0.009 | 0.667 ± 0.004 |
+| Clean labels: mAP at step 2,000 | 0.460 | 0.365 |
+| Clean labels: closed-loop median error | 0.59 px | 0.58 px |
+| **Double lines:** final mAP | **0.600 ± 0.008** | 0.564 ± 0.004 |
+| Double lines: open-curve AP @ 1 / 2 / 3 px | 0.054 / **0.393** / 0.631 | 0.002 / 0.167 / 0.578 |
+| Double lines: closed-loop AP @ 1 / 2 / 3 px | 0.663 / 0.896 / 0.961 | **0.730** / 0.929 / 0.978 |
+| Double lines: open curves closer to a stroke than to the midline | **82%** | 47% |
+| Double lines: points within 1 px of a stroke / of the midline | 67% / 15% | 39% / 36% |
+| Matching flip rate, first half (clean / double lines) | 0.30 / 0.29 | 0.33 / 0.35 |
+
+### What the data shows
+
+1. **Clean labels: no reliable difference at the end.**
+   - The final mAP gap is about one standard deviation.
+   - L1 learns faster early.
+   - Precision is the same.
+2. **Bins do not stabilise the matching.** Their flip rate is, if anything, slightly higher.
+3. **Ambiguous labels: L1 commits to a stroke; it does not average.** 82% of its open-curve predictions are closer to a stroke than to the midline. The toy experiment's argument (L1 lands between the modes) does not hold in this model.
+4. **Ambiguous labels: the bin head learns both answers but decodes them into ghost points.** Measured on the 3 bin models:
+   - 93% of points have two-peaked histograms.
+   - About 60% of the points that are two-peaked on both axes are decoded more than 1 px from both strokes.
+   - For about 71% of those, a different pairing of the same x and y peaks lands on a stroke.
+   - About 96% have nearly equal peaks.
+   So the miss comes from x and y choosing their peaks independently (`check_pairing.py`).
+5. **On unambiguous closed loops in the double-line data,** the bin head is more precise (AP@1px 0.730 vs 0.663). In the clean-label runs the closed-loop errors are equal.
+
+### What this means for the real model (evidence so far, not a general claim)
+
+- Nothing here supports switching MapTR's coordinate head to independent per-coordinate bins. With clean labels the head makes no reliable difference; with ambiguous labels it is worse, for a specific and measured reason.
+- If bins are pursued, the thing to test is a decoder that keeps x and y, and the points of a shape, consistent: a joint (x, y) distribution, or y conditioned on x. This only matters if real map labels contain this kind of ambiguity, which is still untested.
+- Limitations:
+  - synthetic data;
+  - small width;
+  - no one-to-many matching;
+  - 3 seeds;
+  - one specific kind of ambiguity (an exact 50/50 split, 2.5 px from either stroke to the midline).
+
+## Original simplified model
+
+
 A $0 check of whether the toy experiment's finding (bins beat regression when targets are ambiguous) carries over to a DETR/MapTR-style vector model with Hungarian matching. Everything runs on CPU (`python mini_maptr.py`, about 1.5 h for 9 runs on 4 cores).
 
 ## Setup

@@ -1,0 +1,23 @@
+[
+ {
+  "model": "runs_f_amb_bins_s0.pt",
+  "points_two_peaked_on_both_axes": 16604,
+  "fraction_decoded_off_both_strokes": 0.5870272223560588,
+  "fraction_of_those_where_another_pairing_lands_on_a_stroke": 0.7137580794090489,
+  "fraction_of_those_with_near_equal_peaks": 0.9582435621216785
+ },
+ {
+  "model": "runs_f_amb_bins_s1.pt",
+  "points_two_peaked_on_both_axes": 16912,
+  "fraction_decoded_off_both_strokes": 0.6132332071901608,
+  "fraction_of_those_where_another_pairing_lands_on_a_stroke": 0.7068749397358017,
+  "fraction_of_those_with_near_equal_peaks": 0.9575740044354449
+ },
+ {
+  "model": "runs_f_amb_bins_s2.pt",
+  "points_two_peaked_on_both_axes": 16795,
+  "fraction_decoded_off_both_strokes": 0.6067877344447752,
+  "fraction_of_those_where_another_pairing_lands_on_a_stroke": 0.7218133647335885,
+  "fraction_of_those_with_near_equal_peaks": 0.9567265234030027
+ }
+]
