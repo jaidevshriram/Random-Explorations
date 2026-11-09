@@ -4,6 +4,16 @@ Goal: test the toy experiment's main finding in a real model. Train MapTRv2 twic
 
 All code references are to `hustvl/MapTR`, branch `maptrv2`, commit `e03f097`. This plan contains no code yet. The code and the launcher will live next to this file as a patch applied on top of a fresh MapTR clone.
 
+
+> **Update (MapTR-faithful CPU experiment, see `../maptr-mini/README.md`):**
+> - With clean labels, the per-coordinate bin head (runs B/C below) made no reliable difference.
+> - With ambiguous labels it was worse than L1. It learned both answers, but decoding x and y independently produced off-stroke "ghost" points, while L1 committed to one answer.
+> - The matching was not more stable with bins.
+>
+> Before spending GPU money on runs B/C:
+> 1. Check whether real map labels contain this kind of ambiguity.
+> 2. If they do, the variant worth testing is the joint or conditional (x, y) decoder (run D), not independent per-coordinate bins.
+
 ---
 
 ## 1. Hypothesis and what counts as success
