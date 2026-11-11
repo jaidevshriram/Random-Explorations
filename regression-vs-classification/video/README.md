@@ -1,5 +1,11 @@
 # Video explainer
 
+> **Retraction (real-map follow-up).** This experiment shows what each loss does when *one* network output has to represent a genuinely ambiguous target. It does **not** show that bins beat regression in MapTR-style vector-map models. We tested that directly ([`maptr-mini/README.md`](maptr-mini/README.md)):
+> - **MapTR-faithful model, synthetic data.** Clean labels: no reliable difference. Ambiguous labels: bins were worse, because L1 commits to one answer instead of averaging.
+> - **Real Argoverse 2 maps with MapTRv2's own target construction.** L1 beat bins by a wide margin (pilot mAP 0.40 vs 0.16), with or without simulated occlusion. Three things did not close the gap: a higher bin-loss weight, a relative-bins head, or ruling out a bug (bins memorise 8 images better than L1 does).
+>
+> Treat the "bins win" conclusions below as a property of this toy setting only.
+
 `regression_vs_classification.mp4` is a 10.6-minute animation narrated with the ElevenLabs "Chris" voice over an original ambient piano track, made with [manim](https://www.manim.community/) in the style of 3Blue1Brown. It walks through the whole experiment:
 
 1. **Intro**: regression vs. bins for one coordinate of a vector shape, then a teaser: ambiguous labels, regression landing in the empty gap, bins showing two peaks.

@@ -1,6 +1,49 @@
 # Mini MapTR: L1 regression vs bin heads, on CPU
 
-**Latest results: the MapTR-faithful model (`maptr_faithful.py`)**, described in the next section. The original simplified model and its diagnostics follow after it.
+**Latest results: real Argoverse 2 maps** (next section), then the MapTR-faithful synthetic model, then the original simplified model.
+
+## Real Argoverse 2 maps (`av2_data.py`, `av2_train.py`)
+
+**Why:** the synthetic double lines were not the ambiguity MapTR faces. This setup rebuilds MapTRv2's AV2 target construction from the real AV2 map files:
+- 60 × 30 m ego patches;
+- dividers, pedestrian crossings and boundaries, each resampled to 20 points;
+- polygons get MapTRv2's `v2` start-point shifts (at most 19 random); lines get forward and reversed orderings.
+
+The input is a 3-channel rasterised BEV map (0.3 m/px). This stands in for the camera BEV features, so the comparison isolates the coordinate head. Data: 2,685 training and 778 validation patches from 92 / 25 AV2 sensor logs.
+
+**Conditions:**
+- (A) clean input;
+- (B) "occluded" input: 0–8 car-sized boxes blanked per patch, a stand-in for perception uncertainty.
+
+Same decoder, matching and losses as `maptr_faithful.py`. Metric: Chamfer AP at 0.5 / 1.0 / 1.5 m per class.
+
+Pilot, 1 seed, 4,000 steps, batch 8 (`runs_av2_pilot`, `runs_av2_occ_pilot`):
+
+| Head | Clean mAP | Occluded mAP | Clean: divider / ped / boundary AP | Median Chamfer, val (train) |
+|---|---|---|---|---|
+| **L1 (MapTR)** | **0.400** | **0.377** | 0.571 / 0.450 / 0.180 | 0.75 m (0.65) |
+| bins, absolute, CE weight 0.03 | 0.157 | 0.179 | 0.336 / 0.033 / 0.102 | 1.90 m (1.39) |
+| bins, relative (classify the correction to the reference) | 0.013 | 0.006 | 0.030 / 0.001 / 0.008 | 2.91 m (2.38) |
+
+How the bin head's deficit was checked:
+- **CE weight** (absolute bins, mAP at 2,000 steps): 0.03 → 0.109, 0.1 → 0.102, 0.3 → 0.064, 1.0 → 0.060. A larger weight is worse; L1 is at 0.338 by then. `runs_av2_wce*`.
+- **Not a bug.** Memorising 8 fixed patches (`overfit_av2.py`), median Chamfer after 600 steps:
+  - bins: 0.15 m;
+  - L1: 0.31 m;
+  - relative bins: 1.23 m.
+
+  The bin head can fit the targets.
+- **Not overfitting.** The training error is also twice L1's (`gap_av2.py`, `results_av2_gap.json`). The bin head is simply much slower to learn across many different scenes. Its histograms stay broad: 31% of the mass within ±1 bin of the peak (`diag_av2_bins.py`).
+- **Occlusion** hurts L1 a little (0.400 → 0.377), but L1 stays far ahead.
+
+**Conclusion: we retract the claim that bins help MapTR-style models.**
+- **Target construction gives bins nothing to exploit.** MapTR's targets are nearly deterministic: the matching absorbs the start point and direction, and the winding is normalised. So the label ambiguity where the toy experiment favoured bins does not arise.
+- **Bins don't help with perception uncertainty either.** Under the occlusion we simulated, bins did not catch up.
+- **Bins learn slower.** A per-coordinate classifier over a 128-way grid learns slower than regressing a residual on the reference point. That residual is what MapTR's L1 head does.
+
+The only setting where we saw bins win is the toy one: a single output trained on genuinely multimodal labels, with no input evidence to break the tie.
+
+Longer confirmation runs (2 seeds, 8,000 steps, clean) are in `runs_av2_long`.
 
 ## MapTR-faithful model
 

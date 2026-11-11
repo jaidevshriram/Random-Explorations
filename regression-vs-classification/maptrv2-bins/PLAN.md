@@ -5,6 +5,8 @@ Goal: test the toy experiment's main finding in a real model. Train MapTRv2 twic
 All code references are to `hustvl/MapTR`, branch `maptrv2`, commit `e03f097`. This plan contains no code yet. The code and the launcher will live next to this file as a patch applied on top of a fresh MapTR clone.
 
 
+> **Status: not recommended.** On real Argoverse 2 maps (`../maptr-mini/README.md`, AV2 section), a MapTRv2-style model with bins was much worse than L1. The variants tried were absolute bins, relative bins, and loss weights from 0.03 to 1.0. Runs B/C below are not worth GPU money unless a new hypothesis predicts a gain.
+
 > **Update (MapTR-faithful CPU experiment, see `../maptr-mini/README.md`):**
 > - With clean labels, the per-coordinate bin head (runs B/C below) made no reliable difference.
 > - With ambiguous labels it was worse than L1. L1 committed to one of the two answers, while the bin head predicted one broad bump spanning both, which decodes to a point between them.
