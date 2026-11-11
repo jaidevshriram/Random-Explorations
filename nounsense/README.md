@@ -87,4 +87,6 @@ every word with random adjectives and inputs to look for crashes.
 - More levels; the dictionary already knows many more things than this level needs.
 - The "new way" (an LLM filling in the same object spec) for a side-by-side comparison.
 
+Picking this up later? See [HANDOFF.md](./HANDOFF.md) for how to add words and levels, and what to watch out for.
+
 Matter.js is vendored in `vendor/` under its MIT licence.
