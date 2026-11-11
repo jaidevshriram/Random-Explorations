@@ -105,7 +105,7 @@
       ground: { dust: { body: '#b96a3a', body2: '#a35a30', cap: '#e9a35a', line: '#8a4a28' }, island: { body: '#8a5a44', body2: '#74493a', cap: '#7cc46a', line: '#5b3a2e', glow: '#fff3b0' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
-    manor: { custom: true, ambient: '#a29cae', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    manor: { custom: true, ambient: '#86829c', bloom: 0.3, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     hollow: { custom: true, ambient: '#7a84c2', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#d0cedc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { custom: true, ambient: '#b8a0d4', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
@@ -132,7 +132,7 @@
     mast: [['l', [0, 100, 0, -100], 5, 'dbrown'], ['l', [-70, -40, 70, -40], 3.4, 'dbrown'], ['l', [-54, 30, 54, 30], 3.4, 'dbrown'], ['p', [-66, -36, 66, -36, 56, 22, -56, 22], 'cream', 3], ['p', [-50, 34, 50, 34, 44, 84, -44, 84], 'cream', 3], ['l', [-40, -8, 40, -8], 1.3], ['p', [0, -100, 44, -90, 0, -78], 'ink', 1], ['d', 16, -90, 2.4, 'white'], ['e', 0, -56, 26, 8, 'dbrown']],
     cabin: [['r', -100, -20, 200, 120, 'brown', 3], ['p', [-110, -18, -96, -60, 96, -60, 110, -18], 'dbrown', 3], ['r', -70, 10, 40, 40, 'yellow', 8], ['r', -6, 10, 40, 40, 'yellow', 8], ['r', 56, 0, 34, 100, 'dbrown', 3], ['l', [-100, 66, 50, 66], 1.5]],
     comet: [['p', [-60, 30, -104, -10, -96, 70, -50, 60], 'red', 3], ['e', 0, 12, 78, 58, 'grey', -10], ['p', [56, -44, 104, -66, 86, -6], 'red', 4], ['e', 12, 2, 30, 30, 'dgrey'], ['e', 12, 2, 20, 20, 'sky'], ['l', [-52, 40, -20, 54, 22, 50], 1.5], ['l', [-40, -34, -10, -44], 1.5], ['d', -30, 20, 2, 'dgrey'], ['d', 44, 34, 2, 'dgrey'],
-      ['p', [-80, 100, -70, 66, -20, 60, 40, 70, 80, 100], 'dgrey', 4], ['l', [-66, -50, -76, -78, -62, -100], 2.4, 'white'], ['l', [-40, -56, -46, -84], 2.4, 'white']],
+      ['p', [-80, 100, -70, 66, -20, 60, 40, 70, 80, 100], 'dgrey', 4]],
     signpost: [['r', -8, -20, 16, 120, 'brown', 2], ['p', [-100, -100, 100, -100, 100, -30, -100, -30], 'tan', 3]],
   };
   const SCENES = {
@@ -639,7 +639,7 @@
   }
   function present() {
     if (px) {
-      px.light.visible = px.glowS.visible = lit;
+      px.light.visible = px.glowS.visible = lit; px.glowS.alpha = THEMES[L.theme].bloom || 0.12;   // how much each world's lamps glow into the air
       for (const sp of [px.scene, px.light, px.glowS, px.ui]) sp.texture.baseTexture.update();
       px.app.renderer.render(px.app.stage);
     } else if (v2) {

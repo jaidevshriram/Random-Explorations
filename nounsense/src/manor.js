@@ -6,7 +6,8 @@
  */
 (function (NN) {
   'use strict';
-  const { O, C, box, shade, line, poly, disc, glow, icon, rng } = NN.town.parts;
+  const { O, C, box, shade, line, poly, disc, glow: lampGlow, icon, rng } = NN.town.parts;
+  const glow = (c, x, y, r, a, col) => lampGlow(c, x, y, r, a, col || '255,176,96');   // candlelight here is amber, so it reads as warm against the teal walls
   const M = { wall: '#3f5e62', wall2: '#324b50', pat: '#52787c', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 
@@ -68,7 +69,9 @@
     const a = mk(), c = a.c;
     // walls: patterned paper above, panelled wood below, a moulding at the ceiling
     c.fillStyle = M.wall; c.fillRect(0, top, W, H);
+    for (let x = 30; x < W; x += 60) { c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x - 9, CEIL, 18, g - 120 - CEIL); }                        // striped paper
     for (let y = CEIL + 34, row = 0; y < g - 120; y += 34, row++) for (let x = (row % 2) * 30; x < W; x += 60) poly(c, [x, y - 7, x + 6, y, x, y + 7, x - 6, y], M.pat, 0);
+    { const wg = c.createLinearGradient(0, CEIL, 0, g - 120); wg.addColorStop(0, 'rgba(8,14,28,0.5)'); wg.addColorStop(0.5, 'rgba(8,14,28,0.1)'); wg.addColorStop(1, 'rgba(8,14,28,0.24)'); c.fillStyle = wg; c.fillRect(0, CEIL, W, g - 120 - CEIL); }   // gloom gathering under the ceiling
     box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
     box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
     for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 80, 60, 0.45); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
@@ -125,7 +128,7 @@
     { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 80, 0.45, '150,225,255'); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
       poly(c, [x - 8, g - 82, x - 16, g - 110, x - 4, g - 140, x + 8, g - 112], '#a9e0f2', 2); poly(c, [x + 6, g - 82, x + 4, g - 104, x + 18, g - 124, x + 24, g - 98, x + 18, g - 82], '#7fc6e6', 2); poly(c, [x - 26, g - 82, x - 28, g - 98, x - 18, g - 108, x - 12, g - 92], '#c9f0fb', 1.8);
       c.lineWidth = 2.4; c.strokeStyle = O; c.strokeRect(x - 40, g - 150, 80, 72); line(c, [x - 32, g - 142, x - 20, g - 142], 2, 'rgba(255,255,255,0.7)'); }
-    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#d9c7a0', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
+    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#b0946c', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
     { const x = 1787, w = 96; c.beginPath(); c.moveTo(x - w / 2, g - 16); c.lineTo(x - w / 2, g - 128); c.arc(x, g - 128, w / 2, Math.PI, 0); c.lineTo(x + w / 2, g - 16); c.closePath(); c.fillStyle = '#2f2233'; c.fill(); c.lineWidth = 9; c.strokeStyle = O; c.stroke(); c.lineWidth = 5; c.strokeStyle = M.woodL; c.stroke(); line(c, [x, g - 176, x, g - 16], 2.4); disc(c, x - 9, g - 86, 3.6, M.gold, 1.4); disc(c, x + 9, g - 86, 3.6, M.gold, 1.4); for (const s of [-1, 1]) { c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,220,170,0.25)'; c.strokeRect(x + (s < 0 ? -38 : 8), g - 120, 30, 44); c.strokeRect(x + (s < 0 ? -38 : 8), g - 68, 30, 44); } cobweb(c, x - w / 2 + 4, g - 150, 1, 1, 44); }
     { const x = 1997; box(c, x - 26, g - 76, 52, 76, M.stone, 2.4); box(c, x - 32, g - 84, 64, 10, M.stone2, 2); box(c, x - 32, g - 10, 64, 10, M.stone2, 2); poly(c, [x - 24, g - 84, x - 16, g - 108, x + 16, g - 108, x + 24, g - 84], M.paper, 2.2); c.beginPath(); c.roundRect(x - 15, g - 142, 30, 36, 9); c.fillStyle = M.paper; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); c.beginPath(); c.arc(x, g - 132, 17, Math.PI, 0); c.fillStyle = '#d9cdb0'; c.fill(); c.stroke(); line(c, [x - 6, g - 124, x - 2, g - 124], 1.6); line(c, [x + 2, g - 124, x + 6, g - 124], 1.6); }
     for (const bx of bays) {
