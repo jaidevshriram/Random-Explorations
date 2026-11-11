@@ -1,6 +1,69 @@
 # Mini MapTR: L1 regression vs bin heads, on CPU
 
-**Latest results: real Argoverse 2 maps** (next section), then the MapTR-faithful synthetic model, then the original simplified model.
+**Latest results:**
+- where bins beat L1, on real AV2 lane forks (next section);
+- real AV2 maps in a MapTR model, where they don't;
+- the MapTR-faithful synthetic model;
+- the original simplified model.
+
+## Where bins *do* beat L1: lane forks on real AV2 maps (`forks_data.py`, `forks_train.py`)
+
+**Question:** MapTR gave bins nothing to win (below). Do they win when the target really has several valid answers, as in Tesla's autoregressive "language of lanes" and in sequence-style SVG generators?
+
+**Task.** Built from the real AV2 lane graphs (120 / 40 logs; 15,459 training and 4,970 validation samples).
+- Start on a lane centerline 2–8 m before the lane segment ends. Predict the next 20 m of route as 5 points.
+- Input: an ego-centred raster (lanes and drivable area, 24 × 24 m, heading up).
+- At a fork (19% of samples: 2–4 routes, median 8.4 m apart at 20 m) the training label is **one valid route picked at random**, the way a recorded drive or a route-following annotation labels it. Every route is visible in the input, so nothing in it can tell which one the label will be.
+
+**Heads.** Same CNN features, same data stream; 3 seeds × 6,000 steps each.
+
+| Head | What it predicts |
+|---|---|
+| L2 / L1 | the 10 coordinates directly |
+| bins (x, y separate) | 64 bins per coordinate (HL-Gauss CE) |
+| coarse+offset (x, y separate) | Tesla-style: 16 coarse cells per coordinate (CE) + a regressed offset in each cell (L1) |
+| joint 2D coarse+offset | per point, one of 16 × 16 cells (CE) + an (x, y) offset; points independent |
+| autoregressive L1 | point k regressed given points 1..k-1 |
+| **autoregressive joint 2D coarse+offset** | point k = one of 16 × 16 cells + offset, given points 1..k-1 ("language of lanes"-style) |
+
+**Results** (`results_forks.md`, `plots/forks_bars.png`). Off-route: the worst point is more than 2 m from every valid route, i.e. the prediction is not a real route.
+
+| Head | Forks: off-route | Forks: distance to nearest route | Forks: coverage of 16 samples | Single route: error |
+|---|---|---|---|---|
+| L2 | 68% | 1.39 m | n/a | 0.21 m |
+| L1 | 28% | 0.60 m | n/a | 0.13 m |
+| bins, x and y separate | 43% | 0.95 m | 61% | **0.10 m** |
+| coarse+offset, x and y separate | 53% | 1.18 m | 62% | 0.11 m |
+| joint 2D coarse+offset | 35% | 0.68 m | 74% | 0.12 m |
+| autoregressive L1 | 36% | 0.81 m | n/a | 0.12 m |
+| **autoregressive joint 2D coarse+offset** | **8%** | **0.31 m** | **87%** | 0.12 m |
+
+All ± over 3 seeds are ≤ 0.03 (see `results_forks.md`).
+
+### Why: three requirements, each removing one way of mixing answers
+
+1. **A distribution instead of a point (bins vs regression).**
+   - With a 50/50 label, L2 is pulled to the mean, between the branches (68% off-route). See `plots/forks_examples.png`.
+   - L1's loss is flat between the branches, so it lands on one only sometimes (28% off-route).
+   - A softmax can put probability on both branches without paying for the gap.
+2. **The choice must be joint across x and y.** Independent per-axis softmaxes pick x from one branch and y from the other: a ghost point. Separate x/y bins are therefore *worse* than L1 at forks (43–53%). Joint 2D cells fix that per point (35%).
+3. **The choice must be joint across points.**
+   - With independent points, point 3 can choose the left branch while point 4 chooses the right: a chimera route.
+   - Autoregression makes later points condition on the branch the earlier points chose. Only then does the head commit to one real route (8% off-route).
+   - Sampling it recovers 87% of a fork's routes (`plots/forks_samples.png`).
+   - Autoregression alone does not help: with an L1 head, the first ambiguous point is still averaged (36%).
+
+**What the usual metric shows.** Error against the single drawn label is about 1.9 m for *every* head, because a committed head is "wrong" whenever the label took the other branch. Only distance to the nearest valid answer (or sample coverage) shows the difference.
+
+**No cost when there is no ambiguity.** On single-route lanes all bin heads are as precise as L1, or more (0.10–0.12 m vs 0.13 m).
+
+### And why the same heads do not help MapTR
+
+MapTR is set prediction. Every map element gets its own query, and Hungarian matching assigns each query exactly one ground-truth element, with start point and direction already normalised. The "which branch" ambiguity never reaches a coordinate head: both branches are separate instances. What is left is precise regression of one known element.
+
+There, a per-coordinate classifier learns slower than L1's residual on the reference point, and per-axis independence makes polygons zigzag (`plots/av2_bins.png`). Adding Tesla-style coarse+offset to the AV2 MapTR model did not change that: mAP at 4,000 steps was 0.200 (coarse CE weight 0.3) and 0.119 (0.03), vs L1's 0.40–0.43 (`runs_av2_cbins_w*`).
+
+**Rule of thumb from these experiments:** use joint, autoregressive coarse+fine bins when the decoder itself must *choose* among several valid answers (sequence generation, lane-graph decoding, sampling futures). Use L1 residual regression when matching has already fixed which answer each output is responsible for (DETR/MapTR-style set prediction).
 
 ## Real Argoverse 2 maps (`av2_data.py`, `av2_train.py`)
 

@@ -1,10 +1,11 @@
 # Regression vs. classification for continuous outputs
 
-> **Retraction (real-map follow-up).** This experiment shows what each loss does when *one* network output has to represent a genuinely ambiguous target. It does **not** show that bins beat regression in MapTR-style vector-map models. We tested that directly ([`maptr-mini/README.md`](maptr-mini/README.md)):
-> - **MapTR-faithful model, synthetic data.** Clean labels: no reliable difference. Ambiguous labels: bins were worse, because L1 commits to one answer instead of averaging.
-> - **Real Argoverse 2 maps with MapTRv2's own target construction.** L1 beat bins by a wide margin (pilot mAP 0.40 vs 0.16), with or without simulated occlusion. Three things did not close the gap: a higher bin-loss weight, a relative-bins head, or ruling out a bug (bins memorise 8 images better than L1 does).
+> **Where this holds, and where it doesn't (real-map follow-up, [`maptr-mini/README.md`](maptr-mini/README.md)).**
+> - **Holds when the decoder must choose among several valid answers.** On real Argoverse 2 lane forks, an autoregressive joint-2D coarse+offset bin head (as in Tesla's "language of lanes") leaves 8% of predicted routes off every real route; L1 leaves 28% and L2 68%.
+>   - Choosing x and y jointly and choosing points in sequence are both needed. Per-axis bins are *worse* than L1 there (43%), because they mix branches.
+> - **Does not hold for DETR/MapTR-style set prediction.** There, matching removes the ambiguity, and L1 beat every bin head we tried. In a MapTRv2-style model on AV2: mAP 0.48 vs 0.30 for bins; Tesla-style coarse+offset also stayed well behind.
 >
-> Treat the "bins win" conclusions below as a property of this toy setting only.
+> The earlier claim that bins help MapTR-style models is retracted.
 
 **Question:** when a network has to output a number, such as a coordinate of an SVG point, should it *regress* the number (L2 / L1 / Huber) or *classify* it into bins (softmax + cross-entropy)? Why does the choice matter so much when the answer is ambiguous?
 
