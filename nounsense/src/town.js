@@ -274,7 +274,7 @@
   // pale skyline, no outlines
   function far(c, w, horizon) {
     const r = rng(77);
-    for (const [col, k, base] of [['#c3cee4', 1, 0], ['#aebcd9', 0.8, 30]]) for (let x = -20; x < w; x += 46 + r() * 40) { const bw = 40 + r() * 60, bh = (120 + r() * 240) * k; c.fillStyle = col; c.fillRect(x, horizon - bh + base, bw, bh); if (r() < 0.4) { c.beginPath(); c.moveTo(x + bw * 0.3, horizon - bh + base); c.lineTo(x + bw * 0.5, horizon - bh + base - 50 - r() * 60); c.lineTo(x + bw * 0.7, horizon - bh + base); c.fill(); } if (r() < 0.3) c.fillRect(x + bw / 2 - 1.5, horizon - bh + base - 40, 3, 40); }
+    for (const [col, k, base] of [['#c3cee4', 1, 0], ['#aebcd9', 0.8, 30]]) for (let x = -20; x < w; x += 46 + r() * 40) { const bw = 40 + r() * 60, bh = (120 + r() * 240) * k; c.fillStyle = col; c.fillRect(x, horizon - bh + base, bw, bh); c.fillStyle = 'rgba(255,255,255,0.3)'; for (let wy = horizon - bh + base + 10; wy < horizon - 20; wy += 15) for (let wx = x + 7; wx < x + bw - 8; wx += 11) if (((wx * 7 + wy * 3) | 0) % 4) c.fillRect(wx, wy, 5, 7); c.fillStyle = col; if (r() < 0.35) c.fillRect(x + bw * 0.2, horizon - bh + base - 16, bw * 0.6, 16); if (r() < 0.3) c.fillRect(x + bw / 2 - 1.5, horizon - bh + base - 40, 3, 40); }
   }
   // mid plane: quieter buildings with window grids, a viaduct with a monorail, an airship
   function mid(c, w, horizon) {
