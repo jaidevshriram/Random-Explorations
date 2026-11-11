@@ -56,10 +56,14 @@
       { const bg = c.createLinearGradient(0, y + sh * 0.4, 0, y + sh); bg.addColorStop(0, 'rgba(120,56,110,0)'); bg.addColorStop(1, 'rgba(150,70,110,0.16)'); c.fillStyle = bg; c.fillRect(x - hw - 12, y, hw * 2 + 24, sh + 4); c.fillStyle = 'rgba(255,250,235,0.4)'; c.fillRect(x - hw - 12, y, 18, sh + 4); }   // the belly of the sail falls into shade; the windward edge catches the sun
       for (let i = -3; i <= 3; i++) { const fx = x + i * hw * 0.27; const fg = c.createLinearGradient(fx - 14, 0, fx + 14, 0); fg.addColorStop(0, 'rgba(110,60,110,0)'); fg.addColorStop(0.5, 'rgba(150,80,110,0.16)'); fg.addColorStop(1, 'rgba(255,255,255,0.1)'); c.fillStyle = fg; c.fillRect(fx - 14, y, 28, sh + 4); line(c, [fx, y + 6, fx + i * 1.5, y + sh], 1.1, 'rgba(120,90,80,0.4)'); }   // seams, with the cloth bellying between them
       const cs = c.createLinearGradient(0, y, 0, y + 26); cs.addColorStop(0, 'rgba(70,30,90,0.34)'); cs.addColorStop(1, 'rgba(70,30,90,0)'); c.fillStyle = cs; c.fillRect(x - hw - 12, y, hw * 2 + 24, 26);                        // shadow under the yard
-      for (const k of [0.3, 0.52]) { line(c, [x - hw, y + sh * k, x + hw, y + sh * k], 1.2, 'rgba(120,90,80,0.45)'); for (let tx = x - hw + 10; tx < x + hw - 4; tx += 17) line(c, [tx, y + sh * k, tx - 1, y + sh * k + 9], 1.6, K.rope); }   // reef points
+      for (const k of [0.34]) { line(c, [x - hw, y + sh * k, x + hw, y + sh * k], 1.1, 'rgba(120,90,80,0.32)'); for (let tx = x - hw + 14; tx < x + hw - 4; tx += 26) line(c, [tx, y + sh * k, tx - 1, y + sh * k + 7], 1.3, 'rgba(90,70,54,0.6)'); }   // one row of reef points
+      { const sh1 = c.createLinearGradient(x - hw - 10, 0, x + hw * 0.2, 0); sh1.addColorStop(0, 'rgba(84,56,140,0.5)'); sh1.addColorStop(1, 'rgba(84,56,140,0)'); c.fillStyle = sh1; c.fillRect(x - hw - 12, y, hw * 1.3, sh + 6);        // the side away from the sun falls into cool shadow
+        const rim = c.createLinearGradient(x + hw - 34, 0, x + hw + 8, 0); rim.addColorStop(0, 'rgba(255,160,84,0)'); rim.addColorStop(1, 'rgba(255,160,84,0.7)'); c.fillStyle = rim; c.fillRect(x + hw - 34, y, 46, sh + 6);                      // the sunward edge burns orange
+        for (const [fx, drop] of [[-0.62, 0.9], [-0.2, 0.78], [0.28, 0.86], [0.66, 0.7]]) { c.beginPath(); c.moveTo(x + fx * hw, y + 6); c.quadraticCurveTo(x + fx * hw + 14, y + sh * drop * 0.5, x + fx * hw - 6, y + sh * drop); c.lineWidth = 7; c.strokeStyle = 'rgba(110,70,120,0.14)'; c.stroke(); c.lineWidth = 1.4; c.strokeStyle = 'rgba(255,250,236,0.5)'; c.stroke(); }   // folds hanging from the yard
+        const belly = c.createRadialGradient(x + hw * 0.15, y + sh * 0.55, 6, x + hw * 0.15, y + sh * 0.55, hw * 0.9); belly.addColorStop(0, 'rgba(255,244,214,0.5)'); belly.addColorStop(1, 'rgba(255,244,214,0)'); c.fillStyle = belly; c.fillRect(x - hw - 12, y, hw * 2 + 24, sh + 6); }   // the belly of the sail catches the light
       if (o.patch) for (const [px, py, pw, ph, col] of [[-hw * 0.56, sh * 0.62, 26, 20, '#d9a878'], [hw * 0.3, sh * 0.7, 20, 24, '#c9b48a']]) { c.fillStyle = col; c.fillRect(x + px, y + py, pw, ph); c.setLineDash([4, 3]); c.lineWidth = 1.3; c.strokeStyle = K.rope; c.strokeRect(x + px + 2, y + py + 2, pw - 4, ph - 4); c.setLineDash([]); } if (o.mark) icon(c, o.mark, x, y + sh * 0.48, Math.min(26, sh * 0.3)); c.restore();
       p(); c.lineWidth = 2.8; c.strokeStyle = O; c.stroke();
-      glow(c, x, y + sh * 0.5, hw * 0.75, 0.3, '255,214,180');                   // the low sun on the canvas, so it stays cream under the cool ambient light
+      glow(c, x + hw * 0.2, y + sh * 0.5, hw * 0.6, 0.14, '255,214,180');                   // the low sun on the canvas, so it stays cream under the cool ambient light
       line(c, [x - hw + 4, y + sh, x - hw - 6, y + sh + 26], 1.4); line(c, [x + hw - 4, y + sh, x + hw + 6, y + sh + 26], 1.4);
     }
     if (o.nest) { const y = top + o.nest; poly(c, [x - 26, y, x + 26, y, x + 20, y + 22, x - 20, y + 22], K.plank2, 2.4); box(c, x - 28, y - 4, 56, 6, K.plankL, 2); shipLantern(c, x + 30, y + 2, 0.8); }
@@ -98,6 +102,18 @@
     for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(566, G - 6 - i * 7, 17, 6, 0, 0, 7); c.fillStyle = '#c9a674'; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); }
     bulbs(c, 210, G - 190, 284, G - 300, 14, 6); bulbs(c, 316, G - 300, 590, G - 110, 30, 10);
 
+    // --- a ketch moored in the bay, and the piles she is tied to ---
+    { const x = sea.x0 + 270, wy = sea.y - 6;
+      for (const px of [x - 150, x - 118, x + 150]) { box(c, px - 5, wy - 44, 10, 70, K.plank2, 2.2); box(c, px - 7, wy - 49, 14, 7, K.plankL, 1.8); }
+      line(c, [x - 118, wy - 30, x - 86, wy - 12], 1.8); line(c, [x + 150, wy - 30, x + 96, wy - 14], 1.8);
+      for (const [mx, mh] of [[x - 28, 230], [x + 46, 176]]) { line(c, [mx, wy - 16, mx, wy - mh], 6); line(c, [mx, wy - 16, mx, wy - mh], 3, K.plankL); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 4); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 2, K.plank);
+        c.beginPath(); c.moveTo(mx - 40, wy - mh * 0.62 + 2); for (let bx = mx - 40; bx < mx + 40; bx += 20) c.quadraticCurveTo(bx + 10, wy - mh * 0.62 + 18, bx + 20, wy - mh * 0.62 + 3); c.closePath(); c.fillStyle = K.sail; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke();
+        line(c, [mx, wy - mh, mx - 70, wy - 18], 1.4); line(c, [mx, wy - mh, mx + 70, wy - 18], 1.4); poly(c, [mx, wy - mh - 2, mx + 22, wy - mh + 5, mx, wy - mh + 12], K.red, 1.6); }
+      poly(c, [x - 104, wy - 20, x + 112, wy - 20, x + 92, wy + 22, x - 84, wy + 22], '#6a3a52', 2.6); box(c, x - 104, wy - 26, 216, 8, K.gold2, 2); c.fillStyle = 'rgba(30,18,58,0.28)'; c.fillRect(x - 84, wy + 2, 176, 20);
+      box(c, x - 6, wy - 46, 44, 22, '#8a4a5c', 2.2); for (const lx of [x + 2, x + 18]) { box(c, lx, wy - 41, 10, 10, C.lit, 1.4); glow(c, lx + 5, wy - 36, 26, 0.4); }
+      for (const lx of [x - 60, x + 76]) disc(c, lx, wy - 6, 5, '#bff6ee', 1.6);
+      shipLantern(c, x - 96, wy - 62, 0.9); line(c, [x - 96, wy - 62, x - 96, wy - 24], 2.4);
+    }
     // --- out in the bay: a rock with a light on it ---
     { const x = (sea.x0 + sea.x1) / 2 + 40;
       poly(c, [x - 70, G + 24, x - 58, G - 40, x - 30, G - 70, x - 34, G - 130, x - 6, G - 168, x + 22, G - 150, x + 30, G - 90, x + 56, G - 60, x + 74, G + 24], K.rock2, 3);
@@ -130,8 +146,8 @@
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
     const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship
-    mast(c, 1760, DECK, 520, { spread: 130, nest: 96, patch: 1, sails: [[150, 110, 120, 1], [290, 136, 104, furl]] });
-    mast(c, 2150, DECK, 560, { spread: 140, nest: 110, mark: 'star', sails: [[60, 84, 84, 1], [170, 124, 128, 1], [318, 150, 108, furl]] });
+    mast(c, 1760, DECK, 520, { spread: 130, nest: 96, patch: 1, sails: [[150, 110, 120, 1], [300, 112, 88, furl]] });
+    mast(c, 2150, DECK, 560, { spread: 140, nest: 110, mark: 'star', sails: [[60, 84, 84, 1], [170, 124, 128, 1], [300, 156, 128, furl]] });
     // deck clutter: a cannon at the bow, hatch, barrels
     { const x = 1590, y = DECK; poly(c, [x - 30, y - 8, x + 26, y - 8, x + 34, y, x - 38, y], K.plank2, 2.2); disc(c, x - 20, y - 6, 9, K.plank, 2.2); disc(c, x + 16, y - 6, 9, K.plank, 2.2); c.save(); c.translate(x, y - 22); c.rotate(-0.12); box(c, -52, -10, 84, 20, K.iron, 2.6); box(c, -58, -13, 10, 26, K.iron2, 2.2); box(c, 18, -12, 8, 24, K.iron2, 2); disc(c, 36, 0, 7, K.iron2, 2.2); c.restore(); for (const [bx, by] of [[x + 52, y - 6], [x + 64, y - 6], [x + 58, y - 16]]) disc(c, bx, by, 6, K.iron2, 1.8); }
     box(c, 2010, DECK - 10, 70, 10, K.plank2, 2.2); for (let i = 1; i < 7; i++) line(c, [2010 + i * 10, DECK - 10, 2010 + i * 10, DECK], 1.3);
@@ -228,7 +244,7 @@
       c.fillStyle = 'rgba(255,230,170,0.7)'; for (let wy = horizon - bh + 12; wy < horizon - 70; wy += 22) for (let wx = x + 8; wx < x + bw - 12; wx += 16) if (r() < 0.4) c.fillRect(wx, wy, 6, 9);
     }
     for (let x = -20; x < w; x += 60 + r() * 50) {
-      const bw = 46 + r() * 40, bh = 36 + r() * 80, col = ['#7a5c9a', '#8a6498', '#6c5a9c', '#94708e'][Math.floor(r() * 4)];
+      const bw = 46 + r() * 40, bh = 36 + r() * 80, col = ['#5c4186', '#6c4684', '#4f4488', '#7a4c7c'][Math.floor(r() * 4)];
       c.fillStyle = col; c.fillRect(x, horizon - bh, bw, bh + 2); c.lineWidth = 1.8; c.strokeStyle = LO; c.strokeRect(x, horizon - bh, bw, bh + 2);
       const rk = Math.floor(r() * 3); c.beginPath(); if (rk === 0) { c.moveTo(x - 5, horizon - bh); c.lineTo(x + bw / 2, horizon - bh - 22 - r() * 20); c.lineTo(x + bw + 5, horizon - bh); } else if (rk === 1) { c.moveTo(x - 5, horizon - bh); c.lineTo(x + 4, horizon - bh - 16); c.lineTo(x + bw - 4, horizon - bh - 16); c.lineTo(x + bw + 5, horizon - bh); } else { c.moveTo(x - 3, horizon - bh); c.lineTo(x - 3, horizon - bh - 7); c.lineTo(x + bw + 3, horizon - bh - 7); c.lineTo(x + bw + 3, horizon - bh); } c.closePath(); c.fillStyle = ['#5a4884', '#6a4a7a', '#4f5488'][rk]; c.fill(); c.stroke();
       if (r() < 0.6) { const kx = x + bw * (0.2 + r() * 0.5); c.fillStyle = '#6a4a7a'; c.fillRect(kx, horizon - bh - 30, 9, 24); c.strokeRect(kx, horizon - bh - 30, 9, 24); }   // a chimney

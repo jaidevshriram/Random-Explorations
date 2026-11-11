@@ -109,7 +109,7 @@
     hollow: { custom: true, ambient: '#5e66a0', bloom: 0.17, contrast: 0.25, saturate: 0.04, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#8e90c6', bloom: 0.1, contrast: 0.22, saturate: 0.04,          // cool street, warm windows: chosen by side-by-side ranking
       farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    port: { custom: true, ambient: '#a09cc8', bloom: 0.12, contrast: 0.21, saturate: 0.03, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
+    port: { custom: true, ambient: '#a898c4', bloom: 0.12, contrast: 0.24, saturate: 0.06, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.1, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
   // background props, in the same shape language as the dictionary art
   const BG = {
