@@ -52,7 +52,10 @@
       terrain: [{ x0: -300, y0: 520, x1: 2940, y1: 1100, kind: 'street' }],
       natives: [{ key: 'a', word: 'gardener', x: 700, range: 260 }, { key: 'b', word: 'chef', x: 1250, range: 260, spec: { noun: 'towncook', art: { a: 'person', top: 'white', legs: 'dgrey', hat: 'chef' } } },
         { key: 'c', word: 'bard', x: 1700, range: 300, spec: { noun: 'stroller', name: 'passer-by', lulls: false, art: { a: 'person', top: 'red', legs: 'navy', hat: 'headphones', hair: 'ink' } } },
-        { key: 'd', word: 'doctor', x: 2100, range: 260, spec: { noun: 'shopper', name: 'shopper', heals: false, art: { a: 'person', top: 'sage', legs: 'brown', hat: 'bun', hair: 'dbrown' } } }, { key: 'e', word: 'cat', x: 1500, range: 400 }],
+        { key: 'd', word: 'doctor', x: 2100, range: 260, spec: { noun: 'shopper', name: 'shopper', heals: false, art: { a: 'person', top: 'sage', legs: 'brown', hat: 'bun', hair: 'dbrown' } } }, { key: 'e', word: 'cat', x: 1500, range: 400, spec: { tags: ['creature', 'animal', 'cat'], hunts: ['mouse'] } },
+        { key: 'f', word: 'gnome', x: 420, range: 200, spec: { noun: 'kid', name: 'kid', w: 24, h: 40, art: { a: 'person', top: 'yellow', legs: 'teal', hat: 'cap', hatColor: 'blue', hair: 'brown' } } },
+        { key: 'g', word: 'doctor', x: 980, range: 300, spec: { noun: 'professor', name: 'professor', heals: false, art: { a: 'person', top: 'white', legs: 'dgrey', robe: 1, hat: 'goggles', hair: 'grey', beard: 'grey' } } },
+        { key: 'h', word: 'robot', x: 2350, range: 160, spec: { follows: false } }, { key: 'i', word: 'pigeon', x: 1250, range: 500 }, { key: 'j', word: 'dog', x: 1900, range: 300, spec: { follows: false, tags: ['creature', 'animal', 'dog'] } }],
     },
     {
       id: 'manor', name: 'Gloamwick Manor', theme: 'manor', par: 3,
@@ -61,7 +64,7 @@
       hints: ['Walk up the stairs. The gallery ends in a drop.'],
       zoom: 1, W: 2400, sky: 40, deathY: 1000, start: { x: 300, y: 520 }, depot: { x: -400, y: 520 }, goal: { x: 2290, y: 520 },
       terrain: [{ x0: -300, y0: 520, x1: 2700, y1: 1100, kind: 'floor' }, { x0: 920, y0: 500, x1: 1250, y1: 520, kind: 'stair' }, { x0: 950, y0: 480, x1: 1250, y1: 500, kind: 'stair' }, { x0: 980, y0: 460, x1: 1250, y1: 480, kind: 'stair' }, { x0: 1010, y0: 440, x1: 1250, y1: 460, kind: 'stair' }, { x0: 1040, y0: 420, x1: 1250, y1: 440, kind: 'stair' }, { x0: 1070, y0: 400, x1: 1250, y1: 420, kind: 'stair' }, { x0: 1100, y0: 380, x1: 1250, y1: 400, kind: 'stair' }, { x0: 1130, y0: 360, x1: 1250, y1: 380, kind: 'stair' }, { x0: 1160, y0: 340, x1: 1250, y1: 360, kind: 'stair' }, { x0: 1190, y0: 320, x1: 1250, y1: 340, kind: 'stair' }, { x0: 1220, y0: 300, x1: 1250, y1: 320, kind: 'stair' }, { x0: 1250, y0: 300, x1: 2100, y1: 322, kind: 'balcony' }],
-      natives: [{ key: 'ghost', word: 'ghost', x: 1650, y: 500, range: 300 }, { key: 'cat', word: 'cat', x: 700, range: 200 }],
+      natives: [{ key: 'ghost', word: 'ghost', x: 1650, y: 500, range: 300 }, { key: 'cat', word: 'cat', x: 700, range: 200, spec: { tags: ['creature', 'animal', 'cat'], hunts: ['mouse'], fears: [] } }],
     },
     {
       id: 'gorge', name: 'Glowroot Gorge', theme: 'forest', par: 3,

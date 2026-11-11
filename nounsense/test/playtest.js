@@ -49,7 +49,7 @@ const TESTS = [
   await page.goto(url);
   await page.waitForTimeout(400);
   for (const [world, name, fn] of TESTS) {
-    const r = await page.evaluate(`(() => { NN.game.newGame(${world}); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
+    const r = await page.evaluate(`(() => { NN.game.newGame(${world} + 2); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
       const run = (n, k, pr) => { for (let i = 0; i < n; i++) s.step(Object.assign({}, k || {}, i === 0 ? (pr || {}) : {})); };
       const at = (x, y) => { B.setPosition(p.body, { x, y: (y === undefined ? 520 : y) - 26 }); B.setVelocity(p.body, { x: 0, y: 0 }); s.step({}); s.step({}); };
       const has = (n) => s.ents.some((e) => e.spec.noun === n);

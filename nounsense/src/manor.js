@@ -61,7 +61,8 @@
     disc(c, x, CEIL + drop + 24, 5, M.gold, 1.8);
   }
 
-  function build(L, scale) {
+  function build(L, scale) { const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
+  function paint(L, scale) {
     const g = L.start.y, top = -10, H = g - top + 6, W = L.W;
     const mk = () => { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * scale); cv.height = Math.ceil(H * scale); const c = cv.getContext('2d'); c.scale(scale, scale); c.translate(0, -top); return { cv, c }; };
     const a = mk(), c = a.c;
@@ -76,7 +77,7 @@
     // tall arched window with the moon, curtains pulled back
     { const x = 70, w = 220, y0 = 140, y1 = g - 126, cx = x + w / 2;
       c.beginPath(); c.moveTo(x, y1); c.lineTo(x, y0 + w / 2); c.arc(cx, y0 + w / 2, w / 2, Math.PI, 0); c.lineTo(x + w, y1); c.closePath(); c.fillStyle = M.night; c.fill();
-      c.save(); c.clip(); glow(c, cx + 30, y0 + 86, 110, 0.35); disc(c, cx + 30, y0 + 86, 38, M.moon, 0); disc(c, cx + 18, y0 + 78, 7, '#cfd6e8', 0); disc(c, cx + 44, y0 + 98, 5, '#cfd6e8', 0);
+      c.save(); c.clip(); glow(c, cx + 30, y0 + 120, 190, 0.42, '170,195,255'); disc(c, cx + 30, y0 + 86, 38, M.moon, 0); disc(c, cx + 18, y0 + 78, 7, '#cfd6e8', 0); disc(c, cx + 44, y0 + 98, 5, '#cfd6e8', 0);
       c.fillStyle = '#1d2548'; c.beginPath(); c.ellipse(cx, y1 + 30, w * 0.8, 70, 0, 0, 7); c.fill();
       for (const [bx, lean] of [[x + 44, -1], [x + w - 40, 1]]) { line(c, [bx, y1, bx + lean * 6, y1 - 110], 6, '#161c3a'); for (const [ty, tl] of [[-60, 40], [-84, 30], [-104, 22]]) { line(c, [bx + lean * 3, y1 + ty, bx + lean * 3 - tl, y1 + ty - 26], 3, '#161c3a'); line(c, [bx + lean * 3, y1 + ty + 10, bx + lean * 3 + tl * 0.8, y1 + ty - 18], 3, '#161c3a'); } }
       for (const [bx, by] of [[cx - 50, y0 + 60], [cx - 30, y0 + 70], [cx + 76, y0 + 150]]) poly(c, [bx - 8, by, bx - 3, by - 3, bx, by, bx + 3, by - 3, bx + 8, by, bx, by + 2], '#161c3a', 0);
@@ -99,7 +100,7 @@
     portrait(c, 590, 150, 96, 124, 'gent'); sconce(c, 560, 250); sconce(c, 718, 250);
     // a draped table with a glowing crystal ball
     { const x = 640; poly(c, [x - 52, g - 62, x + 52, g - 62, x + 60, g, x - 60, g], C.plum, 2.4); line(c, [x - 56, g - 30, x + 56, g - 30], 1.5, M.gold); for (let i = -2; i <= 2; i++) line(c, [x + i * 20, g - 60, x + i * 23, g - 2], 1.2, 'rgba(43,48,68,0.3)'); box(c, x - 56, g - 68, 112, 8, '#8a6a9a', 2);
-      glow(c, x, g - 96, 64, 0.5); poly(c, [x - 16, g - 68, x - 9, g - 80, x + 9, g - 80, x + 16, g - 68], M.gold, 2); disc(c, x, g - 98, 22, '#b48be0', 2.4); disc(c, x - 7, g - 106, 6, 'rgba(255,255,255,0.7)', 0); c.beginPath(); c.arc(x, g - 98, 14, 0.3, 2.2); c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,255,255,0.6)'; c.stroke(); }
+      glow(c, x, g - 96, 70, 0.5, '205,160,255'); poly(c, [x - 16, g - 68, x - 9, g - 80, x + 9, g - 80, x + 16, g - 68], M.gold, 2); disc(c, x, g - 98, 22, '#b48be0', 2.4); disc(c, x - 7, g - 106, 6, 'rgba(255,255,255,0.7)', 0); c.beginPath(); c.arc(x, g - 98, 14, 0.3, 2.2); c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,255,255,0.6)'; c.stroke(); }
     // grandfather clock
     { const x = 790, w = 54; box(c, x - w / 2 - 5, g - 30, w + 10, 30, M.wood2, 2.4); box(c, x - w / 2, g - 150, w, 122, M.woodL, 2.4); box(c, x - w / 2 + 9, g - 140, w - 18, 96, '#2c1e2a', 2); line(c, [x, g - 140, x, g - 72], 1.6, M.gold); disc(c, x, g - 66, 9, M.gold, 1.8);
       box(c, x - w / 2 - 5, g - 214, w + 10, 66, M.wood, 2.4); disc(c, x, g - 181, 24, M.paper, 2.2); for (let i = 0; i < 12; i++) { const an = i / 12 * Math.PI * 2; line(c, [x + Math.cos(an) * 19, g - 181 + Math.sin(an) * 19, x + Math.cos(an) * 22, g - 181 + Math.sin(an) * 22], 1.2); } line(c, [x, g - 181, x, g - 198], 2.2); line(c, [x, g - 181, x + 11, g - 175], 2.2); disc(c, x, g - 181, 2.2, O, 0);
@@ -115,7 +116,7 @@
     box(c, 1250, GAL + 22, 850, g - GAL - 22 - 112, M.wall2, 0);
     const bays = [1250, 1465, 1680, 1895, 2100];
     for (let i = 0; i < 4; i++) { const x0 = bays[i] + 16, x1 = bays[i + 1] - 16, cx = (x0 + x1) / 2, r = (x1 - x0) / 2; c.beginPath(); c.moveTo(x0, GAL + 22); c.lineTo(x1, GAL + 22); c.lineTo(x1, GAL + 22 + r * 0.55); c.arc(cx, GAL + 22 + r * 0.55 + 0, r, 0, Math.PI, true); c.closePath(); c.fillStyle = M.wood; c.fill(); c.beginPath(); c.arc(cx, GAL + 22 + r * 0.55, r, Math.PI, 0); c.lineWidth = 6; c.strokeStyle = O; c.stroke(); c.lineWidth = 3; c.strokeStyle = M.gold2; c.stroke(); }
-    { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 76, 0.4); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
+    { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 80, 0.45, '150,225,255'); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
       poly(c, [x - 8, g - 82, x - 16, g - 110, x - 4, g - 140, x + 8, g - 112], '#a9e0f2', 2); poly(c, [x + 6, g - 82, x + 4, g - 104, x + 18, g - 124, x + 24, g - 98, x + 18, g - 82], '#7fc6e6', 2); poly(c, [x - 26, g - 82, x - 28, g - 98, x - 18, g - 108, x - 12, g - 92], '#c9f0fb', 1.8);
       c.lineWidth = 2.4; c.strokeStyle = O; c.strokeRect(x - 40, g - 150, 80, 72); line(c, [x - 32, g - 142, x - 20, g - 142], 2, 'rgba(255,255,255,0.7)'); }
     { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#d9c7a0', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
@@ -128,7 +129,9 @@
       c.fillStyle = 'rgba(240,248,255,0.5)'; c.beginPath(); c.arc(x + 6, y0 + 90, 18, Math.PI, 0); c.lineTo(x + 24, y0 + 130); c.lineTo(x + 15, y0 + 122); c.lineTo(x + 6, y0 + 130); c.lineTo(x - 3, y0 + 122); c.lineTo(x - 12, y0 + 130); c.closePath(); c.fill(); disc(c, x, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0); disc(c, x + 12, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0);
       c.lineWidth = 2; c.strokeStyle = O; c.strokeRect(x - w / 2, y0, w, y1 - y0); poly(c, [x - 26, y0 - 9, x, y0 - 34, x + 26, y0 - 9], M.gold, 2.2); }
     sconce(c, 2112 + 14, 250); sconce(c, 2340, 250); candelabra(c, 2364, g);
-    chandelier(c, 480, 56); chandelier(c, 1130, 40);
+    chandelier(c, 480, 56); chandelier(c, 1130, 40); chandelier(c, 1660, 26);
+    sconce(c, 1660, 170); sconce(c, 2010, 150);
+    for (let i = 0; i < 4; i++) { const lx = (bays[i] + bays[i + 1]) / 2; line(c, [lx, GAL + 22, lx, GAL + 52], 2); box(c, lx - 7, GAL + 52, 14, 18, '#ffdc94', 2); box(c, lx - 9, GAL + 48, 18, 5, M.gold2, 1.6); glow(c, lx, GAL + 62, 74, 0.42); }
     cobweb(c, 2, CEIL + 16, 1, 1, 80); cobweb(c, W - 2, CEIL + 16, -1, 1, 90); cobweb(c, 1264, GAL + 24, 1, 1, 50); cobweb(c, 2098, CEIL + 16, -1, 1, 60);
 
     // in front of the characters: stair rail and gallery balustrade
