@@ -18,14 +18,14 @@
     creature: { is: 'thing', alive: true, carry: false, upright: true, material: 'flesh', speed: 1.6, hp: 3, dmg: 0,
       diet: [], fears: ['fire'], hunts: [], tags: ['creature'] },
     animal: { is: 'creature', tags: ['animal'] },
-    herbivore: { is: 'animal', diet: ['plant', 'grain'], fears: ['fire', 'scary', 'loud', 'stinger'], tags: ['prey'] },
-    predator: { is: 'animal', diet: ['meat'], hunts: ['prey', 'human'], fears: ['fire', 'monster'], dmg: 1, speed: 3.2, hp: 4,
+    herbivore: { is: 'animal', diet: ['plant', 'grain'], fears: ['fire', 'scary', 'loud', 'stinger', 'stinky'], tags: ['prey'] },
+    predator: { is: 'animal', diet: ['meat'], hunts: ['prey', 'human'], fears: ['fire', 'monster', 'stinky'], dmg: 1, speed: 3.2, hp: 4,
       tags: ['predator', 'scary'] },
     bird: { is: 'animal', w: 30, h: 26, flies: true, hp: 2, speed: 2.6, diet: ['grain', 'bug'],
       fears: ['fire', 'predator', 'cat', 'loud', 'scarecrow'], tags: ['bird', 'prey'] },
     bug: { is: 'creature', w: 20, h: 16, flies: true, hp: 1, speed: 2.4, diet: ['sweet', 'flower'], fears: ['fire', 'bird', 'wet'], tags: ['bug'] },
     monster: { is: 'creature', hp: 6, dmg: 1, speed: 2, hunts: ['human', 'prey'], fears: [], tags: ['monster', 'scary'] },
-    human: { is: 'creature', w: 28, h: 54, speed: 1.5, diet: ['meal', 'sweet'], fears: ['monster', 'predator', 'fire'], tags: ['human'] },
+    human: { is: 'creature', w: 28, h: 54, speed: 1.5, diet: ['meal', 'sweet'], fears: ['monster', 'predator', 'fire', 'stinky'], tags: ['human'] },
 
     // lifeless things
     food: { is: 'thing', w: 24, h: 22, material: 'food', hp: 1, edible: true },
@@ -78,8 +78,8 @@
     art: [['g', 'dgreen', [['r', -56, 30, 16, 68, 3], ['r', 6, 30, 16, 68, 3], ['p', [-100, 16, -60, -40, 30, -50, 100, -22, 100, 18, 40, 42, -60, 50], 6], ['e', 38, -46, 12, 18]]], ['l', [-58, 40, 40, 34, 94, 14], 2.4, 'lime'], ['l', [-55, -42, -45, -66, -35, -45, -25, -68, -15, -47, -5, -70, 5, -50], 1.8], ['p', [46, 16, 52, 36, 58, 16, 64, 36, 70, 16, 76, 36, 82, 16, 88, 34, 94, 16], 'white', 0.5], ['d', 38, -48, 2.2], ['d', 94, -14, 1.4]] };
   N.snake = { is: 'predator', w: 56, h: 18, speed: 2.2, hp: 2, hunts: ['mouse', 'small', 'human'], tags: ['snake'],
     art: [['l', [-100, 60, -62, -30, -24, 60, 14, -30, 52, 50], 7, 'green'], ['e', 76, 22, 24, 62, 'green'], ['d', 82, 5, 1.6], ['l', [98, 30, 110, 20], 1.5]] };
-  // exception: a shark out of water just flops
-  N.shark = { is: 'predator', w: 110, h: 52, speed: 0, hp: 6, hunts: [], flops: true,
+  // exception: a shark only swims; out of water it just flops
+  N.shark = { is: 'predator', w: 110, h: 52, speed: 2.6, hp: 6, hunts: ['human'], diet: ['meat', 'fish'], fears: [], swims: true,
     art: [['g', 'grey', [['p', [-70, 0, -100, -72, -84, 0, -100, 72], 2], ['p', [-80, 0, -55, -48, 20, -58, 100, -8, 30, 52, -55, 40], 6], ['p', [-12, -55, 8, -100, 30, -52], 2]]], ['p', [-50, 36, 30, 48, 94, 0, 40, 24], 'white', 4], ['l', [58, 18, 94, 8], 1.6], ['l', [10, -12, 14, 16], 1.5], ['l', [22, -12, 26, 16], 1.5], ['d', 68, -18, 2.4]] };
   N.spider = { is: 'predator', w: 34, h: 24, speed: 2.4, hp: 1, hunts: ['bug'], diet: [], tags: ['spider'],
     art: [['l', [-25, -10, -65, -75, -100, 60]], ['l', [-25, 10, -60, -30, -80, 90]], ['l', [25, -10, 65, -75, 100, 60]], ['l', [25, 10, 60, -30, 80, 90]],
@@ -262,7 +262,7 @@
   N.ufo = { is: 'vehicle', w: 104, h: 52, speed: 4.2, flies: true, tags: ['alien'], art: [['e', 0, -36, 45, 60, 'sky'], ['e', 0, 20, 100, 42, 'grey'], ['e', -60, 26, 8, 12, 'yellow'], ['e', 0, 38, 8, 12, 'yellow'], ['e', 60, 26, 8, 12, 'yellow']] };
   N.broom = { is: 'vehicle', w: 74, h: 18, speed: 4, flies: true, material: 'wood', hp: 3, tags: ['magic'], art: [['r', -100, -16, 132, 32, 'brown'], ['p', [30, -26, 100, -100, 100, 100, 30, 26], 'yellow'], ['l', [46, -40, 46, 40], 2.5]] };
   N.carpet = { is: 'vehicle', w: 104, h: 16, speed: 3.6, flies: true, material: 'cloth', hp: 3, tags: ['magic'], art: [['p', [-100, -40, -60, -85, 0, -40, 60, -85, 100, -40, 100, 60, -100, 60], 'purple'], ['l', [-100, 10, 100, 10]], ['l', [-100, 60, -100, 100]], ['l', [100, 60, 100, 100]], ['d', -40, -20, 2, 'yellow'], ['d', 40, -20, 2, 'yellow']] };
-  N.boat = { is: 'vehicle', w: 112, h: 52, speed: 0, material: 'wood', rideable: false, art: [['l', [0, 10, 0, -100], 3.5], ['p', [6, -95, 70, 0, 6, 0], 'white'], ['p', [-100, 10, 100, 10, 70, 100, -70, 100], 'brown']] };
+  N.boat = { is: 'vehicle', w: 112, h: 52, speed: 3.2, material: 'wood', floats: true, art: [['l', [0, 10, 0, -100], 3.5], ['p', [6, -95, 70, 0, 6, 0], 'white'], ['p', [-100, 10, 100, 10, 70, 100, -70, 100], 'brown']] };
   N.lawnmower = { is: 'vehicle', w: 62, h: 46, speed: 1.9, mows: true, loud: true, art: [['l', [-60, 20, -100, -100], 3.5], ['l', [-100, -100, -68, -100], 3.5], ['r', -90, 20, 152, 56, 'red'], ['r', 0, -10, 46, 30, 'dgrey'], ['e', -56, 80, 22, 26, 'dgrey'], ['e', 42, 80, 22, 26, 'dgrey']] };
   N.bulldozer = { is: 'vehicle', w: 114, h: 78, speed: 1.6, smashes: true, mass: 9, hp: 30, art: [['r', -90, 46, 172, 52, 'dgrey'], ['r', -70, -20, 122, 66, 'yellow'], ['r', -52, -96, 66, 80, 'yellow'], ['r', -42, -84, 46, 46, 'sky'], ['l', [50, 30, 82, 40], 5], ['p', [72, -30, 100, -42, 100, 100, 82, 100], 'grey']] };
 
@@ -293,6 +293,90 @@
   N.blackhole = { is: 'nature', w: 72, h: 72, material: 'magic', floating: true, hole: true, life: 9, art: [['e', 0, 0, 100, 100, 'purple'], ['e', 0, 0, 64, 64, 'ink'], ['l', [-90, -30, -40, -80, 30, -86]], ['l', [90, 30, 40, 80, -30, 86]]] };
   N.portal = { is: 'nature', w: 46, h: 86, material: 'magic', floating: true, portal: true, art: [['e', 0, 0, 100, 100, 'teal'], ['e', 0, 0, 66, 76, 'navy'], ['e', 0, 0, 30, 46, 'purple']] };
 
+
+  // ---- second helping: sci-fi, fantasy, sea life and more animals -------------
+  N.gremlin = { is: 'monster', w: 36, h: 38, speed: 2.7, hp: 3, dmg: 0, hunts: [], diet: ['shiny', 'valuable', 'junk', 'sweet'], fears: ['fire', 'cat', 'loud', 'light'], eatVerb: 'gobbled', tags: ['gremlin'], sound: 'hee hee',
+    art: [['g', 'teal', [['p', [-50, -30, -104, -84, -40, -66], 2], ['p', [50, -30, 104, -84, 40, -66], 2], ['e', 0, 34, 58, 60], ['e', 0, -30, 66, 50], ['r', -52, 70, 30, 30, 3], ['r', 22, 70, 30, 30, 3]]], ['e', 0, 44, 34, 36, 'lime'],
+      ['e', -26, -36, 18, 20, 'white'], ['e', 26, -36, 18, 20, 'white'], ['d', -22, -34, 2.2], ['d', 22, -34, 2.2], ['p', [-24, -6, -12, 6, 0, -6, 12, 6, 24, -6], 'white', 0.5]] };
+  // exception: a golem is a monster made of metal, so water is what it fears
+  N.golem = { is: 'monster', w: 96, h: 150, material: 'metal', speed: 1.9, hp: 30, dmg: 2, mass: 8, hunts: ['human'], fears: ['wet'], diet: ['junk', 'battery'], tags: ['robot', 'golem'], sound: 'clank',
+    art: { a: 'person', skin: 'grey', top: 'brown', legs: 'dgrey', shoe: 'dbrown', face: 'robot', hat: 'antenna', furry: 1 } };
+  N.shade = { is: 'monster', w: 44, h: 62, flies: true, speed: 2.5, hp: 8, dmg: 1, hunts: ['human'], fears: ['light'], tags: ['undead', 'shade'], sound: 'ooo',
+    art: [['p', [-100, 100, -90, -20, -56, -84, 0, -100, 56, -84, 90, -20, 100, 100, 60, 66, 20, 100, -20, 66, -60, 100], 'navy', 4], ['e', -32, -30, 16, 22, 'yellow'], ['e', 32, -30, 16, 22, 'yellow'], ['d', -30, -28, 1.8], ['d', 34, -28, 1.8], ['p', [-30, 20, -15, 34, 0, 20, 15, 34, 30, 20], 'purple', 1]] };
+  N.eel = { is: 'predator', w: 96, h: 28, swims: true, speed: 2.4, hp: 5, dmg: 1, hunts: ['human'], diet: ['meat', 'fish'], fears: [], tags: ['eel'],
+    art: [['l', [-100, 10, -64, -30, -28, 24, 8, -30, 44, 10], 9, 'teal'], ['g', 'teal', [['e', 70, 0, 30, 62], ['p', [40, -40, 60, -96, 82, -44], 2]]], ['e', 66, 22, 22, 24, 'lime'], ['d', 78, -18, 2.2], ['p', [60, 26, 66, 52, 72, 26, 78, 52, 84, 26, 90, 48, 96, 26], 'white', 0.5]] };
+  N.giant = { is: 'monster', w: 90, h: 150, speed: 1.9, hp: 20, dmg: 2, mass: 7, hunts: ['human'], diet: ['meal', 'meat', 'sweet'], sound: 'fee fi fo', art: { a: 'person', top: 'brown', legs: 'dgreen', beard: 'brown', face: 'grr', club: 1 } };
+  N.orc = { is: 'monster', w: 32, h: 58, speed: 2.2, hp: 6, dmg: 2, art: { a: 'person', skin: 'green', top: 'dbrown', legs: 'dgrey', face: 'grr', hair: 'ink', prop: 'axe' } };
+  N.mummy = { is: 'monster', w: 28, h: 54, speed: 1, hp: 5, tags: ['undead'], hunts: ['human'], art: { a: 'person', skin: 'cream', top: 'cream', legs: 'cream', shoe: 'cream', stripes: 1, face: 'skull', arms: 'reach' } };
+  N.minotaur = { is: 'monster', w: 46, h: 78, speed: 2.8, hp: 10, dmg: 2, art: { a: 'person', skin: 'brown', top: 'brown', legs: 'dbrown', face: 'grr', hat: 'horns', furry: 1, prop: 'axe' } };
+  N.witch = { is: 'monster', w: 28, h: 54, speed: 1.8, hp: 4, dmg: 2, range: 150, tags: ['magic'], fears: ['wet'], art: { a: 'person', skin: 'lime', top: 'ink', legs: 'purple', hat: 'wizard', hair: 'dgrey', robe: 1, prop: 'staff' } };
+  N.mimic = { is: 'monster', w: 40, h: 34, speed: 2, hp: 5, dmg: 1, hops: true, tags: ['valuable'],
+    art: [['r', -100, -10, 200, 110, 'brown', 3], ['p', [-100, -24, -84, -100, 84, -100, 100, -24], 'brown', 3], ['p', [-90, -22, -70, 2, -50, -22, -30, 2, -10, -22, 10, 2, 30, -22, 50, 2, 70, -22, 90, 2, 96, -22], 'white', 0.5], ['d', -30, -60, 3, 'yellow'], ['d', 30, -60, 3, 'yellow'], ['l', [-100, 36, 100, 36], 1.5]] };
+  N.dinosaur = { is: 'predator', w: 130, h: 110, speed: 3.2, hp: 14, dmg: 3, mass: 7, sound: 'roar',
+    art: [['g', 'green', [['p', [-40, 10, -104, -20, -100, 0, -50, 50], 3], ['r', -30, 40, 26, 60, 5], ['r', 14, 40, 26, 60, 5], ['e', -6, 16, 54, 48, -12], ['p', [16, -10, 44, -70, 74, -56, 46, 20], 5], ['p', [40, -96, 96, -90, 104, -58, 60, -44, 40, -60], 8]]],
+      ['e', -6, 40, 30, 22, 'lime'], ['l', [30, 4, 52, 14, 46, 24], 3, 'green'], ['d', 70, -80, 2.6], ['p', [62, -50, 68, -36, 74, -50, 80, -36, 86, -50, 92, -38, 98, -52], 'white', 0.5], ['l', [-36, -22, -30, -36, -22, -24, -16, -38, -8, -26], 1.6]] };
+  N.griffin = { is: 'predator', w: 96, h: 76, flies: true, speed: 3.4, hp: 8, dmg: 2, tags: ['magic'], art: { a: 'quad', c: 'yellow', wings: 'tan', tail: 'tuft', ears: 'point', snout: 'none' } };
+  N.phoenix = { is: 'bird', w: 62, h: 48, speed: 3.2, hp: 8, hot: true, light: true, fireproof: true, fears: ['wet'], tags: ['magic', 'fire'], art: { a: 'bird', c: 'orange', wing: 'red', crest: 'yellow', beak: 'yellow', big: 1 } };
+  N.fairy = { is: 'bug', w: 24, h: 28, speed: 2.6, hp: 2, heals: true, follows: true, light: true, fears: [], diet: [], tags: ['magic'],
+    art: [['e', -46, -20, 46, 40, 'sky+'], ['e', 46, -20, 46, 40, 'sky+'], ['e', 0, 30, 30, 50, 'pink'], ['e', 0, -44, 34, 30, 'skin'], ['d', -10, -46, 1.5], ['d', 12, -46, 1.5], ['p', [-30, -60, 0, -86, 30, -60], 'yellow', 2]] };
+  N.gnome = { is: 'human', w: 22, h: 34, speed: 1.2, fears: ['monster', 'predator', 'fire', 'cat'], art: { a: 'person', top: 'blue', legs: 'brown', hat: 'wizard', beard: 'white' } };
+  N.astronaut = { is: 'human', fears: [], fireproof: true, art: { a: 'person', top: 'white', legs: 'white', shoe: 'grey', hat: 'bubble' } };
+  N.drone = { is: 'creature', w: 36, h: 24, material: 'metal', flies: true, speed: 3, hp: 3, follows: true, fears: ['wet'], light: true, tags: ['robot'], sound: 'bzz',
+    art: [['l', [-90, -60, -30, -60], 3], ['l', [30, -60, 90, -60], 3], ['l', [-60, -60, -40, -10], 2], ['l', [60, -60, 40, -10], 2], ['r', -50, -30, 100, 90, 'grey', 6], ['e', 0, 20, 22, 30, 'sky'], ['d', 0, 20, 2, 'red']] };
+  // sea life: anything that swims stays in the water and can be ridden if it is friendly enough
+  N.dolphin = { is: 'animal', w: 92, h: 38, swims: true, rideable: true, speed: 3.6, hp: 4, diet: ['fish'], fears: [], sound: 'eek',
+    art: [['g', 'sky', [['p', [-70, 0, -104, -60, -86, 0, -104, 60], 2], ['p', [-84, 0, -50, -56, 30, -60, 84, -20, 104, 6, 60, 30, -40, 50], 8], ['p', [-10, -56, 6, -104, 30, -56], 2]]], ['p', [-40, 36, 40, 44, 96, 8, 50, 22], 'white', 4], ['d', 62, -18, 2.2], ['l', [78, 10, 100, 6], 1.4]] };
+  N.whale = { is: 'animal', w: 190, h: 84, swims: true, rideable: true, speed: 2, hp: 20, mass: 9, diet: [], fears: [],
+    art: [['g', 'blue', [['p', [-74, -10, -104, -70, -88, -10, -104, 40], 3], ['p', [-88, 0, -60, -60, 30, -80, 100, -20, 100, 40, 40, 80, -50, 60], 14]]], ['p', [-40, 56, 40, 74, 98, 36, 60, 46], 'white', 6], ['d', 70, -10, 3], ['l', [40, -84, 36, -104], 2, 'sky'], ['l', [40, -84, 50, -104], 2, 'sky']] };
+  N.octopus = { is: 'predator', w: 62, h: 52, swims: true, speed: 1.8, hp: 5, dmg: 1, hunts: ['human'], fears: [], diet: ['fish'],
+    art: [['l', [-60, 20, -90, 60, -70, 96], 6, 'purple'], ['l', [-30, 30, -44, 70, -24, 98], 6, 'purple'], ['l', [0, 34, 0, 74, 8, 98], 6, 'purple'], ['l', [30, 30, 44, 70, 28, 98], 6, 'purple'], ['l', [60, 20, 90, 60, 74, 96], 6, 'purple'],
+      ['e', 0, -20, 78, 74, 'purple'], ['e', -26, -10, 14, 18, 'white'], ['e', 26, -10, 14, 18, 'white'], ['d', -24, -8, 2], ['d', 28, -8, 2]] };
+  N.crab = { is: 'predator', w: 36, h: 24, speed: 1.6, hp: 2, dmg: 1, hunts: ['small'], diet: ['fish', 'meat'], fears: ['bird'],
+    art: [['l', [-50, 10, -90, -10, -100, 40], 2.6, 'red'], ['l', [50, 10, 90, -10, 100, 40], 2.6, 'red'], ['l', [-40, 40, -70, 90], 2.6, 'red'], ['l', [40, 40, 70, 90], 2.6, 'red'], ['e', 0, 16, 70, 56, 'red'], ['e', -84, -40, 20, 26, 'red'], ['e', 84, -40, 20, 26, 'red'],
+      ['d', -20, -40, 2.4], ['d', 20, -40, 2.4], ['l', [-20, -34, -20, -10], 1.5], ['l', [20, -34, 20, -10], 1.5]] };
+  N.swan = { is: 'bird', w: 56, h: 46, flies: false, swims: true, rideable: true, speed: 2.4, hp: 3, fears: [], art: { a: 'bird', c: 'white', wing: 'cream', beak: 'orange', big: 1 } };
+  // more animals, all from the shared rigs
+  N.zebra = { is: 'herbivore', w: 82, h: 68, speed: 4, hp: 4, rideable: true, jump: 1.2, art: { a: 'quad', hoof: 'dgrey', c: 'white', stripes: 1, mane: 'dgrey', tail: 'bushy', ears: 'point', neck: 1 } };
+  N.giraffe = { is: 'herbivore', w: 84, h: 140, speed: 2.6, hp: 6, rideable: true, jump: 0.8, art: { a: 'quad', hoof: 'dgrey', c: 'yellow', spots: 'brown', tail: 'long', ears: 'round', neck: 1 } };
+  N.hippo = { is: 'herbivore', w: 98, h: 60, speed: 1.6, hp: 10, mass: 7, fears: ['fire'], art: { a: 'quad', c: 'purple', legs: 'thick', ears: 'round', snout: 'short', tail: 'short' } };
+  // exception: a rhino is a plant-eater that charges at people anyway
+  N.rhino = { is: 'herbivore', w: 104, h: 64, speed: 3.2, hp: 10, dmg: 2, mass: 7, hunts: ['human'], fears: ['fire'], tags: ['scary'], art: { a: 'quad', c: 'grey', legs: 'thick', horn: 1, ears: 'point', tail: 'short' } };
+  N.panda = { is: 'herbivore', w: 70, h: 56, speed: 1.4, hp: 6, fears: ['fire'], art: { a: 'quad', c: 'white', patch: 'dgrey', ears: 'round', legs: 'thick', tail: 'none', snout: 'short' } };
+  N.polarbear = { is: 'predator', w: 86, h: 66, speed: 2.7, hp: 8, dmg: 2, diet: ['fish', 'meat'], art: { a: 'quad', c: 'white', ears: 'round', tail: 'none', legs: 'thick', snout: 'short' } };
+  N.mammoth = { is: 'herbivore', w: 140, h: 112, speed: 1.7, hp: 14, mass: 9, rideable: true, jump: 0, fears: ['fire'], art: { a: 'quad', c: 'brown', trunk: 1, ears: 'big', tail: 'short', legs: 'thick' } };
+  N.hedgehog = { is: 'herbivore', w: 32, h: 22, speed: 1.4, hp: 2, tags: ['small'], diet: ['bug', 'plant'], art: { a: 'quad', c: 'brown', wool: 1, head: 'tan', ears: 'round', tail: 'none', legs: 'short' } };
+  N.squirrel = { is: 'herbivore', w: 32, h: 26, speed: 3.2, hp: 1, tags: ['small'], diet: ['grain'], art: { a: 'quad', c: 'orange', tail: 'bushy', ears: 'point', legs: 'short' } };
+  // exception: a beaver is a herbivore that attacks trees
+  N.beaver = { is: 'herbivore', w: 46, h: 30, speed: 1.8, hp: 3, dmg: 2, hunts: ['tree'], art: { a: 'quad', c: 'brown', legs: 'short', ears: 'round', tail: 'short', snout: 'short', fangs: 1 } };
+  // exception: nothing hunts a skunk, and nearly everything runs from it
+  N.skunk = { is: 'herbivore', w: 46, h: 32, speed: 1.8, hp: 2, fears: ['fire'], tags: ['stinky'], art: { a: 'quad', c: 'dgrey', patch: 'white', tail: 'bushy', ears: 'round', legs: 'short' } };
+  N.ostrich = { is: 'bird', w: 52, h: 84, flies: false, speed: 4.8, hp: 4, rideable: true, jump: 1.2, art: { a: 'bird', c: 'dgrey', wing: 'ink', head: 'pink', beak: 'tan', big: 1 } };
+  N.flamingo = { is: 'bird', w: 32, h: 54, flies: false, speed: 1.6, diet: ['fish'], art: { a: 'bird', c: 'pink', wing: 'pink-', beak: 'dgrey' } };
+  N.goose = { is: 'bird', w: 40, h: 40, flies: false, speed: 2.2, loud: true, sound: 'honk', art: { a: 'bird', c: 'white', wing: 'grey', beak: 'orange', flat: 1 } };
+  N.seagull = { is: 'bird', diet: ['fish', 'meal'], art: { a: 'bird', c: 'white', wing: 'grey', beak: 'yellow' } };
+  N.peacock = { is: 'bird', w: 44, h: 40, flies: false, speed: 1.6, art: { a: 'bird', c: 'blue', wing: 'teal', crest: 'teal', beak: 'tan', big: 1 } };
+  // gadgets, magic and treasure
+  N.key = { is: 'tool', w: 24, h: 12, use: 'unlock', art: [['e', -60, 0, 36, 80, 'yellow'], ['e', -60, 0, 14, 30, 'paper'], ['r', -28, -18, 128, 36, 'yellow', 2], ['r', 60, 18, 14, 50, 'yellow', 1.5], ['r', 84, 18, 14, 36, 'yellow', 1.5]] };
+  N.lantern = { is: 'tool', w: 18, h: 30, light: true, art: [['l', [-30, -70, 0, -100, 30, -70], 2.4], ['r', -50, -74, 100, 18, 'dgrey', 2], ['r', -44, -56, 88, 120, 'yellow', 4], ['p', [-16, 30, 0, -10, 16, 30], 'orange', 2], ['r', -54, 64, 108, 20, 'dgrey', 2]] };
+  N.bean = { is: 'tool', w: 14, h: 12, material: 'plant', use: 'plant', art: [['e', 0, 0, 100, 80, 'green', -20], ['l', [-30, 10, 10, -20], 1.4]] };
+  N.beanstalk = { is: 'structure', w: 46, h: 60, solid: false, anchored: true, climbable: true, material: 'plant', tags: ['plant', 'vine'], hp: 6, grow: { to: 620 }, custom: 'vine', art: [] };
+  N.shrinkray = { is: 'tool', w: 34, h: 22, use: 'ray', ray: 'tiny', art: [['r', -100, -50, 130, 60, 'purple', 4], ['r', -80, 10, 40, 80, 'dgrey', 3], ['l', [30, -20, 70, -20], 4, 'grey'], ['e', 84, -20, 16, 34, 'yellow']] };
+  N.growray = { is: 'tool', w: 34, h: 22, use: 'ray', ray: 'giant', art: [['r', -100, -50, 130, 60, 'green', 4], ['r', -80, 10, 40, 80, 'dgrey', 3], ['l', [30, -20, 70, -20], 4, 'grey'], ['e', 84, -20, 16, 34, 'yellow']] };
+  N.freezeray = { is: 'tool', w: 34, h: 22, use: 'ray', ray: 'frozen', art: [['r', -100, -50, 130, 60, 'sky', 4], ['r', -80, 10, 40, 80, 'dgrey', 3], ['l', [30, -20, 70, -20], 4, 'grey'], ['e', 84, -20, 16, 34, 'yellow']] };
+  N.potion = { is: 'tool', w: 18, h: 26, material: 'food', use: 'ray', ray: 'friendly', art: [['r', -30, -100, 60, 50, 'tan', 2], ['e', 0, 30, 90, 68, 'pink'], ['e', -30, 10, 16, 12, 'white']] };
+  N.sleepdust = { is: 'tool', w: 22, h: 24, material: 'cloth', use: 'ray', ray: 'sleepy', art: [['p', [-80, 100, -100, -20, -40, -60, 40, -60, 100, -20, 80, 100], 'tan', 5], ['l', [-40, -60, 40, -60], 2.6, 'dbrown'], ['d', -20, 20, 2.4, 'purple'], ['d', 20, 40, 2.4, 'purple'], ['d', 10, 0, 2.4, 'purple']] };
+  N.raft = { is: 'vehicle', w: 112, h: 18, speed: 2.6, material: 'wood', floats: true, hp: 6, art: [['r', -100, -70, 200, 60, 'brown+', 3], ['r', -100, -10, 200, 60, 'brown', 3], ['l', [-70, -70, -70, 50], 2.6, 'tan'], ['l', [70, -70, 70, 50], 2.6, 'tan']] };
+  N.mech = { is: 'vehicle', w: 80, h: 110, speed: 2.6, jump: 1.1, smashes: true, mass: 8, hp: 30,
+    art: [['r', -70, 40, 40, 60, 'dgrey', 4], ['r', 30, 40, 40, 60, 'dgrey', 4], ['r', -80, -40, 160, 90, 'orange', 8], ['r', -40, -96, 80, 60, 'sky', 8], ['l', [-80, -10, -104, 30], 5, 'dgrey'], ['l', [80, -10, 104, 30], 5, 'dgrey'], ['d', -50, 10, 3, 'yellow'], ['d', 50, 10, 3, 'yellow'], ['l', [-30, 20, 30, 20], 2]] };
+  N.hoverboard = { is: 'vehicle', w: 62, h: 14, speed: 4.4, flies: true, hp: 4, art: [['p', [-100, -60, -80, 40, 80, 40, 100, -60, 90, -20, -90, -20], 'teal', 3], ['e', -50, 70, 24, 26, 'sky'], ['e', 50, 70, 24, 26, 'sky']] };
+  N.bed = { is: 'structure', w: 92, h: 42, solid: false, snooze: true, art: [['r', -100, 10, 200, 50, 'brown', 3], ['r', -100, -50, 24, 150, 'brown', 3], ['r', -70, -20, 160, 40, 'sky', 6], ['e', -48, -22, 24, 22, 'white'], ['r', 76, -10, 24, 110, 'brown', 3]] };
+  N.radio = { is: 'structure', w: 42, h: 32, solid: false, carry: true, upright: false, mass: 1, loud: true, material: 'metal', art: [['l', [40, -60, 80, -100], 2], ['r', -100, -60, 200, 160, 'red', 6], ['e', -44, 20, 36, 46, 'dgrey'], ['e', 44, 20, 36, 46, 'dgrey'], ['r', -40, -46, 80, 18, 'cream', 2]] };
+  N.crystal = { is: 'thing', w: 24, h: 30, material: 'stone', light: true, edible: true, tags: ['valuable', 'shiny', 'crystal'], art: [['p', [0, -100, 60, -30, 36, 100, -36, 100, -60, -30], 'sky', 1.5], ['l', [0, -100, 0, 100], 1.3], ['l', [-60, -30, 60, -30], 1.3]] };
+  N.battery = { is: 'food', w: 16, h: 24, material: 'metal', tags: ['battery', 'junk'], art: [['r', -70, -70, 140, 170, 'green', 3], ['r', -30, -100, 60, 30, 'grey', 2], ['l', [-20, -10, 10, -10, -10, 30, 20, 30], 2, 'yellow']] };
+  N.crown = { is: 'thing', w: 28, h: 20, material: 'metal', edible: true, tags: ['valuable', 'shiny'], art: [['p', [-100, 90, -100, -60, -50, 10, 0, -90, 50, 10, 100, -60, 100, 90], 'yellow', 2], ['d', 0, 40, 2.6, 'red'], ['d', -56, 46, 2, 'blue'], ['d', 56, 46, 2, 'blue']] };
+  N.ring = { is: 'thing', w: 18, h: 22, material: 'metal', edible: true, tags: ['valuable', 'shiny'], art: [['e', 0, 20, 80, 76, 'yellow'], ['e', 0, 20, 44, 42, 'paper'], ['p', [-24, -56, 0, -100, 24, -56], 'sky', 1.5]] };
+  N.meteor = { is: 'nature', w: 72, h: 62, upright: false, mass: 8, hot: true, light: true, solid: true, tags: ['fire'], art: [['p', [-100, -60, -40, -20, -70, -90, 0, -40, -10, -100, 40, -30], 'orange', 3], ['e', 20, 24, 76, 70, 'dgrey'], ['e', 0, 10, 14, 14, 'grey'], ['e', 44, 40, 10, 10, 'grey']] };
+
   // ---- synonyms: many spellings, one object --------------------------------
   const synonyms = {
     goat: ['billy goat', 'nanny goat'], sheep: ['lamb', 'ram', 'ewe'], cow: ['bull', 'ox', 'cattle'], pig: ['hog', 'boar', 'piglet', 'swine'],
@@ -314,14 +398,24 @@
     bush: ['shrub', 'hedge'], flower: ['rose', 'daisy', 'tulip', 'sunflower'], house: ['cottage', 'hut', 'cabin', 'shed'], treasure: ['gold', 'coin', 'coins', 'money', 'treasure chest', 'diamond'],
     teddy: ['teddy bear', 'doll', 'plushie'], duckie: ['rubber duck', 'rubber ducky'], car: ['truck', 'van', 'taxi', 'jeep'], bicycle: ['bike', 'tricycle', 'unicycle'], motorcycle: ['motorbike', 'scooter', 'moped'],
     helicopter: ['chopper', 'copter'], plane: ['airplane', 'aeroplane', 'jet', 'biplane'], airballoon: ['hot air balloon', 'blimp', 'zeppelin', 'airship'], rocket: ['rocket ship', 'spaceship', 'spacecraft'], ufo: ['flying saucer', 'saucer'],
-    broom: ['broomstick'], carpet: ['magic carpet', 'flying carpet', 'rug'], boat: ['ship', 'canoe', 'raft', 'kayak'], lawnmower: ['mower', 'lawn mower'], bulldozer: ['digger', 'excavator', 'steamroller'],
+    broom: ['broomstick'], carpet: ['magic carpet', 'flying carpet', 'rug'], boat: ['ship', 'canoe', 'kayak', 'dinghy', 'rowboat'], lawnmower: ['mower', 'lawn mower'], bulldozer: ['digger', 'excavator', 'steamroller'],
     wings: ['wing', 'angel wings'], jetpack: ['jet pack', 'rocket pack'], balloon: ['balloons'], pogo: ['pogo stick'], skates: ['roller skates', 'rollerblades', 'rollerskates'], boots: ['spring boots', 'spring shoes', 'shoes'],
     armor: ['armour', 'chainmail'], parachute: ['glider'], fire: ['campfire', 'bonfire', 'flame', 'flames'], lava: ['magma'], water: ['puddle', 'pond'], raincloud: ['rain cloud', 'rain', 'storm', 'storm cloud', 'thundercloud'],
     ice: ['ice cube', 'ice block', 'iceberg'], lightning: ['thunderbolt', 'lightning bolt', 'thunder'], blackhole: ['black hole', 'void', 'vortex'], portal: ['teleporter', 'wormhole', 'door'],
     trampoline: ['bouncy castle'], scarecrow: ['strawman'], ball: ['football', 'basketball', 'tennis ball', 'beach ball'], apple: ['pear', 'peach', 'fruit'], carrot: ['turnip', 'radish', 'vegetable'],
     corn: ['wheat', 'grain', 'rice', 'seeds', 'seed'], mushroom: ['toadstool'], ladder: ['stepladder'], tree: ['oak', 'pine', 'palm tree', 'oak tree', 'pine tree'], cannon: ['human cannon'],
-    catapult: ['trebuchet', 'slingshot'], skeleton: ['skull'], zombie: ['mummy', 'ghoul'], spider: ['tarantula'], shark: ['whale', 'dolphin'], tiger: ['panther', 'leopard', 'cheetah', 'jaguar'],
+    catapult: ['trebuchet', 'slingshot'], skeleton: ['skull'], zombie: ['mummy', 'ghoul'], spider: ['tarantula'], tiger: ['panther', 'leopard', 'cheetah', 'jaguar'],
   };
+
+  Object.assign(synonyms, {
+    gremlin: ['goblin', 'imp', 'pixie'], golem: ['scrap golem', 'automaton', 'titan'], shade: ['wraith', 'shadow', 'specter', 'spectre'], eel: ['sea serpent', 'moray'], giant: ['cyclops', 'colossus'],
+    dinosaur: ['t rex', 'trex', 'tyrannosaurus', 'raptor', 'dino'], griffin: ['gryphon', 'hippogriff'], witch: ['hag', 'enchantress'], gnome: ['dwarf', 'elf', 'leprechaun'], astronaut: ['spaceman', 'cosmonaut'],
+    drone: ['probe', 'quadcopter'], octopus: ['squid'], swan: ['pedalo'], hippo: ['hippopotamus'], rhino: ['rhinoceros'], polarbear: ['polar bear'], mammoth: ['woolly mammoth', 'mastodon'], squirrel: ['chipmunk'],
+    key: ['keycard', 'key card', 'passkey', 'skeleton key'], lantern: ['glowstick', 'glow stick', 'nightlight'], bean: ['magic bean', 'magic beans', 'beans'], beanstalk: ['vine', 'skyvine', 'ivy'],
+    shrinkray: ['shrink ray', 'shrinker'], growray: ['growth ray', 'grow ray', 'enlarger'], freezeray: ['freeze ray', 'ice ray'], potion: ['love potion', 'elixir', 'charm'], sleepdust: ['sleep dust', 'sleeping powder', 'sleeping potion', 'sandman dust'],
+    mech: ['robot suit', 'mecha', 'walker', 'exosuit'], hoverboard: ['hover board', 'jet board'], radio: ['boombox', 'speaker', 'stereo', 'alarm clock', 'siren', 'alarm'], crystal: ['gem', 'jewel', 'ruby', 'emerald', 'star'],
+    crown: ['tiara'], ring: ['necklace', 'amulet'], meteor: ['meteorite', 'asteroid', 'comet'], bed: ['hammock', 'sofa', 'couch', 'pillow'], raft: ['surfboard', 'paddleboard'], goose: ['geese'], battery: ['power cell', 'batteries'],
+  });
 
   // ---- adjectives: modifiers stacked on top of a noun ----------------------
   const scale = (k) => (s) => { s.w = Math.round(s.w * k); s.h = Math.round(s.h * k); s.mass *= k * k; s.hp = Math.max(1, Math.round(s.hp * k)); if (s.dmg) s.dmg = Math.max(1, Math.round(s.dmg * (k > 1 ? 1.5 : 0.5))); };

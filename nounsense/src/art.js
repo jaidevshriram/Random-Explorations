@@ -122,7 +122,7 @@
     for (const s of shapes) ctx.fill(s.path);
     const size = Math.max(...shapes.map((s) => s.size));
     const t = env.tmp;
-    if (!t || size < 9) return;
+    if (!t || size < 9 || fill.startsWith('rgba')) return;   // glass and other see-through fills stay flat
     // shade and highlight follow the merged silhouette: mask minus a shifted copy of itself
     const d = Math.max(1.2, Math.min(4.5, size * 0.1)), m = ctx.getTransform();
     const band = (colour, dx, dy, alpha) => {
@@ -253,6 +253,8 @@
     antenna: () => [['l', [0, -96, 0, -120]], ['d', 0, -122, 2.6, 'red']],
     wolfears: () => [['p', [-54, -80, -46, -114, -20, -90], 'dgrey', 2], ['p', [54, -80, 46, -114, 20, -90], 'dgrey', 2]],
     mirror: () => [['l', [-60, -78, 60, -78], 2.4], ['e', 0, -88, 16, 8, 'grey']],
+    bubble: () => [['e', 0, -62, 82, 48, 'rgba(200,235,250,0.2)'], ['l', [-50, -86, -30, -96], 1.6, 'white'], ['l', [0, -110, 0, -128]], ['d', 0, -131, 3, 'yellow']],
+    horns: () => [['l', [-48, -84, -84, -104, -70, -128], 3.6, 'cream'], ['l', [48, -84, 84, -104, 70, -128], 3.6, 'cream']],
     feather: () => [['p', [-66, -76, -56, -100, 56, -100, 66, -76], 'teal', 4], ['l', [24, -98, 52, -128], 3.4, 'red']],
   };
   const PROPS = {
@@ -345,7 +347,7 @@
     const tmp = scratch.getContext('2d');
     const frames = [];
     let seed = 7; for (const chr of spec.noun) seed = (seed * 31 + chr.charCodeAt(0)) >>> 0;
-    for (let f = 0; f < FRAMES; f++) {
+    for (let f = 0; f < (spec.still ? 1 : FRAMES); f++) {   // scenery does not need the shimmering line
       const cv = document.createElement('canvas');
       cv.width = cw; cv.height = ch;
       const ctx = cv.getContext('2d');
@@ -357,7 +359,7 @@
     s = { frames, w: spec.w + padX * 2, h: spec.h + padY * 2, eyes: ops.eyes || [] };
     cache.set(key, s);
     // sprites are big bitmaps: drop the least recently used ones so a long session cannot run out of memory
-    while (cache.size > 70) { const [old, v] = cache.entries().next().value; for (const c of v.frames) { c.width = 0; c.height = 0; } cache.delete(old); }
+    while (cache.size > 90) { const [old, v] = cache.entries().next().value; for (const c of v.frames) { c.width = 0; c.height = 0; } cache.delete(old); }
     return s;
   }
 

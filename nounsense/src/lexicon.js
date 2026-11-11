@@ -104,9 +104,24 @@
     return { ok: true, spec, noun: hit.noun, adjs, name: spec.name };
   }
 
-  const pretty = { airballoon: 'hot air balloon', raincloud: 'rain cloud', blackhole: 'black hole', duckie: 'rubber duck', teddy: 'teddy bear', pogo: 'pogo stick', carpet: 'magic carpet', can: 'tin can' };
+  const pretty = { polarbear: 'polar bear', shrinkray: 'shrink ray', growray: 'growth ray', freezeray: 'freeze ray', sleepdust: 'sleep dust', airballoon: 'hot air balloon', raincloud: 'rain cloud', blackhole: 'black hole', duckie: 'rubber duck', teddy: 'teddy bear', pogo: 'pogo stick', carpet: 'magic carpet', can: 'tin can' };
   function displayName(noun) { return pretty[noun] || noun; }
 
-  NN.lexicon = { resolve, displayName, nounCount: Object.keys(D.nouns).length, wordCount: nounIndex.size, adjCount: adjIndex.size,
+  // a phrase made only of describing words, for changing something already on the page
+  function adjectives(phrase) {
+    const words = String(phrase || '').toLowerCase().replace(/[^a-z\s-]/g, ' ').replace(/-/g, ' ').split(/\s+/)
+      .filter((w) => w && !['a', 'an', 'the', 'very', 'really', 'and', 'make', 'it', 'be', 'more'].includes(w));
+    if (!words.length) return { ok: false, error: 'Write a describing word first.' };
+    const adjs = [];
+    for (const w of words) {
+      const a = adjIndex.get(w);
+      if (!a) return { ok: false, notAdjective: true, unknown: w, error: `"${w}" is not a describing word the notebook knows.`, suggestion: nearest(w, adjIndex) };
+      if (!adjs.includes(a)) adjs.push(a);
+    }
+    return { ok: true, adjs };
+  }
+  const onlyAdjectives = (phrase) => adjectives(phrase).ok;
+
+  NN.lexicon = { adjectives, onlyAdjectives, resolve, displayName, nounCount: Object.keys(D.nouns).length, wordCount: nounIndex.size, adjCount: adjIndex.size,
     nouns: () => Object.keys(D.nouns), isNoun: (w) => nounIndex.has(w) };
 })(typeof window !== 'undefined' ? window.NN : globalThis.NN);

@@ -6,54 +6,63 @@
 <!--page-->
 <title>Nounsense</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Patrick+Hand&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap">
 <link rel="stylesheet" href="style.css">
 
 <main class="wrap">
   <header class="top">
     <h1>Nounsense</h1>
-    <p class="goal">Carry the parcel to the mailbox. Write any word and it appears.</p>
+    <p class="goal"><strong id="lvlname">1. Glowroot Gorge</strong> Carry the star seed to the beacon. Write any word and it appears.</p>
     <ul class="stats" aria-live="polite">
       <li id="hearts" class="hearts" aria-label="Health">♥♥♥</li>
-      <li id="parcel">Parcel: safe</li>
+      <li id="parcel">Star seed: safe</li>
       <li id="words">Words: 0 (par 3)</li>
       <li id="page">On the page: 0/10</li>
     </ul>
   </header>
 
   <div class="stage">
-    <canvas id="game" tabindex="0" aria-label="Game view: a courier, a ravine with a broken bridge, a goat, a wall of brambles and a mailbox"></canvas>
+    <canvas id="game" tabindex="0" aria-label="Game view: Nib the star-wizard, the obstacles of this world, and a beacon to reach"></canvas>
+    <p id="cap" class="cap"></p>
     <div id="toast" class="toast" role="status"></div>
 
     <section id="intro" class="card">
-      <h2>One parcel, three problems</h2>
-      <p>The bridge is out, the goat eats paper, and the brambles have swallowed the lane. Write a word and it shows up: a <em>ladder</em>, a <em>dog</em>, a <em>giant friendly dragon</em>. Par is three words.</p>
+      <p class="eyebrow">Nib and the four dead beacons</p>
+      <h2 id="introtitle">Glowroot Gorge</h2>
+      <p id="introbody"></p>
+      <p class="how">Write a word and it appears: a <em>bridge</em>, a <em>cat</em>, a <em>giant friendly dragon</em>. Click anything already there, then write a describing word to change it: <em>sleepy</em>, <em>tiny</em>, <em>flying</em>.</p>
       <dl class="keys">
         <div><dt>A D / ← →</dt><dd>walk</dd></div>
         <div><dt>Space / W</dt><dd>jump, climb</dd></div>
         <div><dt>Enter</dt><dd>write a word</dd></div>
-        <div><dt>Mouse</dt><dd>drag things, right-click erases</dd></div>
+        <div><dt>Mouse</dt><dd>drag, click to select, right-click erases</dd></div>
         <div><dt>E</dt><dd>pick up, ride, launch</dd></div>
         <div><dt>F / Q</dt><dd>use what you hold / drop it</dd></div>
       </dl>
-      <button id="start" type="button" class="btn primary">Start the round</button>
+      <div id="worlds" class="worlds" aria-label="Choose a world"></div>
+      <button id="start" type="button" class="btn primary">Start</button>
     </section>
 
     <section id="win" class="card" hidden>
       <p id="stars" class="stars" aria-label="Stars earned">★☆☆</p>
-      <h2 id="wintitle">Delivered!</h2>
+      <h2 id="wintitle">Beacon lit!</h2>
       <p id="winbody"></p>
-      <button id="again" type="button" class="btn primary">Deliver again</button>
+      <div class="row">
+        <button id="next" type="button" class="btn primary">Next world</button>
+        <button id="again" type="button" class="btn">Play this one again</button>
+      </div>
     </section>
   </div>
 
   <form id="write" class="write" autocomplete="off">
-    <label for="word">Write a word</label>
+    <label for="word" id="wordlabel">Write a word</label>
     <input id="word" name="word" type="text" maxlength="60" placeholder="bridge, sleepy bear, hot air balloon…" autocapitalize="off" autocorrect="off" spellcheck="false">
-    <button type="submit" class="btn primary">Summon</button>
+    <button type="submit" class="btn primary">Go</button>
     <button id="hint" type="button" class="btn">Hint</button>
     <button id="clear" type="button" class="btn">Clear page</button>
     <button id="restart" type="button" class="btn">Restart</button>
+    <button id="pick" type="button" class="btn">Worlds</button>
+    <button id="mute" type="button" class="btn">Sound: on</button>
     <p id="msg" class="msg" role="status"></p>
   </form>
 
@@ -74,7 +83,7 @@
     </details>
     <details>
       <summary>How the stars work</summary>
-      <p>One star for delivering. Two for delivering in three words or fewer. Three for doing that without reusing any word from an earlier win, so every perfect run has to find a new way through.</p>
+      <p>One star for lighting the beacon. Two for doing it in three words or fewer. Three for doing that without reusing any word from an earlier win in the same world, so every perfect run has to find a new way through. Describing words count as words too.</p>
     </details>
   </section>
 </main>
@@ -83,6 +92,7 @@
 <script src="src/dictionary.js"></script>
 <script src="src/lexicon.js"></script>
 <script src="src/art.js"></script>
+<script src="src/levels.js"></script>
 <script src="src/sim.js"></script>
 <script src="src/main.js"></script>
 <!--/page-->
