@@ -1,5 +1,33 @@
 # Picking this up
 
+## Current state (read this first; the rest of the file predates it)
+
+The game was reworked after the notes below were written. What is true now:
+
+- **Story:** Nib, an apprentice star-wizard, carries star seeds to dead beacons. The goat/courier level is gone.
+- **Worlds** live in `src/levels.js` as data. The first, *Lamplight Row*, is the finished one: a street with a flooded
+  excavation, a thieving magpie and a wooden hoarding, plus townsfolk who wave and greet. *Gloamwick Manor* is an
+  interior art test with no puzzle. The four after that (gorge, skyvine, keep, port) are playable but still drawn in
+  an older, cruder style.
+- **Rendering:** `src/main.js` draws the scene unlit to a 2D canvas, and PixiJS (`vendor/pixi.min.js`) composites it
+  with a light map, bloom, grading, a vignette and grain. It falls back to plain canvas compositing without WebGL.
+  Scenery records its own lights while it is drawn; anything in the dictionary with `light` or `hot` is a moving light.
+- **Scene art:** `src/town.js` (streets) and `src/manor.js` (interiors) build scenes from architectural parts:
+  windows, awnings, signs, doors, columns. This is the style to extend. To restyle an old world, give it a painter
+  like these and set `zoom: 1` on the level.
+- **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
+  on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
+- **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
+- **Tests:** `node nounsense/test/playtest.js` runs about 38 scripted scenarios across the worlds and a fuzz pass over
+  every word. All pass. It takes a few minutes because the renderer runs in software there.
+- **Studies:** `test/study.html` is a measured redraw of a reference illustration (18.5 dB PSNR), with tools in
+  `test/study-tools/`. `test/recreation.html` is an earlier freehand attempt. Neither is used by the game.
+- **Not done:** the README is partly out of date, the four older worlds need the new art, there is no music, and
+  nothing has been tuned by hand play.
+
+---
+
+
 Notes for whoever works on Nounsense next. Read `README.md` first for what the
 game is; this file is about how to change it without breaking it.
 

@@ -353,6 +353,7 @@
   N.ostrich = { is: 'bird', w: 52, h: 84, flies: false, speed: 4.8, hp: 4, rideable: true, jump: 1.2, art: { a: 'bird', c: 'dgrey', wing: 'ink', head: 'pink', beak: 'tan', big: 1 } };
   N.flamingo = { is: 'bird', w: 32, h: 54, flies: false, speed: 1.6, diet: ['fish'], art: { a: 'bird', c: 'pink', wing: 'pink-', beak: 'dgrey' } };
   N.goose = { is: 'bird', w: 40, h: 40, flies: false, speed: 2.2, loud: true, sound: 'honk', art: { a: 'bird', c: 'white', wing: 'grey', beak: 'orange', flat: 1 } };
+  N.magpie = { is: 'bird', w: 36, h: 30, speed: 3, diet: ['shiny', 'valuable'], eatVerb: 'snatched', fears: ['cat', 'scarecrow', 'loud', 'predator', 'fire'], tags: ['magpie'], sound: 'caw', art: { a: 'bird', c: 'dgrey', wing: 'white', head: 'ink', beak: 'dgrey', big: 1 } };
   N.seagull = { is: 'bird', diet: ['fish', 'meal'], art: { a: 'bird', c: 'white', wing: 'grey', beak: 'yellow' } };
   N.peacock = { is: 'bird', w: 44, h: 40, flies: false, speed: 1.6, art: { a: 'bird', c: 'blue', wing: 'teal', crest: 'teal', beak: 'tan', big: 1 } };
   // gadgets, magic and treasure

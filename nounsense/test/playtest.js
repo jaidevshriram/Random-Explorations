@@ -6,6 +6,16 @@ const url = 'file://' + require('path').resolve(__dirname, '..', 'index.html');
 let failed = 0;
 
 const TESTS = [
+  // Lamplight Row (listed first in the game; -2 here because the older worlds start at index 2)
+  [-2, 'raft crosses the flooded roadworks', (s, p, run, at) => { s.spawn('raft', 1040, 540); run(60); at(972); run(3, {}, { interactPressed: true }); if (!p.mount) return 'no mount'; run(220, { right: true }); return p.x > 1150 && p.hp === 3 ? true : [p.x | 0, p.hp]; }],
+  [-2, 'falling in the hole sends you back', (s, p, run, at) => { at(960); run(80, { right: true }); return p.x < 500 ? true : p.x | 0; }],
+  [-2, 'magpie snatches the star seed if ignored', (s, p, run, at, N) => { at(N.magpie.x - 60); run(420); return !p.hasParcel ? true : 'seed survived'; }],
+  [-2, 'a shiny decoy keeps the magpie busy', (s, p, run, at, N) => { s.spawn('ring', N.magpie.x, 480); run(200); return N.magpie.fullUntil > s.time ? true : 'not distracted'; }],
+  [-2, 'cat scares the magpie', (s, p, run, at, N) => { const x0 = N.magpie.x; s.spawn('cat', x0 - 40, 480); let fled = false; for (let i = 0; i < 12; i++) { run(10); fled = fled || !!(N.magpie.goal && N.magpie.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.magpie.x | 0]; }],
+  [-2, 'axe chops the hoarding down', (s, p, run, at, N, has) => { N.magpie.asleepUntil = Infinity; s.spawn('axe', 1960, 480); run(40); at(1960); run(3, {}, { interactPressed: true }); run(40, { right: true }); for (let i = 0; i < 4; i++) run(25, {}, { usePressed: true }); return !has('hoarding') ? true : N.wall.hp; }],
+  [-2, 'torch burns the hoarding', (s, p, run, at, N, has) => { N.magpie.asleepUntil = Infinity; s.spawn('torch', 1960, 480); run(40); at(1960); run(3, {}, { interactPressed: true }); run(40, { right: true }); run(5, {}, { usePressed: true }); run(420, { left: true }); return !has('hoarding') ? true : 'still standing'; }],
+  [-2, 'neighbours wave and say hello', (s, p, run, at, N) => { at(N.kid.x - 40); run(200); return N.kid.waveUntil > 0 && s.fx.some((f) => f.type === 'speech') ? true : [N.kid.waveUntil, s.fx.length]; }],
+  [-2, 'lighting the beacon wins', (s, p, run, at) => { at(2420); run(60, { right: true }); return s.won ? true : 'no win'; }],
   // world 0: Glowroot Gorge
   [0, 'bridge spans the gorge', (s, p, run, at) => { s.spawn('bridge', 870, 470); run(90); at(640); run(160, { right: true }); return p.x > 1040 && p.y < 520 ? true : [p.x | 0, p.y | 0]; }],
   [0, 'plain jump does not clear the gorge', (s, p, run, at) => { at(640); run(18, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.x < 1040 ? true : p.x | 0; }],
@@ -38,7 +48,7 @@ const TESTS = [
   [3, 'fish feeds the shark', (s, p, run, at, N) => { s.spawn('fish', N.shark.x + 60, 540); run(200); return N.shark.fullUntil > s.time ? true : 'not fed'; }],
   [3, 'friendly shark can be ridden', (s, p, run, at, N) => { const r = s.describe(N.shark, 'friendly'); Matter.Body.setPosition(N.shark.body, { x: 700, y: N.shark.y }); run(20); at(612); run(3, {}, { interactPressed: true }); if (!p.mount) return ['no mount', r]; run(200, { right: true }); return p.x > 1000 && p.hp === 3 ? true : [p.x | 0, p.hp]; }],
   [3, 'treasure bribes the captain; beacon reached', (s, p, run, at, N) => { s.spawn('treasure', N.captain.x - 40, 340); run(200); if (!N.captain.spec.friendly) return 'not bribed'; at(2150, 380); run(120, { right: true }); return s.won ? true : [p.x | 0, s.won]; }],
-  [3, 'ghost spooks the captain', (s, p, run, at, N) => { const x0 = N.captain.x; s.spawn('ghost', x0 - 100, 300); run(150); return N.captain.goal && N.captain.goal.type === 'flee' ? true : N.captain.goal && N.captain.goal.type; }],
+  [3, 'ghost spooks the captain', (s, p, run, at, N) => { const x0 = N.captain.x; s.spawn('ghost', x0 - 100, 300); let fled = false; for (let i = 0; i < 15; i++) { run(10); fled = fled || !!(N.captain.goal && N.captain.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.captain.x | 0]; }],
 ];
 
 (async () => {

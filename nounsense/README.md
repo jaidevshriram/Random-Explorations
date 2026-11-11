@@ -1,5 +1,10 @@
 # Nounsense
 
+> **Note:** the game has moved on since most of this page was written. See the top of
+> [HANDOFF.md](./HANDOFF.md) for the current state: new story, six worlds, a WebGL lighting
+> pipeline, and scenes built from architectural parts. The dictionary-and-rules design described
+> below still holds.
+
 A write-a-word-and-it-appears puzzle game, built "the old way": every word the
 game knows is authored by hand in a dictionary, with a category tree for
 inherited defaults and per-object exceptions on top. No LLM anywhere.

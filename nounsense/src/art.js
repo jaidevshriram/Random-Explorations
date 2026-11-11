@@ -275,7 +275,8 @@
     const skin = o.skin || 'skin', top = o.top, legs = o.legs, shoe = o.shoe || 'dgrey', ops = [];
     const sw = pose === 1 ? 12 : pose === 2 ? -12 : 0;
     const arm = (s) => (o.arms === 'reach' ? ['p', [20, 10 + (s > 0 ? 0 : 14), 92, 12 + (s > 0 ? 0 : 14), 92, 24 + (s > 0 ? 0 : 14), 20, 26 + (s > 0 ? 0 : 14)], 3]
-      : ['p', [s * 24, 8, s * 40, 8, s * (56 + sw * 0.25), 40, s * (42 + sw * 0.25), 46], 3]);
+      : pose === 5 && s > 0 ? ['p', [24, 10, 40, 6, 70, -34, 58, -42], 3]                      // pose 5: a wave
+        : ['p', [s * 24, 8, s * 40, 8, s * (56 + sw * 0.25), 40, s * (42 + sw * 0.25), 46], 3]);
     if (o.cape) ops.push(['p', [-36, 4, -74, 86, 0, 74, 74, 86, 36, 4], o.cape, 3]);
     if (o.robe) {
       ops.push(['r', -34 + sw * 0.5, 86, 30, 14, shoe, 3], ['r', 4 - sw * 0.5, 86, 30, 14, shoe, 3]);
@@ -290,7 +291,7 @@
     if (o.stripes) ops.push(['l', [-34, 16, 34, 16], 2.4], ['l', [-34, 30, 34, 30], 2.4], ['l', [-34, 44, 34, 44], 2.4]);
     if (o.bones) ops.push(['l', [0, 6, 0, 52]], ['l', [-26, 18, 26, 18]], ['l', [-26, 32, 26, 32]], ['l', [-26, 44, 26, 44]]);
     if (o.satchel) ops.push(['l', [-32, 6, 30, 44], 2.4, 'dbrown'], ['r', 14, 36, 42, 30, 'tan', 4]);
-    if (o.arms !== 'reach') ops.push(['e', -(50 + sw * 0.25), 46, 11, 7, skin], ['e', 50 + sw * 0.25, 46, 11, 7, skin]);
+    if (o.arms !== 'reach') ops.push(['e', -(50 + sw * 0.25), 46, 11, 7, skin], pose === 5 ? ['e', 66, -42, 11, 8, skin] : ['e', 50 + sw * 0.25, 46, 11, 7, skin]);
     else ops.push(['e', 94, 18, 9, 6, skin], ['e', 94, 32, 9, 6, skin]);
     if (o.club) ops.push(['p', [50, 50, 64, -30, 96, -24, 74, 54], 'brown', 4]);
     if (o.prop && PROPS[o.prop]) ops.push(...PROPS[o.prop]);

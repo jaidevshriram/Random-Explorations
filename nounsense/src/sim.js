@@ -291,6 +291,7 @@
     // ---- creature brains -----------------------------------------------------------
     function think(c) {
       const s = c.spec, now = sim.time;
+      if (c.waveUntil > now) { c.goal = { type: 'wander', x: c.x, until: c.waveUntil, rest: true }; return; }   // stop and say hello
       const fears = c.scaredUntil > now ? s.fears.concat('human') : s.fears;
       const hunts = c.angry ? s.hunts.concat('human') : s.hunts;
       const hungry = now >= c.fullUntil;
@@ -488,6 +489,10 @@
         if (s.alive && active(e)) {
           if (s.lulls) { e.lullT = (e.lullT || 0) + DT; if (e.lullT > 3) { e.lullT = 0; lull(e, 250, 5); } }
           if (s.heals && p.hp < 3 && gap(e, p) < 40) { e.healT = (e.healT || 0) + DT; if (e.healT > 1.5) { e.healT = 0; p.hp++; addFx('text', p.x, p.y - 40, { text: '+1', vy: -0.6, life: 1 }); changed(); } }
+          if (s.greets && !p.mods.stealth && gap(e, p) < 80 && now > (e.greetAt || 2) && !(e.goal && e.goal.type === 'flee')) {
+            e.greetAt = now + 12 + Math.random() * 10; e.waveUntil = now + 1.8; e.facing = p.x > e.x ? 1 : -1; e.goal = null;
+            addFx('speech', e.x, e.y - e.h / 2 - 16, { text: s.greets[Math.floor(Math.random() * s.greets.length)], life: 2.4 });
+          }
           if (s.aflame && Math.random() < 0.2) addFx('flame', e.x + (Math.random() - 0.5) * e.w, e.y, { vy: -1.5, life: 0.4, size: 8 });
         }
         // water: things float, sink or get swept away
@@ -538,7 +543,7 @@
         const s = e.spec;
         const rideable = s.rideable && (!s.alive || (active(e) && !(s.hunts || []).includes('human') && !e.angry));
         if (!(rideable || s.launcher || s.carry)) continue;
-        const d = gap(p, e) - (rideable || s.launcher ? 8 : 0);
+        const d = gap(p, e) - (rideable || s.launcher ? 22 : 0);   // generous reach for mounts, so a boat at the quayside can be boarded
         if (d < bd) { bd = d; best = e; }
       }
       return best;

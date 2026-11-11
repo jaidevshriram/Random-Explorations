@@ -147,7 +147,7 @@
     const c = c0.getContext('2d'); c.scale(LS, LS);
     paint(raw ? c : stampInto(c), w, extra + HORIZON + 4, rng(par * 1000 + 7));
     c.globalCompositeOperation = 'source-atop'; c.globalAlpha = hazeAlpha; c.fillStyle = T.haze; c.fillRect(0, 0, w, h);
-    return { cv: c0, w, h, extra, par };
+    return { cv: c0, w, h, extra, par, horizon: extra + HORIZON + 4 };
   }
   function buildWorldArt() {
     const T = THEMES[L.theme], S = SCENES[L.theme];
@@ -155,8 +155,8 @@
       const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
       const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH);
       if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over, lights: m.lights }; return; }
-      const f = NN.town.front(L.W, L.start.y, 2);
-      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true), mid: bake(0.4, NN.town.mid, 0.16, T, true), front: f, over: f.over, lights: f.lights };
+      const f = NN.town.front(L.W, L.start.y, 2, L.holes);
+      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true), mid: bake(0.4, NN.town.mid, 0.16, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
       return;
     }
     // sky: flat bands joined by rows of halftone dots, stars, moons and planets with a hard ink edge
@@ -184,7 +184,7 @@
     sim = NN.createSim({ toast: showToast, changed: updateHud, won: onWin, sfx }, L);
     Z = L.zoom || 1.6; WW = VW / Z; WH = VH / Z; BASE = L.zoom ? 520 - WH * 0.84 : 290; HORIZON = (520 - BASE) * Z;
     cam.x = 0; cam.y = BASE; hover = null; selected = null;
-    buildWorldArt();
+    smoke.length = 0; buildWorldArt();
     $('win').hidden = true;
     $('cap').textContent = L.caption; $('cap').classList.add('show'); capT = 7;
     $('lvlname').textContent = `${levelIndex + 1}. ${L.name}`;
@@ -259,6 +259,7 @@
   function drawBackdrop() {
     ctx.drawImage(layers.sky, 0, 0, VW, VH);
     for (const l of [layers.far, layers.mid]) if (l) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
+    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, tx = ((t * 70) % (l.w + 520)) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 184, 396, 36); }   // the monorail crosses the viaduct
   }
   function drawBlock(t) {
     const T = THEMES[L.theme], st = T.ground[t.kind] || Object.values(T.ground)[0];
@@ -317,6 +318,7 @@
   }
   function drawWorld() {
     if (layers.front) ctx.drawImage(layers.front.cv, 0, layers.front.top, L.W, layers.front.h);
+    for (const pf of smoke) { const k = pf.age / 2.6; ctx.globalAlpha = Math.max(0, 0.85 - k); ctx.beginPath(); ctx.arc(pf.x + pf.age * 7, pf.y - pf.age * 20, 5 + pf.age * 5, 0, 7); ctx.fillStyle = '#f6f1e6'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke(); ctx.globalAlpha = 1; }
     for (const t of L.terrain) if (t.trench) {   // the far wall of a trench, in shadow
       const st = THEMES[L.theme].ground.pit;
       ctx.fillStyle = st.line; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench);
@@ -381,7 +383,7 @@
     if (e.heldBy || !visible(e.x, e.w / 2 + 80)) return;
     const s = e.spec, live = s.alive && sim.active(e);
     if (s.custom === 'vine') { drawVine(e); if (e.burning > 0) flames(e); return; }
-    const pose = (live || e.mountedBy) && e.moving && !s.flies && !s.swims ? (Math.floor(e.walkT * 9) % 2 ? 1 : 2) : 0;
+    const pose = (live || e.mountedBy) && e.moving && !s.flies && !s.swims ? [1, 0, 2, 0][Math.floor(e.walkT * 11) % 4] : live && e.waveUntil > sim.time ? 5 : 0;   // four-step walk; pose 5 is a wave
     let y = e.y, angle = s.upright ? 0 : e.body.angle;
     if ((s.flies || s.swims) && (live || e.mountedBy) && !reduceMotion) y += Math.sin(sim.time * 5 + e.id) * 2.5;
     if (!e.placing && !(e.native && e.h > 400) && !s.swims) { if (s.floating || (s.flies && s.alive)) shadow(e.x, sim.groundBelow(e.x, e.y), Math.min(40, e.w * 0.3), 0.1); else if (s.upright || Math.abs(angle) < 0.2) shadow(e.x, e.y + e.h / 2, Math.min(90, e.w * 0.46), 0.22); }
@@ -430,7 +432,7 @@
     const p = sim.player;
     if (p.invuln > 0 && !sim.won && Math.floor(sim.time * 14) % 2) return;
     drawHeld(p, true);
-    const pose = p.moving ? (Math.floor(p.walkT * 10) % 2 ? 1 : 2) : 0;
+    const pose = p.moving ? [1, 0, 2, 0][Math.floor(p.walkT * 12) % 4] : 0;
     const vy = p.mount ? 0 : p.body.velocity.y, hurt = p.invuln > 0 && !sim.won, k = p.scale * (L.zoom ? 1.28 : 1);
     const sy = reduceMotion ? 0 : 1 + Math.max(-0.12, Math.min(0.14, -vy * 0.022)) + (p.moving ? 0 : Math.sin(sim.time * 2.6) * 0.015);
     const bob = p.moving && !reduceMotion ? Math.abs(Math.sin(p.walkT * 15)) * 2.4 : 0;
@@ -495,7 +497,7 @@
 
   // every light in view: the ones baked into the scenery plus anything in the world that glows
   function collectLights() {
-    const out = (layers.lights || []).filter((l) => visible(l.x, l.r + 40));
+    const out = (layers.lights || []).filter((l) => visible(l.x, l.r + 40)).map((l) => (l.r < 30 && !reduceMotion ? Object.assign({}, l, { a: l.a * (0.55 + 0.45 * Math.sin(sim.time * 3 + l.x)) }) : l));   // small lights twinkle
     const p = sim.player, add = (x, y, r, color, a) => out.push({ x, y, r, color, a });
     for (const e of sim.ents) {
       if (e.removed || e.placing) continue;
@@ -583,7 +585,8 @@
   }
 
   // ---- loop -----------------------------------------------------------------
-  let last = 0, acc = 0, capT = 0;
+  let last = 0, acc = 0, capT = 0, smokeT = 0;
+  const smoke = [];
   function frame(ts) {
     const dt = Math.min(0.1, (ts - last) / 1000 || 0); last = ts; acc += dt;
     if (!reduceMotion) boil = Math.floor(ts / 150) % 3;
@@ -611,6 +614,9 @@
     if (d) sim.dragTo(mouse.x, mouse.y);
     hover = d || !mouse.inside ? null : sim.pick(mouse.x, mouse.y, true);
     view.style.cursor = d ? 'grabbing' : hover ? (hover.native || hover.isPlayer ? 'pointer' : 'grab') : 'default';
+    // chimney smoke
+    smokeT -= dt; if (smokeT <= 0 && !reduceMotion) { smokeT = 0.5; for (const [ex, ey] of layers.emitters || []) if (visible(ex, 100)) smoke.push({ x: ex, y: ey, age: 0 }); }
+    for (let i = smoke.length - 1; i >= 0; i--) { smoke[i].age += dt; if (smoke[i].age > 2.6) smoke.splice(i, 1); }
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
     if (capT > 0 && started) { capT -= dt; if (capT <= 0) $('cap').classList.remove('show'); }
     draw();

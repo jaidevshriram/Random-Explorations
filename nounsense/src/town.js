@@ -20,9 +20,9 @@
   function poly(c, pts, fill, lw) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.lineJoin = 'round'; c.stroke(); } }
   function disc(c, x, y, r, fill, lw) { c.beginPath(); c.arc(x, y, r, 0, 7); if (fill) { c.fillStyle = fill; c.fill(); } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.stroke(); } }
   // Lights are not painted here. They are recorded, and the renderer adds them as real light.
-  let SINK = null;
+  let SINK = null, EMS = null;
   function glow(c, x, y, r, a, color) { if (SINK) SINK.push({ x, y, r: r * 1.7, a: Math.min(1, (a || 0.5) * 2), color: color || '255,214,150' }); }
-  function capture(fn) { SINK = []; const out = fn(); const lights = SINK; SINK = null; return { out, lights }; }
+  function capture(fn) { SINK = []; EMS = []; const out = fn(); const lights = SINK, emitters = EMS; SINK = null; EMS = null; return { out, lights, emitters }; }
   // a big wall surface: top-lit gradient, faint siding, a bright left edge and a heavy contour
   function wall(c, x, y, w, h, fill) {
     c.fillStyle = fill; c.fillRect(x, y, w, h);
@@ -121,7 +121,7 @@
   function dish(c, x, y) { box(c, x - 4, y - 16, 8, 16, C.dark, 2); c.save(); c.translate(x, y - 22); c.rotate(-0.5); c.beginPath(); c.ellipse(0, 0, 22, 9, 0, 0, 7); c.fillStyle = C.stone; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); line(c, [0, 0, 0, -18], 1.8); disc(c, 0, -18, 2.6, C.red, 1.2); c.restore(); }
   function flag(c, x, y, col) { line(c, [x, y, x, y - 46], 2.4); poly(c, [x, y - 46, x + 26, y - 42, x + 18, y - 36, x + 26, y - 30, x, y - 28], col, 2); }
   function vent(c, x, y) { box(c, x - 14, y - 16, 28, 16, C.stone2, 2); line(c, [x - 9, y - 11, x + 9, y - 11], 1.4); line(c, [x - 9, y - 6, x + 9, y - 6], 1.4); }
-  function chimney(c, x, y, r) { box(c, x - 8, y - 30, 16, 30, C.brick2, 2); box(c, x - 11, y - 36, 22, 7, C.stone, 2); for (let i = 0; i < 3; i++) disc(c, x + 6 + i * 9, y - 46 - i * 13, 6 + i * 3, 'rgba(246,241,230,0.75)', 1.4); void r; }
+  function chimney(c, x, y, r) { box(c, x - 8, y - 30, 16, 30, C.brick2, 2); box(c, x - 11, y - 36, 22, 7, C.stone, 2); if (EMS) EMS.push([x, y - 40]); void r; }   // smoke is animated by the game
 
   // ---- buildings: each one draws itself on the ground line g -------------------------
   const BUILD = {
@@ -204,8 +204,9 @@
   const ROW = [['teashop', 250], [null, 70], ['lab', 320], [null, 60], ['museum', 420], [null, 80], ['tower', 250], [null, 60], ['potions', 300], [null, 50], ['observatory', 330], [null, 70], ['workshop', 340], [null, 60], ['teashop', 250]];
 
   // the street front, baked once into a canvas in world coordinates
-  function front(W, ground, scale) { const r = capture(() => paintFront(W, ground, scale)); r.out.lights = r.lights; return r.out; }
-  function paintFront(W, ground, scale) {
+  function front(W, ground, scale, holes) { const r = capture(() => paintFront(W, ground, scale, holes || [])); r.out.lights = r.lights; r.out.emitters = r.emitters; return r.out; }
+  function paintFront(W, ground, scale, holes) {
+    const inHole = (x, pad) => holes.some(([a, b]) => x > a - (pad || 0) && x < b + (pad || 0));
     const top = ground - 560, cv = document.createElement('canvas');
     cv.width = Math.ceil(W * scale); cv.height = Math.ceil(560 * scale);
     let c = cv.getContext('2d'); c.scale(scale, scale); c.translate(0, -top);
@@ -215,7 +216,7 @@
     let x = -30;
     const gaps = [];
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }
-    for (const [gx, gw] of gaps) { const k = r(); tree(c, gx + gw / 2, ground, 1 + r() * 0.3, C.sage, C.sage2); if (k < 0.6) lamps.push(gx + gw * 0.2); else { box(c, gx + gw * 0.62, ground - 26, 30, 6, '#8a5a3a', 2); box(c, gx + gw * 0.62 + 2, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62 + 24, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62, ground - 42, 30, 6, '#8a5a3a', 2); } }
+    for (const [gx, gw] of gaps) { const k = r(), ts = 1 + r() * 0.3; if (inHole(gx + gw / 2, 30)) continue; tree(c, gx + gw / 2, ground, ts, C.sage, C.sage2); if (k < 0.6) lamps.push(gx + gw * 0.2); else { box(c, gx + gw * 0.62, ground - 26, 30, 6, '#8a5a3a', 2); box(c, gx + gw * 0.62 + 2, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62 + 24, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62, ground - 42, 30, 6, '#8a5a3a', 2); } }
     // string lights across the gaps, and things left out on the pavement
     for (const [gx, gw] of gaps) {
       const x0 = gx - 14, x1 = gx + gw + 14, y0 = ground - 176, cols = ['#ffd978', '#ff8f7a', '#8fe0d0', '#ffd978', '#c9a0ff'];
@@ -231,7 +232,14 @@
       crates(x) { box(c, x - 20, ground - 22, 24, 22, C.sand, 2); line(c, [x - 20, ground - 22, x + 4, ground], 1.3); box(c, x + 2, ground - 16, 18, 16, C.sand2, 2); box(c, x - 12, ground - 40, 20, 18, C.sand, 2); },
       board(x) { poly(c, [x - 12, ground, x - 2, ground - 34, x + 12, ground - 34, x + 22, ground], C.dark, 2); poly(c, [x - 8, ground - 4, x, ground - 30, x + 10, ground - 30, x + 16, ground - 4], C.cream, 1.6); line(c, [x, ground - 22, x + 10, ground - 22], 1.4, C.red); line(c, [x - 2, ground - 14, x + 12, ground - 14], 1.4, C.red); } };
     const order = ['board', 'plant', 'hydrant', 'crates', 'postbox', 'plant', 'bin', 'plant', 'crates', 'board', 'hydrant', 'plant', 'bin'];
-    let px = 34, k = 0; while (px < W) { prop[order[k % order.length]](px); px += 150 + r() * 120; k++; }
+    let px = 34, k = 0; while (px < W) { if (!inHole(px, 60)) prop[order[k % order.length]](px); px += 150 + r() * 120; k++; }
+    // roadworks: a striped barrier with a warning lamp either side of each hole
+    for (const [a, b] of holes) for (const [bx, d] of [[a - 34, 1], [b + 34, -1]]) {
+      box(c, bx - 26, ground - 34, 5, 34, C.dark, 1.8); box(c, bx + 21, ground - 34, 5, 34, C.dark, 1.8); box(c, bx - 30, ground - 40, 60, 14, C.white, 2.2);
+      for (let i = 0; i < 4; i++) poly(c, [bx - 28 + i * 15, ground - 39, bx - 20 + i * 15, ground - 39, bx - 26 + i * 15, ground - 27, bx - 34 + i * 15 + 6, ground - 27], C.red, 0);
+      c.lineWidth = 2.2; c.strokeStyle = O; c.strokeRect(bx - 30, ground - 40, 60, 14); disc(c, bx + d * 24, ground - 46, 6, '#ffb347', 2); glow(c, bx + d * 24, ground - 46, 26, 0.5, '255,170,80');
+      poly(c, [bx - d * 52, ground, bx - d * 44, ground - 26, bx - d * 36, ground], '#ff8f3a', 2); line(c, [bx - d * 49, ground - 9, bx - d * 39, ground - 9], 2.4, C.white);
+    }
     c = fc;
     for (let lx = 150; lx < W + 40; lx += 300) glow(c, lx, ground + 52, 60, 0.5);
     return { cv, top, h: 560, over: { cv: ocv, top, h: 560 } };
@@ -256,7 +264,6 @@
     c.fillStyle = '#9aa6c4'; c.strokeStyle = LO; c.lineWidth = 2;
     for (let x = -60; x < w; x += 150) { c.beginPath(); c.moveTo(x, horizon); c.lineTo(x, vy + 24); c.lineTo(x + 26, vy + 24); c.lineTo(x + 26, horizon - 40); c.arc(x + 88, horizon - 40, 62, Math.PI, 0); c.lineTo(x + 150, vy + 24); c.lineTo(x + 176, vy + 24); c.lineTo(x + 176, horizon); c.closePath(); c.fill(); c.stroke(); }
     c.fillRect(-60, vy, w + 120, 26); c.strokeRect(-60, vy, w + 120, 26);
-    for (let i = 0; i < 3; i++) { const tx = w * 0.3 + i * 132; c.fillStyle = '#efe6d2'; c.beginPath(); c.roundRect(tx, vy - 34, 126, 32, i === 2 ? [6, 18, 4, 6] : 6); c.fill(); c.stroke(); c.fillStyle = '#c9574a'; c.fillRect(tx + 2, vy - 12, 122, 5); for (let k = 0; k < 5; k++) { c.fillStyle = '#7f97bd'; c.fillRect(tx + 10 + k * 22, vy - 28, 15, 12); c.lineWidth = 1; c.strokeRect(tx + 10 + k * 22, vy - 28, 15, 12); c.lineWidth = 2; } }
     for (let x = 30; x < w; x += 210 + r() * 160) { const s = 1.2 + r() * 0.8; for (const [dx, dy, rr] of [[-20, -30, 26], [20, -34, 26], [0, -56, 30]]) { c.beginPath(); c.arc(x + dx * s, horizon + dy * s, rr * s, 0, 7); c.fillStyle = '#7d9a7a'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke(); } }
     // a sky-barge
     const ax = w * 0.62, ay = horizon - 430;
@@ -264,6 +271,12 @@
     for (const dx of [-30, 0, 30]) { c.beginPath(); c.moveTo(ax + dx, ay - 25); c.quadraticCurveTo(ax + dx + 8, ay, ax + dx, ay + 25); c.stroke(); }
     c.fillStyle = '#c9574a'; c.beginPath(); c.moveTo(ax - 62, ay - 8); c.lineTo(ax - 92, ay - 24); c.lineTo(ax - 86, ay + 2); c.lineTo(ax - 92, ay + 24); c.lineTo(ax - 62, ay + 8); c.fill(); c.stroke();
     c.fillStyle = '#efe6d2'; c.fillRect(ax - 24, ay + 28, 48, 14); c.strokeRect(ax - 24, ay + 28, 48, 14); c.beginPath(); c.moveTo(ax - 16, ay + 24); c.lineTo(ax - 16, ay + 28); c.moveTo(ax + 16, ay + 24); c.lineTo(ax + 16, ay + 28); c.stroke();
+  }
+  // the monorail, drawn once; the game slides it along the viaduct
+  function train() {
+    const cv = document.createElement('canvas'); cv.width = 396 * 2; cv.height = 36 * 2; const c = cv.getContext('2d'); c.scale(2, 2); c.strokeStyle = '#4b5677'; c.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { const tx = 1 + i * 132; c.fillStyle = '#efe6d2'; c.beginPath(); c.roundRect(tx, 1, 126, 32, i === 2 ? [6, 18, 4, 6] : 6); c.fill(); c.stroke(); c.fillStyle = '#c9574a'; c.fillRect(tx + 2, 23, 122, 5); for (let k = 0; k < 5; k++) { c.fillStyle = '#ffe0a0'; c.fillRect(tx + 10 + k * 22, 7, 15, 12); c.lineWidth = 1; c.strokeRect(tx + 10 + k * 22, 7, 15, 12); c.lineWidth = 2; } }
+    return cv;
   }
   function sky(c, VW, VH) {
     const g = c.createLinearGradient(0, 0, 0, VH * 0.8); g.addColorStop(0, '#6f86c8'); g.addColorStop(0.55, '#c7b6d6'); g.addColorStop(1, '#ffd9b0'); c.fillStyle = g; c.fillRect(0, 0, VW, VH);
@@ -287,10 +300,10 @@
     for (let x = Math.floor(x0 / 190) * 190 + 60; x < x1; x += 190) box(c, x - 5, py - 13, 10, 26, '#5d6480', 2);
     for (let x = Math.floor(x0 / 300) * 300 + 150; x < x1 + 40; x += 300) { disc(c, x, y + 52, 9, C.lit, 2.2); box(c, x - 13, y + 38, 26, 5, '#5d6480', 1.8); }
     // kerb and paving
-    box(c, x0 - 4, y + 14, x1 - x0 + 8, 14, '#a8a49b', 2.4);
+    box(c, x0 - 4, y + 14, x1 - x0 + 8, 14, '#a8a49b', 2.4); for (const ex of [t.x0, t.x1]) if (ex > x0 - 2 && ex < x1 + 2) line(c, [ex, y, ex, y1], 3.4);
     c.fillStyle = '#cfcabf'; c.fillRect(x0, y, x1 - x0, 15); for (let x = Math.floor(x0 / 58) * 58; x < x1; x += 58) line(c, [x, y + 1, x - 5, y + 14], 1.3, 'rgba(43,48,68,0.4)');
     line(c, [x0, y, x1, y], 3); line(c, [x0, y + 15, x1, y + 15], 2);
   }
 
-  NN.town = { front, far, mid, sky, street, parts: { ICON, awning, poster, tree, lamp, cornice, wall, bricks, cast, hangSign, vine, tank, dish, flag, vent, capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
+  NN.town = { front, far, mid, sky, street, train, parts: { ICON, awning, poster, tree, lamp, cornice, wall, bricks, cast, hangSign, vine, tank, dish, flag, vent, capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
 })(window.NN);
