@@ -7,7 +7,7 @@
 (function (NN) {
   'use strict';
   const { O, C, box, shade, line, poly, disc, glow, icon, rng } = NN.town.parts;
-  const M = { wall: '#5d4263', wall2: '#4c3552', pat: '#6f5176', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
+  const M = { wall: '#3f5e62', wall2: '#324b50', pat: '#52787c', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 
   function flame(c, x, y, s) { glow(c, x, y - 4 * s, 34 * s, 0.5); poly(c, [x - 3.2 * s, y, x, y - 11 * s, x + 3.2 * s, y], '#ffb347', 1.4); poly(c, [x - 1.4 * s, y, x, y - 6 * s, x + 1.4 * s, y], '#fff1b0', 0); }

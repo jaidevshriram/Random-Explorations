@@ -270,11 +270,20 @@
   function mid(c, w, horizon) {
     const r = rng(404), LO = '#4b5677';
     for (let x = -30; x < w; x += 90 + r() * 70) {
-      const bw = 80 + r() * 70, bh = 190 + r() * 190, col = ['#7c8db4', '#8a7fa6', '#6d86a8', '#9a8f88'][Math.floor(r() * 4)];
+      const bw = 80 + r() * 70, bh = 190 + r() * 190, col = ['#8f9dbf', '#c49a86', '#d6c4a2', '#7f95a8', '#b9a48e', '#9a8fb0'][Math.floor(r() * 6)];
       c.fillStyle = col; c.fillRect(x, horizon - bh, bw, bh); c.fillStyle = 'rgba(28,32,58,0.18)'; c.fillRect(x + bw - 12, horizon - bh, 12, bh);
       c.lineWidth = 1.8; c.strokeStyle = LO; c.strokeRect(x, horizon - bh, bw, bh);
-      for (let wy = horizon - bh + 14; wy < horizon - 30; wy += 24) for (let wx = x + 10; wx < x + bw - 22; wx += 20) { c.fillStyle = r() < 0.3 ? '#f6d58a' : '#b9c6e0'; c.fillRect(wx, wy, 11, 14); c.lineWidth = 1; c.strokeRect(wx, wy, 11, 14); }
-      if (r() < 0.35) { c.fillStyle = col; c.fillRect(x + bw * 0.3, horizon - bh - 22, bw * 0.3, 22); c.strokeRect(x + bw * 0.3, horizon - bh - 22, bw * 0.3, 22); }
+      const ws = Math.floor(r() * 3), ww = [11, 8, 18][ws], wh = [14, 22, 12][ws], gx = [20, 17, 28][ws], gy = [24, 34, 22][ws];        // three kinds of window, so no two blocks match
+      for (let wy = horizon - bh + 16; wy < horizon - 30; wy += gy) for (let wx = x + 10; wx < x + bw - ww - 8; wx += gx) { c.fillStyle = r() < 0.3 ? '#f6d58a' : '#b9c6e0'; c.fillRect(wx, wy, ww, wh); c.lineWidth = 1; c.strokeRect(wx, wy, ww, wh); if (ws === 2) { c.beginPath(); c.moveTo(wx + ww / 2, wy); c.lineTo(wx + ww / 2, wy + wh); c.stroke(); } }
+      c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(x, horizon - bh, bw, 5); c.lineWidth = 1.8;
+      const ty = horizon - bh, mx = x + bw / 2, kind = Math.floor(r() * 7); c.fillStyle = col; c.lineWidth = 1.8; c.strokeStyle = LO;                    // something different on every roof
+      if (kind === 0) { c.beginPath(); c.moveTo(x - 4, ty); c.lineTo(mx, ty - 34); c.lineTo(x + bw + 4, ty); c.closePath(); c.fillStyle = '#8a6a78'; c.fill(); c.stroke(); }
+      else if (kind === 1) { c.beginPath(); c.moveTo(mx - 12, ty); c.lineTo(mx - 12, ty - 16); c.moveTo(mx + 12, ty); c.lineTo(mx + 12, ty - 16); c.stroke(); c.fillStyle = '#a8826a'; c.fillRect(mx - 17, ty - 44, 34, 28); c.strokeRect(mx - 17, ty - 44, 34, 28); c.beginPath(); c.moveTo(mx - 20, ty - 44); c.lineTo(mx, ty - 60); c.lineTo(mx + 20, ty - 44); c.closePath(); c.fill(); c.stroke(); }
+      else if (kind === 2) { c.beginPath(); c.moveTo(mx, ty); c.lineTo(mx, ty - 70); c.moveTo(mx - 12, ty - 44); c.lineTo(mx + 12, ty - 44); c.moveTo(mx - 8, ty - 56); c.lineTo(mx + 8, ty - 56); c.stroke(); c.fillStyle = '#e0605a'; c.beginPath(); c.arc(mx, ty - 72, 3.4, 0, 7); c.fill(); }
+      else if (kind === 3) { c.beginPath(); c.arc(mx, ty, bw * 0.3, Math.PI, 0); c.closePath(); c.fillStyle = '#7fa8b0'; c.fill(); c.stroke(); c.beginPath(); c.moveTo(mx, ty - bw * 0.3); c.lineTo(mx, ty - bw * 0.3 - 18); c.stroke(); }
+      else if (kind === 4) { c.fillRect(x + bw * 0.25, ty - 40, bw * 0.5, 40); c.strokeRect(x + bw * 0.25, ty - 40, bw * 0.5, 40); c.fillStyle = '#f6d58a'; c.fillRect(mx - 5, ty - 30, 10, 14); c.strokeRect(mx - 5, ty - 30, 10, 14); c.beginPath(); c.moveTo(mx, ty - 40); c.lineTo(mx, ty - 62); c.stroke(); c.fillStyle = '#c9574a'; c.beginPath(); c.moveTo(mx, ty - 62); c.lineTo(mx + 16, ty - 57); c.lineTo(mx, ty - 52); c.fill(); }
+      else if (kind === 5) { for (const dx of [-0.26, 0.2]) { c.fillStyle = '#8a6a78'; c.fillRect(mx + dx * bw, ty - 22, 12, 22); c.strokeRect(mx + dx * bw, ty - 22, 12, 22); } c.fillStyle = '#b9c6e0'; c.beginPath(); c.moveTo(mx - 14, ty); c.lineTo(mx - 4, ty - 12); c.lineTo(mx + 14, ty - 12); c.lineTo(mx + 4, ty); c.closePath(); c.fill(); c.stroke(); }
+      else { c.fillStyle = '#efe6d2'; c.beginPath(); c.arc(mx, ty - 26, 17, 0, 7); c.fill(); c.stroke(); c.fillStyle = col; c.fillRect(mx - 22, ty - 12, 44, 12); c.strokeRect(mx - 22, ty - 12, 44, 12); c.beginPath(); c.moveTo(mx, ty - 26); c.lineTo(mx, ty - 37); c.moveTo(mx, ty - 26); c.lineTo(mx + 8, ty - 22); c.stroke(); }   // a clock
     }
     const vy = horizon - 150;
     c.fillStyle = '#9aa6c4'; c.strokeStyle = LO; c.lineWidth = 2;
@@ -295,9 +304,9 @@
     return cv;
   }
   function sky(c, VW, VH) {
-    const g = c.createLinearGradient(0, 0, 0, VH * 0.8); g.addColorStop(0, '#6f86c8'); g.addColorStop(0.55, '#c7b6d6'); g.addColorStop(1, '#ffd9b0'); c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+    const g = c.createLinearGradient(0, 0, 0, VH * 0.8); g.addColorStop(0, '#7f9ad0'); g.addColorStop(0.55, '#e6c8c4'); g.addColorStop(1, '#ffe4b8'); c.fillStyle = g; c.fillRect(0, 0, VW, VH);
     const sr = rng(9); c.fillStyle = 'rgba(255,250,230,0.8)'; for (let i = 0; i < 46; i++) { c.beginPath(); c.arc(sr() * VW, sr() * VH * 0.34, 0.6 + sr() * 1.1, 0, 7); c.fill(); }
-    c.fillStyle = '#fff4d8'; c.beginPath(); c.arc(VW * 0.78, 92, 30, 0, 7); c.fill(); c.fillStyle = '#8a98cf'; c.beginPath(); c.arc(VW * 0.78 + 13, 84, 26, 0, 7); c.fill();
+    c.fillStyle = '#fff4d8'; c.beginPath(); c.arc(VW * 0.78, 92, 30, 0, 7); c.fill(); c.fillStyle = '#a2aacc'; c.beginPath(); c.arc(VW * 0.78 + 13, 84, 26, 0, 7); c.fill();   // the sky colour at this height, to bite the crescent out
     const puff = (x, y, s) => { c.fillStyle = '#f6f1e6'; c.strokeStyle = '#a9b7d2'; c.lineWidth = 2; c.beginPath(); c.moveTo(x - 60 * s, y); c.arc(x - 36 * s, y - 6 * s, 22 * s, Math.PI * 0.9, Math.PI * 1.6); c.arc(x - 4 * s, y - 22 * s, 30 * s, Math.PI * 1.1, Math.PI * 1.9); c.arc(x + 34 * s, y - 8 * s, 24 * s, Math.PI * 1.3, Math.PI * 0.1); c.lineTo(x + 60 * s, y); c.closePath(); c.fill(); c.save(); c.clip(); c.fillStyle = 'rgba(242,160,150,0.42)'; c.fillRect(x - 62 * s, y - 9 * s, 124 * s, 10 * s); c.restore(); c.stroke(); };
     puff(190, 120, 1); puff(520, 70, 0.7); puff(930, 180, 0.9);
     c.strokeStyle = '#4b5677'; c.lineWidth = 2; c.lineCap = 'round'; for (const [bx, by, s] of [[340, 150, 1], [372, 138, 0.8], [400, 160, 0.9], [760, 96, 0.8], [788, 108, 0.7]]) { c.beginPath(); c.moveTo(bx - 8 * s, by - 4 * s); c.quadraticCurveTo(bx - 3 * s, by - 7 * s, bx, by); c.quadraticCurveTo(bx + 3 * s, by - 7 * s, bx + 8 * s, by - 4 * s); c.stroke(); }
