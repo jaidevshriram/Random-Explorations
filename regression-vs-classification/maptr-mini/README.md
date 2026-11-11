@@ -43,7 +43,15 @@ How the bin head's deficit was checked:
 
 The only setting where we saw bins win is the toy one: a single output trained on genuinely multimodal labels, with no input evidence to break the tie.
 
-Longer confirmation runs (2 seeds, 8,000 steps, clean) are in `runs_av2_long`.
+**Confirmation:** 2 seeds, 8,000 steps, clean input (`runs_av2_long`).
+
+| Head | mAP | Divider / ped / boundary AP | Median Chamfer |
+|---|---|---|---|
+| **L1** | **0.484 ± 0.003** | 0.659 / 0.524 / 0.269 | 0.68 m |
+| bins | 0.297 ± 0.002 | 0.515 / 0.167 / 0.208 | 1.23 m |
+
+- The gap narrows with training: bins reach 51% of L1's mAP at step 4,000 and 61% at step 8,000.
+- It is still large at the end, and largest on pedestrian crossings.
 
 ## MapTR-faithful model
 
