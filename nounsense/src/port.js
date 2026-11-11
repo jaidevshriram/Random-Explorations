@@ -150,7 +150,7 @@
     // an engine amidships: this ship flies when it wants to
     { const x = 1930, y = DECK;
       box(c, x - 46, y - 58, 92, 58, K.iron, 2.6); box(c, x - 52, y - 66, 104, 10, K.gold2, 2.2); for (let i = 0; i < 4; i++) { box(c, x - 36 + i * 20, y - 46, 12, 30, '#1f2a44', 1.6); c.fillStyle = K.cyan; c.fillRect(x - 34 + i * 20, y - 44 + (i % 2) * 8, 8, 14); } glow(c, x, y - 30, 90, 0.5, CY);
-      box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y - 4], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y - 4], 2.4, K.gold);
+      box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 2.4, K.gold); box(c, x + 69, y - 6, 14, 6, K.gold2, 1.6); for (const by of [y - 138, y - 84]) box(c, x - 16, by, 32, 6, K.gold2, 1.6); for (const [dx, dy, rr] of [[4, -172, 9], [14, -190, 12], [30, -206, 15]]) { c.beginPath(); c.arc(x + dx, y + dy, rr, 0, 7); c.fillStyle = 'rgba(255,236,220,0.4)'; c.fill(); }
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
     const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship
@@ -249,7 +249,9 @@
     for (let x = 60; x < w; x += 250 + r() * 260) {
       const iw = 90 + r() * 110, y = horizon - 150 - r() * 200, col = r() < 0.5 ? '#b486a4' : '#c294a8';
       c.fillStyle = col; c.beginPath(); c.moveTo(x - iw / 2, y); c.lineTo(x + iw / 2, y); c.lineTo(x + iw * 0.3, y + 26); c.lineTo(x + iw * 0.12, y + 70 + r() * 30); c.lineTo(x - iw * 0.1, y + 40); c.lineTo(x - iw * 0.3, y + 54); c.closePath(); c.fill();
-      c.fillStyle = '#e0b4b4'; c.fillRect(x - iw / 2 - 4, y - 5, iw + 8, 7);
+      c.fillStyle = 'rgba(70,34,96,0.26)'; c.beginPath(); c.moveTo(x + iw * 0.05, y); c.lineTo(x + iw / 2, y); c.lineTo(x + iw * 0.3, y + 26); c.lineTo(x + iw * 0.12, y + 64); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,214,170,0.22)'; c.beginPath(); c.moveTo(x - iw / 2, y); c.lineTo(x - iw * 0.18, y); c.lineTo(x - iw * 0.3, y + 50); c.closePath(); c.fill();   // facets: one in shade, one in the sun
+      c.strokeStyle = 'rgba(255,210,160,0.7)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - iw / 2, y + 1); c.lineTo(x - iw * 0.3, y + 54); c.lineTo(x - iw * 0.1, y + 40); c.stroke(); c.strokeStyle = 'rgba(110,70,120,0.7)'; c.lineWidth = 1.1; for (const [rx2, rl] of [[-0.22, 26], [0.02, 34], [0.2, 20]]) { c.beginPath(); c.moveTo(x + iw * rx2, y + 30); c.quadraticCurveTo(x + iw * rx2 + 4, y + 30 + rl * 0.6, x + iw * rx2 - 2, y + 30 + rl); c.stroke(); }   // a rim of sunset, and roots hanging
+      c.fillStyle = '#e0b4b4'; c.fillRect(x - iw / 2 - 4, y - 5, iw + 8, 7); c.fillStyle = '#fff0b0'; for (const wx of [-0.3, -0.16, 0.34]) c.fillRect(x + iw * wx, y - 12, 4, 6);
       c.fillStyle = col; c.fillRect(x - 8, y - 44, 16, 40); c.beginPath(); c.moveTo(x - 12, y - 44); c.lineTo(x, y - 62); c.lineTo(x + 12, y - 44); c.fill(); c.fillStyle = '#fff0b0'; c.fillRect(x - 3, y - 34, 6, 8);
       if (r() < 0.6) { c.fillStyle = col; c.fillRect(x + iw * 0.2, y - 26, 20, 22); c.fillStyle = '#fff0b0'; c.fillRect(x + iw * 0.2 + 6, y - 18, 5, 6); }
     }
@@ -261,6 +263,14 @@
     for (let x = -30; x < w; x += 70 + r() * 60) {                              // a pale row of taller houses further back, lost in the haze: no windows
       const bw = 50 + r() * 50, bh = 110 + r() * 110; c.fillStyle = ['#d0908e', '#d89a8c', '#c88892'][Math.floor(r() * 3)]; c.fillRect(x, horizon - bh, bw, bh);
       c.beginPath(); const rk = r(); if (rk < 0.45) { c.moveTo(x - 4, horizon - bh); c.lineTo(x + bw / 2, horizon - bh - 30); c.lineTo(x + bw + 4, horizon - bh); } else if (rk < 0.6) { c.moveTo(x + bw / 2 - 7, horizon - bh); c.lineTo(x + bw / 2, horizon - bh - 70); c.lineTo(x + bw / 2 + 7, horizon - bh); } else { c.arc(x + bw / 2, horizon - bh, bw * 0.34, Math.PI, 0); } c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,224,170,0.6)'; c.fillRect(x + bw - 2.5, horizon - bh, 2.5, bh); c.fillRect(x, horizon - bh - 0.5, bw, 2); c.fillStyle = 'rgba(255,236,190,0.6)'; for (let wy = horizon - bh + 14; wy < horizon - 90; wy += 20) for (let wx = x + 7; wx < x + bw - 9; wx += 12) if (r() < 0.14) c.fillRect(wx, wy, 4, 6);   // the sun on their near edges, and a few windows
+    }
+    for (let x = -20; x < w; x += 54 + r() * 46) {                              // a middle rank: roofs catching the last sun
+      const bw = 44 + r() * 44, bh = 74 + r() * 92, top = horizon - bh, k = r(); c.fillStyle = ['#b06c80', '#a8647e', '#b8747c'][Math.floor(r() * 3)]; c.fillRect(x, top, bw, bh);
+      c.beginPath(); if (k < 0.5) { c.moveTo(x - 4, top); c.lineTo(x + bw / 2, top - 18 - r() * 16); c.lineTo(x + bw + 4, top); } else if (k < 0.75) { c.moveTo(x - 3, top); c.lineTo(x + 5, top - 12); c.lineTo(x + bw - 5, top - 12); c.lineTo(x + bw + 3, top); } else c.rect(x - 2, top - 5, bw + 4, 5); c.closePath(); c.fillStyle = '#96566e'; c.fill();
+      if (r() < 0.5) c.fillRect(x + bw * (0.15 + r() * 0.5), top - 28, 7, 22);
+      c.fillStyle = 'rgba(255,206,140,0.8)'; c.fillRect(x + bw - 3, top, 3, bh); c.fillRect(x, top - 1, bw, 2);
+      c.fillStyle = 'rgba(255,232,170,0.85)'; for (let wy = top + 12; wy < horizon - 44; wy += 18) for (let wx = x + 7; wx < x + bw - 11; wx += 13) if (r() < 0.26) c.fillRect(wx, wy, 5, 7);
     }
     for (const fx of [0.22, 0.58, 0.9]) {                                        // dockside cranes
       const x = w * fx, top = horizon - 176 - ((fx * 53) % 50), dir = fx > 0.5 ? -1 : 1; c.strokeStyle = '#5a3a66'; c.fillStyle = '#5a3a66'; c.lineWidth = 3;

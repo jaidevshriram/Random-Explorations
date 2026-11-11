@@ -173,7 +173,7 @@
       wall(c, x + 10, g - h, w - 20, h, C.sand); shade(c, x + w - 30, g - h, 20, h);
       // lit hall with a great spiral fossil
       box(c, x + p, g - h + 40, w - p * 2, h - 60, C.lit, 2.4); c.fillStyle = C.lit2; c.fillRect(x + p, g - 70, w - p * 2, 50); { const ig = c.createLinearGradient(0, g - h + 40, 0, g - 76); ig.addColorStop(0, 'rgba(176,98,40,0.46)'); ig.addColorStop(1, 'rgba(176,98,40,0)'); c.fillStyle = ig; c.fillRect(x + p + 1, g - h + 41, w - p * 2 - 2, h - 118); }   // the hall is darker up under its ceiling glow(c, x + w / 2, g - h / 2, 110, 0.24);
-      icon(c, 'spiral', x + w / 2, g - h * 0.52, 56); box(c, x + w / 2 - 50, g - 62, 100, 12, '#8a5a3a', 2); line(c, [x + w / 2 - 20, g - 62, x + w / 2 - 20, g - 20], 3); line(c, [x + w / 2 + 20, g - 62, x + w / 2 + 20, g - 20], 3);
+      { const cx = x + w / 2, cy = g - h * 0.52; c.lineCap = 'round'; for (const [lw, col] of [[15, O], [11, '#8a6248'], [5, '#c79a6c']]) { c.beginPath(); for (let a = 0; a <= 15.5; a += 0.2) { const rr = 6 + a * 3.5, X = cx + Math.cos(a) * rr, Y = cy + Math.sin(a) * rr * 0.92; if (a === 0) c.moveTo(X, Y); else c.lineTo(X, Y); } c.lineWidth = lw; c.strokeStyle = col; c.stroke(); } c.lineWidth = 1.4; c.strokeStyle = O; for (let a = 1; a <= 15.4; a += 0.42) { const r0 = 6 + a * 3.5; c.beginPath(); c.moveTo(cx + Math.cos(a) * (r0 - 5), cy + Math.sin(a) * (r0 - 5) * 0.92); c.lineTo(cx + Math.cos(a) * (r0 + 5), cy + Math.sin(a) * (r0 + 5) * 0.92); c.stroke(); } c.lineCap = 'butt'; }   // the prize exhibit: a great ammonite, chambered box(c, x + w / 2 - 50, g - 62, 100, 12, '#8a5a3a', 2); line(c, [x + w / 2 - 20, g - 62, x + w / 2 - 20, g - 20], 3); line(c, [x + w / 2 + 20, g - 62, x + w / 2 + 20, g - 20], 3);
       for (const bx of [x + p + 14, x + w - p - 46]) { box(c, bx, g - h + 52, 32, 96, C.red, 2); poly(c, [bx, g - h + 148, bx + 16, g - h + 136, bx + 32, g - h + 148], C.red, 2); icon(c, bx < x + w / 2 ? 'star' : 'moon', bx + 16, g - h + 92, 10); }
       // columns, steps and pediment
       for (const cx of [x + 18, x + p - 8, x + w - p - 20, x + w - 46]) { box(c, cx, g - h + 30, 28, h - 46, C.cream, 2.2); box(c, cx - 5, g - h + 22, 38, 10, C.cream, 2); box(c, cx - 5, g - 26, 38, 10, C.cream, 2); for (let i = 1; i < 3; i++) line(c, [cx + i * 9.3, g - h + 36, cx + i * 9.3, g - 30], 1.1, 'rgba(43,48,68,0.3)'); }
@@ -300,8 +300,8 @@
       c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo((x0 + x1) / 2, y0 + 46, x1, y0); c.lineWidth = 1.6; c.strokeStyle = O; c.stroke();
       for (let i = 1; i < 7; i++) { const t = i / 7, bx = x0 + (x1 - x0) * t, by = y0 + 46 * 2 * t * (1 - t) + 5; disc(c, bx, by, 3.6, cols[i % 5], 1.3); glow(c, bx, by, 13, 0.3); }
     }
+    for (const lx of lamps) lamp(c, lx, ground);          // lamp posts stand behind the characters: the hero is never hidden by street furniture
     c = oc;                                              // from here on: in front of the characters
-    for (const lx of lamps) lamp(c, lx, ground);
     const prop = { hydrant(x) { box(c, x - 7, ground - 22, 14, 22, C.red, 2); box(c, x - 10, ground - 26, 20, 6, C.red, 2); disc(c, x, ground - 30, 6, C.red, 2); box(c, x - 13, ground - 16, 6, 7, C.red, 1.6); box(c, x + 7, ground - 16, 6, 7, C.red, 1.6); },
       postbox(x) { box(c, x - 13, ground - 44, 26, 44, C.blue, 2.4); c.beginPath(); c.arc(x, ground - 44, 13, Math.PI, 0); c.fillStyle = C.blue; c.fill(); c.lineWidth = 2.4; c.strokeStyle = O; c.stroke(); box(c, x - 8, ground - 40, 16, 4, C.dark, 1.2); box(c, x - 15, ground - 6, 30, 6, C.dark, 1.8); },
       bin(x) { poly(c, [x - 11, ground - 28, x + 11, ground - 28, x + 9, ground, x - 9, ground], C.sage2, 2); box(c, x - 13, ground - 32, 26, 5, C.dark, 1.8); line(c, [x - 4, ground - 24, x - 3, ground - 4], 1.2); line(c, [x + 4, ground - 24, x + 3, ground - 4], 1.2); },
@@ -385,7 +385,7 @@
     c.lineWidth = 2; c.strokeStyle = LO;
     for (let x = 30; x < w; x += 130 + r() * 110) { const s = 1.4 + r() * 1.1, dark = r() < 0.5; c.fillStyle = '#6a5a52'; c.fillRect(x - 4 * s, horizon - 40 * s, 8 * s, 40 * s); for (const [dx, dy, rr] of [[-20, -30, 26], [20, -34, 26], [0, -56, 30], [-8, -44, 20]]) { c.beginPath(); c.arc(x + dx * s, horizon + dy * s, rr * s, 0, 7); c.fillStyle = dark ? '#5f8468' : '#7d9a7a'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke(); } c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.arc(x - 8 * s, horizon - 62 * s, 14 * s, 0, 7); c.fill(); }
     // a sky-barge
-    const ax = w * 0.62, ay = horizon - 430;
+    const ax = w * 0.5, ay = horizon - 452;
     c.beginPath(); c.ellipse(ax, ay, 70, 26, 0, 0, 7); c.fillStyle = '#e0a94a'; c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
     for (const dx of [-30, 0, 30]) { c.beginPath(); c.moveTo(ax + dx, ay - 25); c.quadraticCurveTo(ax + dx + 8, ay, ax + dx, ay + 25); c.stroke(); }
     c.fillStyle = '#c9574a'; c.beginPath(); c.moveTo(ax - 62, ay - 8); c.lineTo(ax - 92, ay - 24); c.lineTo(ax - 86, ay + 2); c.lineTo(ax - 92, ay + 24); c.lineTo(ax - 62, ay + 8); c.fill(); c.stroke();
