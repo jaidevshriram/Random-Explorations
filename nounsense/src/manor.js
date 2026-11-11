@@ -164,7 +164,7 @@
   function ground(c, t, x0, x1, y1) {
     const y = t.y0;
     if (t.kind === 'stair') {                       // one slab of the staircase: tread, runner and a panelled side
-      box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.wood, 2.2); c.lineWidth = 1.4; c.strokeStyle = M.wood2; for (let x = t.x0 + 34; x < t.x1 - 6; x += 44) c.strokeRect(x, y + 4, 34, t.y1 - y - 8);
+      box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.wood, 2.2); c.lineWidth = 1.4; c.strokeStyle = M.wood2; for (let x = t.x0 + 34; x + 34 < t.x1 - 6; x += 44) c.strokeRect(x, y + 4, 34, t.y1 - y - 8);
       box(c, t.x0 - 3, y - 3, 34, 6, M.woodL, 2); box(c, t.x0 + 3, y - 3, 26, 6, M.red, 1.6); return;
     }
     if (t.kind === 'balcony') {

@@ -259,7 +259,7 @@
   const chestSpec = Object.assign({}, NN.lexicon.resolve('big treasure').spec, { noun: '_seedchest', still: true });   // a chest of spare star seeds, for indoor worlds
   const heroSpec = { noun: '_nib', w: 34, h: 60, art: { a: 'person', top: 'teal', legs: 'navy', shoe: 'dbrown', hat: 'goggles', hair: 'red', satchel: 1 } };
 
-  function shadow(x, y, rx, a) { ctx.fillStyle = `rgba(20,14,30,${a})`; ctx.beginPath(); ctx.ellipse(x, y + 1, rx, Math.max(2.5, rx * 0.16), 0, 0, 7); ctx.fill(); }
+  function shadow(x, y, rx, a) { ctx.fillStyle = `rgba(20,14,30,${Math.min(0.6, a * 1.6)})`; ctx.beginPath(); ctx.ellipse(x, y + 1, rx, Math.max(2.5, rx * 0.16), 0, 0, 7); ctx.fill(); }
   function blit(spec, x, y, o) {
     o = o || {};
     const s = sprite(spec, o.pose || 0), f = s.frames[(boil + (o.id || 0)) % s.frames.length];
@@ -400,6 +400,7 @@
     for (const w of L.water || []) {
       const bottom = Math.min(...L.terrain.filter((b) => b.kind === 'pit' && b.x0 <= w.x0 + 4 && b.x1 >= w.x1 - 4).map((b) => b.y0).concat(w.y + 120));
       ctx.fillStyle = T.water[0]; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2);
+      if (T.custom) { const wg = ctx.createLinearGradient(0, w.y, 0, w.y + 90); wg.addColorStop(0, 'rgba(255,255,255,0.16)'); wg.addColorStop(1, 'rgba(34,22,96,0.34)'); ctx.fillStyle = wg; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2); }   // paler at the surface, darker with depth
       ctx.fillStyle = dots('rgba(255,255,255,0.35)', 1.8, 8); ctx.fillRect(w.x0, w.y + 8, w.x1 - w.x0, 22);
       for (let k = 0; k < 3; k++) {
         ctx.beginPath();
@@ -609,7 +610,7 @@
     for (const [c, bg] of [[lm, T.ambient], [gl, '#000']]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.fillStyle = bg; c.fillRect(0, 0, lmCv.width, lmCv.height); c.setTransform(k * Z, 0, 0, k * Z, -cam.x * k * Z, -cam.y * k * Z); c.globalCompositeOperation = 'lighter'; }
     for (const l of collectLights()) for (const c of [lm, gl]) {
       const g = c.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
-      g.addColorStop(0, `rgba(${l.color},${l.a})`); g.addColorStop(0.4, `rgba(${l.color},${l.a * 0.42})`); g.addColorStop(1, `rgba(${l.color},0)`);
+      g.addColorStop(0, `rgba(${l.color},${l.a})`); g.addColorStop(0.2, `rgba(${l.color},${l.a * 0.6})`); g.addColorStop(0.5, `rgba(${l.color},${l.a * 0.18})`); g.addColorStop(1, `rgba(${l.color},0)`);   // a bright core and a faint skirt: a lamp, not a smudge
       c.fillStyle = g; c.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
     }
   }
@@ -631,9 +632,9 @@
       for (let i = 0; i < 1500; i++) { ng.fillStyle = nr() > 0.5 ? 'rgba(20,16,40,0.035)' : 'rgba(255,250,235,0.035)'; ng.fillRect(nr() * 160, nr() * 160, 1 + nr() * 1.8, 1 + nr() * 1.8); }
       const grain = new PIXI.TilingSprite(PIXI.Texture.from(nc), cv.width, cv.height);
       const world = new PIXI.Container(); world.addChild(scene, light, glowS, vig, grain);
-      const grade = new PIXI.ColorMatrixFilter(); grade.saturate(0.08, false); grade.contrast(0.05, true); world.filters = [grade];
+      const grade = new PIXI.ColorMatrixFilter(); grade.saturate(-0.08, false); grade.contrast(0.05, true); world.filters = [grade];
       app.stage.addChild(world, ui);
-      px = { app, scene, light, glowS, ui, vig };
+      px = { app, scene, light, glowS, ui, vig, grain };
     } catch (e) { console.warn('WebGL renderer unavailable, drawing without it:', e.message); px = null; v2 = view.getContext('2d'); view.width = cv.width; view.height = cv.height; }
   }
   function present() {
@@ -874,9 +875,23 @@
   }
 
   // ---- boot -----------------------------------------------------------------
-  function resize() { const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = uiCv.width = VW * dpr; cv.height = uiCv.height = VH * dpr; lmCv.width = glCv.width = VW / 2; lmCv.height = glCv.height = VH / 2; }
+  // Draw at exactly the size the canvas is shown at. Anything else makes the browser resample the frame, which softens every line.
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1), cssW = view.getBoundingClientRect().width || VW;
+    const w = Math.max(VW, Math.min(2400, Math.round(cssW * dpr))), h = Math.round(w * VH / VW);
+    if (cv.width === w && cv.height === h) return false;
+    cv.width = uiCv.width = w; cv.height = uiCv.height = h; lmCv.width = glCv.width = VW / 2; lmCv.height = glCv.height = VH / 2;
+    return true;
+  }
+  function fitRenderer() {
+    if (!px) { if (v2) { view.width = cv.width; view.height = cv.height; } return; }
+    px.app.renderer.resize(cv.width, cv.height);
+    for (const sp of [px.scene, px.light, px.glowS, px.ui, px.vig]) { sp.texture.baseTexture.update(); sp.width = cv.width; sp.height = cv.height; }
+    px.grain.width = cv.width; px.grain.height = cv.height;
+  }
   resize();
   initRenderer();
+  window.addEventListener('resize', () => { if (resize()) fitRenderer(); });
   if (document.fonts && document.fonts.load) { document.fonts.load('20px Bangers'); document.fonts.load('bold 14px "Comic Neue"'); }
   newGame();
   requestAnimationFrame(frame);
