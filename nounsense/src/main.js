@@ -109,7 +109,7 @@
     hollow: { custom: true, ambient: '#5e66a0', bloom: 0.17, contrast: 0.25, saturate: 0.04, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#8e90c6', bloom: 0.1, contrast: 0.22, saturate: 0.04,          // cool street, warm windows: chosen by side-by-side ranking
       farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    port: { custom: true, ambient: '#a898c4', bloom: 0.12, contrast: 0.24, saturate: 0.06, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.1, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
+    port: { custom: true, ambient: '#bea6a4', bloom: 0.12, contrast: 0.24, saturate: 0.08, farLine: '#8a6a8c', haze: '#f0a080', midHaze: 0.12, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#3a2c5c', cap: '#3a2c5c', line: '#3b3458' } }, water: ['rgba(132,72,116,0.78)', '#ffd9b0'], waterDeep: 'rgba(30,22,78,0.72)' },
   };
   // background props, in the same shape language as the dictionary art
   const BG = {
@@ -220,8 +220,8 @@
       if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over, lights: m.lights }; return; }
       const P = NN[L.theme];
       if (P && P.build && P.far) {                               // worlds with a full painter: hollow, port
-        const pw = P.build(L, 2); c.clearRect(0, 0, VW, VH); P.sky(c, VW, VH);
-        layers = { sky, far: bake(0.14, P.far, 0, T, true, T.farLine), mid: bake(0.4, P.mid, T.midHaze || 0.1, T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
+        const pw = P.build(L, 2); c.clearRect(0, 0, VW, VH); P.sky(c, VW, VH, L);
+        layers = { sky, far: bake(0.14, P.far, 0, T, true, T.farLine), mid: bake(0.4, P.mid, L.midHaze !== undefined ? L.midHaze : T.midHaze || 0.1, L.haze ? { haze: L.haze } : T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
         return;
       }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow, spills: L.spills !== false });
@@ -408,7 +408,7 @@
     for (const w of L.water || []) {
       const bottom = Math.min(...L.terrain.filter((b) => b.kind === 'pit' && b.x0 <= w.x0 + 4 && b.x1 >= w.x1 - 4).map((b) => b.y0).concat(w.y + 120));
       ctx.fillStyle = T.water[0]; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2);
-      if (T.custom) { const wg = ctx.createLinearGradient(0, w.y, 0, w.y + 90); wg.addColorStop(0, 'rgba(255,255,255,0.16)'); wg.addColorStop(1, 'rgba(34,22,96,0.34)'); ctx.fillStyle = wg; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2); }   // paler at the surface, darker with depth
+      if (T.custom) { const wg = ctx.createLinearGradient(0, w.y, 0, w.y + 90); wg.addColorStop(0, 'rgba(255,255,255,0.16)'); wg.addColorStop(1, T.waterDeep || 'rgba(34,22,96,0.34)'); ctx.fillStyle = wg; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2); }   // paler at the surface, darker with depth
       ctx.fillStyle = dots('rgba(255,255,255,0.35)', 1.8, 8); ctx.fillRect(w.x0, w.y + 8, w.x1 - w.x0, 22);
       for (let k = 0; k < 3; k++) {
         ctx.beginPath();
