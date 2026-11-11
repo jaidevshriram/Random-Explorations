@@ -119,7 +119,8 @@
       }
     };
     moonWindow(70, 220, 140, g - 126, true);
-    moonWindow(862, 126, 112, g - 150, false);
+    moonWindow(836, 152, 80, g - 150, false);
+    for (const [sx, sy] of [[950, 486], [1030, 436], [1110, 386], [1190, 336]]) glow(c, sx, sy, 46, 0.22, '176,204,255');   // the moon shaft lies along the staircase
     // a suit of armour on a plinth
     { const x = 420; box(c, x - 34, g - 26, 68, 26, M.stone, 2.4); box(c, x - 28, g - 34, 56, 9, M.stone2, 2);
       line(c, [x + 34, g - 30, x + 34, g - 190], 4.4); line(c, [x + 34, g - 30, x + 34, g - 190], 2, M.woodL); poly(c, [x + 34, g - 178, x + 60, g - 190, x + 62, g - 160, x + 34, g - 150], M.iron, 2); poly(c, [x + 30, g - 190, x + 34, g - 212, x + 38, g - 190], M.iron, 1.8);
@@ -182,7 +183,7 @@
     const baluster = (x, y0, y1) => { line(d, [x, y0, x, y1], 5.4); line(d, [x, y0, x, y1], 3, M.woodL); disc(d, x, (y0 + y1) / 2, 4.2, M.woodL, 1.6); };
     const newel = (x, y0, y1) => { box(d, x - 8, y0, 16, y1 - y0, M.wood, 2.4); box(d, x - 11, y0 - 6, 22, 8, M.woodL, 2); disc(d, x, y0 - 12, 8, M.gold, 2.2); };
     for (let i = 0; i < 11; i++) baluster(935 + i * 30, 520 - (i + 1) * 20 - 44, 520 - (i + 1) * 20);
-    line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL);
+    line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL); line(d, [914, 520 - 65.5, 1248, GAL - 49.5], 1.8, 'rgba(206,224,255,0.8)');   // moonlight along the handrail
     newel(908, g - 74, g); newel(1250, GAL - 60, GAL);
     for (const [ga, gb] of L.gallery || [[1250, 2100]]) {          // one balustrade per surviving stretch of gallery
       for (let x = ga + 24; x < gb - 10; x += 22) baluster(x, GAL - 40, GAL);
@@ -195,16 +196,16 @@
     const y = t.y0;
     if (t.kind === 'stair') {                       // one slab of the staircase
       const hh = t.y1 - y;
-      c.fillStyle = M.wood; c.fillRect(t.x0, y, t.x1 - t.x0, hh);
+      c.fillStyle = M.wood; c.fillRect(t.x0, y, t.x1 - t.x0, hh); c.fillStyle = 'rgba(255,214,176,0.13)'; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                                    // lifted off the wall shadow so the diagonal reads
       for (let x = Math.ceil((t.x0 + 36) / 58) * 58; x < t.x1 - 4; x += 58) { c.fillStyle = 'rgba(30,14,20,0.4)'; c.fillRect(x, y, 2.4, hh); c.fillStyle = 'rgba(255,220,180,0.12)'; c.fillRect(x + 2.4, y, 1.6, hh); }   // grooves on one grid, so stacked slabs read as tall panels
-      const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.5)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
+      const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.3)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
       box(c, t.x0, y + 5, 30, hh - 5, M.wood2, 1.8);                                                   // riser, in shade
-      box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, M.red, 1.4); line(c, [t.x0 + 2, y + 1.5, t.x0 + 28, y + 1.5], 1, M.gold);   // tread, lit, with the runner
+      box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, '#d24a40', 1.4); line(c, [t.x0 + 2, y + 2.6, t.x0 + 28, y + 2.6], 1, M.gold); line(c, [t.x0 - 2, y - 1, t.x0 + 32, y - 1], 1.6, 'rgba(206,224,255,0.85)');   // tread, lit, with the runner
       line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
       // Recessed panels and a cupboard door under the stairs. Every slab draws the whole design clipped to itself, so it lines up.
       c.save(); c.beginPath(); c.rect(t.x0 + 34, y, t.x1 - t.x0 - 34, hh); c.clip();
       for (let px = 1006; px < 1240; px += 58) { const top = 520 - 20 * Math.floor((px - 920) / 30 + 1) + 16; if (510 - top < 26) continue; const door = px === 1180;
-        c.fillStyle = 'rgba(20,8,16,0.3)'; c.fillRect(px, top, 46, 506 - top); c.lineWidth = 1.8; c.strokeStyle = O; c.strokeRect(px, top, 46, 506 - top); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,170,0.26)'; c.beginPath(); c.moveTo(px + 3, 503); c.lineTo(px + 43, 503); c.lineTo(px + 43, top + 3); c.stroke();
+        c.fillStyle = 'rgba(20,8,16,0.16)'; c.fillRect(px, top, 46, 506 - top); c.lineWidth = 1.8; c.strokeStyle = O; c.strokeRect(px, top, 46, 506 - top); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,170,0.5)'; c.beginPath(); c.moveTo(px + 3, 503); c.lineTo(px + 43, 503); c.lineTo(px + 43, top + 3); c.stroke();
         if (door) { disc(c, px + 9, (top + 506) / 2, 3.4, M.gold, 1.4); c.strokeStyle = O; c.lineWidth = 1.4; c.strokeRect(px + 5, top + 5, 36, 496 - top); } }
       c.restore();
       return;
@@ -212,7 +213,7 @@
     if (t.kind === 'balcony') {
       box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.woodL, 2.6); line(c, [t.x0, y + 7, t.x1, y + 7], 1.6, M.gold); for (let x = t.x0 + 8; x < t.x1; x += 34) poly(c, [x, t.y1, x + 14, t.y1, x, t.y1 + 12], M.wood, 1.8);
       box(c, Math.max(t.x0, x0), y - 2, Math.min(t.x1, x1) - Math.max(t.x0, x0), 5, M.red, 1.6);
-      for (const [ex, dd] of [[t.x0, -1], [t.x1, 1]]) if (ex > 1260 && ex < 2090) { poly(c, [ex, y, ex + dd * 16, y + 4, ex + dd * 7, y + 10, ex + dd * 20, y + 16, ex + dd * 5, y + 22, ex, y + 22], M.woodL, 2.2); line(c, [ex + dd * 10, y + 22, ex + dd * 14, y + 40], 3, M.wood2); }   // splintered ends where the floor gave way
+      for (const [ex, dd] of [[t.x0, -1], [t.x1, 1]]) if (ex > 1260 && ex < 2090) { poly(c, [ex, y, ex + dd * 9, y + 2, ex + dd * 4, y + 6, ex + dd * 12, y + 9, ex + dd * 5, y + 13, ex + dd * 10, y + 17, ex + dd * 3, y + 22, ex, y + 22], M.woodL, 2.2); line(c, [ex + dd * 10, y + 22, ex + dd * 14, y + 40], 3, M.wood2); }   // splintered ends where the floor gave way
       return;
     }
     // the hall floor: boards, a carpet runner to the stairs, foundations below

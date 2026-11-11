@@ -308,7 +308,7 @@
         // the crag carries on down to the water, so it does not float above the river
         ctx.fillStyle = H.rock2; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G); ctx.fillStyle = '#333856'; ctx.fillRect(RX - 36, G + 2, 72, river.y - G); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 60) continue; ctx.beginPath(); ctx.moveTo(bx, river.y); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
-        fallShape(ctx, RX, G + 14, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
+        fallShape(ctx, RX, G + 1, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
         ctx.save(); fallShape(ctx, RX, G - 324, river.y + 4, G - 328, river.y); ctx.clip();
         for (let i = 0; i < 20; i++) { const sx = RX - 28 + ((i * 37) % 56), len = 36 + (i * 53) % 80, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.75)' : 'rgba(210,250,255,0.5)'; ctx.fillRect(sx, y, [2, 3.4, 6][i % 3], len); }
         for (const [ex, dx] of [[RX - 33, 1], [RX + 33, -1]]) { const eg = ctx.createLinearGradient(ex, 0, ex + dx * 18, 0); eg.addColorStop(0, 'rgba(30,90,150,0.55)'); eg.addColorStop(1, 'rgba(30,90,150,0)'); ctx.fillStyle = eg; ctx.fillRect(Math.min(ex, ex + dx * 18), G - 324, 18, river.y - G + 326); }   // the fall is round: darker at the edges
@@ -362,7 +362,8 @@
     const m = c.createLinearGradient(0, horizon - 230, 0, horizon); m.addColorStop(0, 'rgba(200,245,240,0)'); m.addColorStop(1, 'rgba(200,245,240,0.6)'); c.fillStyle = m; c.fillRect(0, horizon - 230, w, 240);
   }
   // mid: nearer trunks with branches, mushroom towers, walkways hung with lanterns
-  function mid(c, w, horizon) {
+  const MIDL = [];                                        // lights on the middle distance, as [x, height above the horizon, radius, colour, strength]
+  function mid(c, w, horizon) { MIDL.length = 0;
     const r = rng(404), LO = '#3a4682', xs = [];
     for (let x = 20; x < w; x += 300 + r() * 240) xs.push(x);
     for (let i = 0; i + 1 < xs.length; i++) if (r() < 0.75) {                // rope walkways first, so the trunks and towers stand in front of them
@@ -376,13 +377,13 @@
         const sh = 190 + r() * 120, cw2 = tw * 3.2, capY = horizon - sh, cc = [['#c06fa8', '#8a4a86'], ['#6fa8c8', '#4a7aa4'], ['#c89a6a', '#96684a']][Math.floor(r() * 3)];
         c.beginPath(); c.moveTo(x - tw * 0.36, horizon); c.quadraticCurveTo(x - tw * 0.2, horizon - sh * 0.5, x - tw * 0.26, capY); c.lineTo(x + tw * 0.26, capY); c.quadraticCurveTo(x + tw * 0.2, horizon - sh * 0.5, x + tw * 0.36, horizon); c.closePath();
         { const g = c.createLinearGradient(x - tw * 0.36, 0, x + tw * 0.36, 0); g.addColorStop(0, '#dfe6ff'); g.addColorStop(0.5, '#b9c4ec'); g.addColorStop(1, '#8c98cc'); c.fillStyle = g; } c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
-        halo(c, x, capY + 16, cw2 * 0.42, '255,226,170', 0.5);                                                                           // lamplight under the cap
+        halo(c, x, capY + 16, cw2 * 0.42, '255,226,170', 0.5);                                                                           // lamplight under the cap MIDL.push([x, horizon - capY - 14, cw2 * 0.5, '255,214,150', 0.75]);
         c.beginPath(); c.ellipse(x, capY + 6, cw2 * 0.46, 13, 0, 0, 7); c.fillStyle = '#ffe2b0'; c.fill(); c.stroke(); c.lineWidth = 1; for (let k = -6; k <= 6; k++) { c.beginPath(); c.moveTo(x + k * 5, capY + 4); c.lineTo(x + k * cw2 * 0.07, capY + 17); c.stroke(); } c.lineWidth = 2;   // gills
         c.beginPath(); c.moveTo(x - cw2 / 2, capY + 8); c.bezierCurveTo(x - cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY + 8); c.quadraticCurveTo(x, capY - 12, x - cw2 / 2, capY + 8);
         { const g = c.createLinearGradient(0, capY - cw2 * 0.34, 0, capY + 8); g.addColorStop(0, cc[0]); g.addColorStop(1, cc[1]); c.fillStyle = g; } c.fill(); c.stroke();
         c.fillStyle = 'rgba(255,255,255,0.55)'; for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(x - cw2 * 0.32 + i * cw2 * 0.16, capY - cw2 * 0.14 - (i % 2) * 9, 10, 6.5, -0.2, 0, 7); c.fill(); }
         c.beginPath(); c.moveTo(x - cw2 * 0.46, capY - 6); c.bezierCurveTo(x - cw2 * 0.42, capY - cw2 * 0.3, x - cw2 * 0.12, capY - cw2 * 0.34, x, capY - cw2 * 0.335); c.lineWidth = 2.6; c.strokeStyle = 'rgba(224,236,255,0.8)'; c.stroke(); c.lineWidth = 2; c.strokeStyle = LO;   // the moon along its shoulder
-        for (let i = 0; i < 3; i++) { const wy = horizon - 54 - i * 52; halo(c, x, wy, 36, '255,236,160', 0.55); c.fillStyle = '#fff0b0'; c.beginPath(); c.arc(x, wy, 8, 0, 7); c.fill(); c.lineWidth = 1.8; c.stroke(); c.lineWidth = 1; c.beginPath(); c.moveTo(x - 8, wy); c.lineTo(x + 8, wy); c.moveTo(x, wy - 8); c.lineTo(x, wy + 8); c.stroke(); c.lineWidth = 2; }
+        for (let i = 0; i < 3; i++) { const wy = horizon - 54 - i * 52; halo(c, x, wy, 36, '255,236,160', 0.55); MIDL.push([x, horizon - wy, 44, '255,226,150', 1]); c.fillStyle = '#fff0b0'; c.beginPath(); c.arc(x, wy, 8, 0, 7); c.fill(); c.lineWidth = 1.8; c.stroke(); c.lineWidth = 1; c.beginPath(); c.moveTo(x - 8, wy); c.lineTo(x + 8, wy); c.moveTo(x, wy - 8); c.lineTo(x, wy + 8); c.stroke(); c.lineWidth = 2; }
         c.beginPath(); c.moveTo(x - 9, horizon); c.lineTo(x - 9, horizon - 18); c.arc(x, horizon - 18, 9, Math.PI, 0); c.lineTo(x + 9, horizon); c.fillStyle = '#7a4a66'; c.fill(); c.stroke();
         continue;
       }
@@ -439,5 +440,5 @@
   }
 
   const skyLights = (VW) => [{ x: VW * 0.63, y: 150, r: 260, color: '255,250,225', a: 0.7 }];       // the moon
-  NN.hollow = { build, sky, far, mid, ground, skyLights };
+  NN.hollow = { build, sky, far, mid, ground, skyLights, midLights: () => MIDL.slice() };
 })(window.NN = window.NN || {});

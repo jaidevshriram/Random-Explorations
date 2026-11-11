@@ -222,6 +222,7 @@
       if (P && P.build && P.far) {                               // worlds with a full painter: hollow, port
         const pw = P.build(L, 2); c.clearRect(0, 0, VW, VH); P.sky(c, VW, VH, L);
         layers = { sky, far: bake(0.14, P.far, 0, T, true, T.farLine), mid: bake(0.4, P.mid, L.midHaze !== undefined ? L.midHaze : T.midHaze || 0.1, L.haze ? { haze: L.haze } : T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
+        if (P.midLights) layers.midLights = P.midLights();
         return;
       }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow, spills: L.spills !== false });
@@ -329,7 +330,7 @@
   function drawBackdrop() {
     ctx.drawImage(layers.sky, 0, 0, VW, VH);
     for (const l of [layers.far, layers.mid]) if (l) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
-    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, tx = ((t * 70) % (l.w + 520)) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 396, 396, 36); }   // the monorail crosses the viaduct
+    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, span = l.w + 520; for (const off of [0, 0.3]) { const tx = ((t * 70 + off * span) % span) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 396, 396, 36); } }   // the monorail crosses the viaduct
   }
   function drawBlock(t) {
     const T = THEMES[L.theme], st = T.ground[t.kind] || Object.values(T.ground)[0];
@@ -411,6 +412,7 @@
       ctx.fillStyle = T.water[0]; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2);
       if (T.custom) { const wg = ctx.createLinearGradient(0, w.y, 0, w.y + 90); wg.addColorStop(0, 'rgba(255,255,255,0.16)'); wg.addColorStop(1, T.waterDeep || 'rgba(34,22,96,0.34)'); ctx.fillStyle = wg; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2); }   // paler at the surface, darker with depth
       ctx.fillStyle = dots('rgba(255,255,255,0.35)', 1.8, 8); ctx.fillRect(w.x0, w.y + 8, w.x1 - w.x0, 22);
+      for (const e of sim.ents) { if (e.removed || e.placing || e.x < w.x0 + 6 || e.x > w.x1 - 6 || e.y - e.h / 2 > w.y - 2 || e.y + e.h / 2 < w.y + 4) continue; const hw = e.w / 2; ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.8; for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(e.x + sd * hw * 0.92, w.y + 1.5, 9 + 2 * Math.sin(t * 3 + e.id + sd), 2.6, 0, 0, 7); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(e.x - hw * 0.8, w.y + 1.5); ctx.lineTo(e.x + hw * 0.8, w.y + 1.5); ctx.stroke(); }   // a waterline where something breaks the surface
       for (let k = 0; k < 3; k++) {
         ctx.beginPath();
         for (let x = w.x0; x <= w.x1; x += 12) { const y = w.y + k * 16 + Math.sin(x * 0.05 + t * 2 + k * 1.7) * 3; if (x === w.x0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
@@ -596,6 +598,7 @@
     const p = sim.player, add = (x, y, r, color, a) => out.push({ x, y, r, color, a });
     if (layers.liveLights) for (const l of layers.liveLights(reduceMotion ? 0 : sim.time)) if (visible(l.x, l.r + 40)) out.push(l);
     for (const l of layers.skyLights || []) add(cam.x + l.x / Z, cam.y + l.y / Z, l.r / Z, l.color, l.a);   // the moon stays put on screen
+    if (layers.midLights && layers.mid) { const m = layers.mid, oy = HORIZON + 4 + (BASE - cam.y) * Z * m.par; for (const [mx, up, r, color, a] of layers.midLights) { const sx = mx - cam.x * m.par * Z; if (sx > -r && sx < VW + r) add(cam.x + sx / Z, cam.y + (oy - up) / Z, r / Z, color, a); } }   // windows in the middle distance slide with their layer
     for (const e of sim.ents) {
       if (e.removed || e.placing) continue;
       const s = e.spec, x = e.heldBy ? p.x + p.facing * 15 : e.x, y = e.heldBy ? p.y - 10 : e.y;
