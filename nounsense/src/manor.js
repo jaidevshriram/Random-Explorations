@@ -39,12 +39,18 @@
       c.fillStyle = '#1f1b3d'; c.fillRect(x + w * 0.3, y + h * 0.42, w * 0.3, h * 0.4); for (const tx of [0.28, 0.42, 0.56]) { c.fillRect(x + w * tx, y + h * (tx === 0.42 ? 0.24 : 0.34), w * 0.08, h * 0.5); c.beginPath(); c.moveTo(x + w * (tx - 0.02), y + h * (tx === 0.42 ? 0.24 : 0.34)); c.lineTo(x + w * (tx + 0.04), y + h * (tx === 0.42 ? 0.1 : 0.22)); c.lineTo(x + w * (tx + 0.1), y + h * (tx === 0.42 ? 0.24 : 0.34)); c.fill(); }
       c.fillStyle = '#ffdc94'; c.fillRect(x + w * 0.44, y + h * 0.36, 3, 5); c.fillRect(x + w * 0.36, y + h * 0.56, 3, 5);
     } else {
-      const cx = x + w / 2, cy = y + h * 0.46;
-      poly(c, [cx - w * 0.36, y + h + 4, cx - w * 0.26, cy + h * 0.2, cx + w * 0.26, cy + h * 0.2, cx + w * 0.36, y + h + 4], kind === 'lady' ? M.red : '#2f3349', 1.8);
-      c.beginPath(); c.roundRect(cx - w * 0.2, cy - h * 0.2, w * 0.4, h * 0.36, 7); c.fillStyle = '#f2c9a0'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke();
-      disc(c, cx - w * 0.08, cy - h * 0.02, 1.8, O, 0); disc(c, cx + w * 0.08, cy - h * 0.02, 1.8, O, 0);
-      if (kind === 'lady') { disc(c, cx, cy - h * 0.24, w * 0.16, '#6f4b33', 1.8); c.beginPath(); c.arc(cx, cy - h * 0.06, w * 0.22, Math.PI, 0); c.fillStyle = '#6f4b33'; c.fill(); c.stroke(); line(c, [cx - 5, cy + h * 0.08, cx, cy + h * 0.1, cx + 5, cy + h * 0.08], 1.3); }
-      else { box(c, cx - w * 0.26, cy - h * 0.22, w * 0.52, 5, '#2b2b33', 1.6); box(c, cx - w * 0.17, cy - h * 0.44, w * 0.34, h * 0.23, '#2b2b33', 1.8); line(c, [cx - 9, cy + h * 0.07, cx - 2, cy + h * 0.05, cx, cy + h * 0.07, cx + 2, cy + h * 0.05, cx + 9, cy + h * 0.07], 2.4); }
+      const cx = x + w / 2, cy = y + h * 0.42, hr = w * 0.2, lady = kind === 'lady';
+      const bg = c.createRadialGradient(cx, cy, 4, cx, cy, h * 0.7); bg.addColorStop(0, lady ? '#6f8c7a' : '#5a7480'); bg.addColorStop(1, lady ? '#2f4a44' : '#27383f'); c.fillStyle = bg; c.fillRect(x, y, w, h);   // a painted ground, lighter behind the sitter
+      c.beginPath(); c.moveTo(cx - w * 0.46, y + h + 4); c.quadraticCurveTo(cx - w * 0.42, cy + h * 0.24, cx - w * 0.14, cy + h * 0.2); c.lineTo(cx + w * 0.14, cy + h * 0.2); c.quadraticCurveTo(cx + w * 0.42, cy + h * 0.24, cx + w * 0.46, y + h + 4); c.closePath(); c.fillStyle = lady ? M.red : '#2f3349'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke();   // shoulders
+      if (lady) { poly(c, [cx - w * 0.12, cy + h * 0.2, cx, cy + h * 0.34, cx + w * 0.12, cy + h * 0.2], '#f2c9a0', 1.4); c.beginPath(); c.arc(cx, cy + h * 0.22, w * 0.13, 0.15, Math.PI - 0.15); c.lineWidth = 2; c.strokeStyle = M.gold; c.stroke(); disc(c, cx, cy + h * 0.22 + w * 0.13, 2.4, '#9fe8f2', 1); }
+      else { poly(c, [cx - w * 0.1, cy + h * 0.2, cx, cy + h * 0.36, cx + w * 0.1, cy + h * 0.2], '#efe6d2', 1.4); poly(c, [cx - 5, cy + h * 0.24, cx + 5, cy + h * 0.24, cx + 3, cy + h * 0.31, cx - 3, cy + h * 0.31], M.red, 1.2); for (const sd of [-1, 1]) line(c, [cx + sd * w * 0.14, cy + h * 0.2, cx + sd * w * 0.05, cy + h * 0.42], 1.4); }
+      c.fillStyle = '#e2b58c'; c.fillRect(cx - hr * 0.3, cy + hr * 0.6, hr * 0.6, hr * 0.7);                                                              // neck
+      if (lady) { disc(c, cx, cy - hr * 1.15, hr * 0.62, '#6f4b33', 1.8); c.beginPath(); c.ellipse(cx, cy - hr * 0.1, hr * 1.16, hr * 1.2, 0, 0, 7); c.fillStyle = '#6f4b33'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke(); }
+      c.beginPath(); c.ellipse(cx, cy, hr, hr * 1.08, 0, 0, 7); c.fillStyle = '#f2c9a0'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke();        // a round head, like everyone else in this world
+      c.fillStyle = 'rgba(160,90,70,0.25)'; c.beginPath(); c.ellipse(cx + hr * 0.45, cy + hr * 0.1, hr * 0.5, hr * 0.95, 0, -1.2, 1.2); c.fill();             // the shaded cheek
+      disc(c, cx - hr * 0.42, cy - hr * 0.05, 1.9, O, 0); disc(c, cx + hr * 0.42, cy - hr * 0.05, 1.9, O, 0); disc(c, cx - hr * 0.62, cy + hr * 0.3, 2.6, 'rgba(230,120,110,0.5)', 0); disc(c, cx + hr * 0.62, cy + hr * 0.3, 2.6, 'rgba(230,120,110,0.5)', 0);
+      if (lady) { c.beginPath(); c.arc(cx, cy - hr * 0.2, hr * 1.02, Math.PI * 1.08, Math.PI * 1.92); c.lineWidth = hr * 0.5; c.strokeStyle = '#6f4b33'; c.stroke(); line(c, [cx - 4, cy + hr * 0.45, cx, cy + hr * 0.56, cx + 4, cy + hr * 0.45], 1.3); }
+      else { c.beginPath(); c.ellipse(cx, cy - hr * 0.86, hr * 1.5, hr * 0.2, 0, 0, 7); c.fillStyle = '#23232b'; c.fill(); c.lineWidth = 1.6; c.strokeStyle = O; c.stroke(); box(c, cx - hr * 0.86, cy - hr * 2.3, hr * 1.72, hr * 1.46, '#23232b', 1.8); box(c, cx - hr * 0.86, cy - hr * 1.2, hr * 1.72, hr * 0.26, M.red2, 1); line(c, [cx - hr * 0.56, cy + hr * 0.42, cx - hr * 0.12, cy + hr * 0.32, cx, cy + hr * 0.42, cx + hr * 0.12, cy + hr * 0.32, cx + hr * 0.56, cy + hr * 0.42], 2.4); }
     }
     c.restore();
   }
@@ -195,6 +201,12 @@
       box(c, t.x0, y + 5, 30, hh - 5, M.wood2, 1.8);                                                   // riser, in shade
       box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, M.red, 1.4); line(c, [t.x0 + 2, y + 1.5, t.x0 + 28, y + 1.5], 1, M.gold);   // tread, lit, with the runner
       line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
+      // Recessed panels and a cupboard door under the stairs. Every slab draws the whole design clipped to itself, so it lines up.
+      c.save(); c.beginPath(); c.rect(t.x0 + 34, y, t.x1 - t.x0 - 34, hh); c.clip();
+      for (let px = 1006; px < 1240; px += 58) { const top = 520 - 20 * Math.floor((px - 920) / 30 + 1) + 16; if (510 - top < 26) continue; const door = px === 1180;
+        c.fillStyle = 'rgba(20,8,16,0.3)'; c.fillRect(px, top, 46, 506 - top); c.lineWidth = 1.8; c.strokeStyle = O; c.strokeRect(px, top, 46, 506 - top); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,170,0.26)'; c.beginPath(); c.moveTo(px + 3, 503); c.lineTo(px + 43, 503); c.lineTo(px + 43, top + 3); c.stroke();
+        if (door) { disc(c, px + 9, (top + 506) / 2, 3.4, M.gold, 1.4); c.strokeStyle = O; c.lineWidth = 1.4; c.strokeRect(px + 5, top + 5, 36, 496 - top); } }
+      c.restore();
       return;
     }
     if (t.kind === 'balcony') {

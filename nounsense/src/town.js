@@ -186,6 +186,8 @@
         else { poly(c, [ex - 9, g - 68, ex - 12, g - 86, ex - 5, g - 98, ex + 5, g - 98, ex + 12, g - 86, ex + 9, g - 68], '#c9744e', 2); line(c, [ex - 10, g - 84, ex + 10, g - 84], 1.4, C.cream); box(c, ex - 5, g - 104, 10, 6, '#c9744e', 1.6); }
       }
       for (let tx = x + p + 8; tx < x + w - p; tx += 26) line(c, [tx, g - 26, tx - 6, g - 20], 1.1, 'rgba(120,80,40,0.35)');
+      for (let yy = g - h + 62, row = 0; yy < g - 124; yy += 22, row++) { line(c, [x + p + 2, yy, x + w - p - 2, yy], 1, 'rgba(150,100,50,0.22)'); for (let xx = x + p + (row % 2 ? 30 : 8); xx < x + w - p - 6; xx += 46) line(c, [xx, yy, xx, yy + 22], 1, 'rgba(150,100,50,0.18)'); }   // stone courses on the hall wall
+      c.fillStyle = 'rgba(150,90,40,0.2)'; c.fillRect(x + p + 1, g - 110, w - p * 2 - 2, 40); for (let xx = x + p + 14; xx < x + w - p - 40; xx += 52) { c.lineWidth = 1.2; c.strokeStyle = 'rgba(120,70,30,0.5)'; c.strokeRect(xx, g - 104, 40, 28); }   // a panelled dado
       line(c, [x + p, g - 118, x + w - p, g - 118], 1.6, 'rgba(150,100,50,0.5)'); line(c, [x + p, g - 112, x + w - p, g - 112], 1, 'rgba(150,100,50,0.4)');          // a dado rail round the hall
       for (const fx of [x + p + 58, x + w - p - 92]) { box(c, fx, g - h + 62, 34, 42, '#8a5a3a', 2); box(c, fx + 4, g - h + 66, 26, 34, fx < x + w / 2 ? '#7fa8c8' : '#c8a070', 1.2); poly(c, [fx + 4, g - h + 100, fx + 13, g - h + 84, fx + 20, g - h + 92, fx + 30, g - h + 78, fx + 30, g - h + 100], fx < x + w / 2 ? '#5a8a6a' : '#8a5a48', 0); }   // two small paintings
       for (const lx of [x + w / 2 - 78, x + w / 2 + 78]) { line(c, [lx, g - h + 40, lx, g - h + 62], 1.6); poly(c, [lx - 11, g - h + 72, lx - 5, g - h + 62, lx + 5, g - h + 62, lx + 11, g - h + 72], C.gold, 1.6); glow(c, lx, g - h + 78, 60, 0.32); }   // pendant lamps
@@ -346,7 +348,11 @@
     }
     const vy = horizon - 300;                              // above the shop roofs, across the band of sky, so it reads as the middle distance
     c.fillStyle = '#66739f'; c.strokeStyle = '#343c62'; c.lineWidth = 2.6;
-    for (let x = -60; x < w; x += 150) { c.beginPath(); c.moveTo(x, horizon); c.lineTo(x, vy + 24); c.lineTo(x + 26, vy + 24); c.lineTo(x + 26, vy + 112); c.arc(x + 88, vy + 112, 62, Math.PI, 0); c.lineTo(x + 150, vy + 24); c.lineTo(x + 176, vy + 24); c.lineTo(x + 176, horizon); c.closePath(); c.fill(); c.stroke(); }
+    for (let x = -60; x < w; x += 150) {                    // piers, and the spandrels over each arch; the openings show what is behind
+      c.fillRect(x, vy + 24, 26, horizon - vy - 24); c.strokeRect(x, vy + 24, 26, horizon - vy - 24);
+      c.beginPath(); c.moveTo(x + 26, vy + 24); c.lineTo(x + 150, vy + 24); c.lineTo(x + 150, vy + 112); c.arc(x + 88, vy + 112, 62, 0, Math.PI, true); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(20,24,60,0.22)'; c.fillRect(x + 17, vy + 24, 9, horizon - vy - 24); c.fillStyle = '#66739f';
+    }
     c.fillRect(-60, vy, w + 120, 26); c.strokeRect(-60, vy, w + 120, 26);
     c.fillStyle = '#8c98c0'; c.fillRect(-60, vy - 7, w + 120, 8); c.strokeRect(-60, vy - 7, w + 120, 8);                                   // parapet
     for (let x = -60; x < w; x += 30) { c.beginPath(); c.moveTo(x, vy + 9); c.lineTo(x + 15, vy + 9); c.moveTo(x + 15, vy + 17); c.lineTo(x + 30, vy + 17); c.lineWidth = 1; c.strokeStyle = 'rgba(60,70,110,0.5)'; c.stroke(); }   // stone courses
