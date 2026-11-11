@@ -106,7 +106,7 @@
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
     manor: { custom: true, ambient: '#666686', bloom: 0.3, contrast: 0.24, saturate: 0.1, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    hollow: { custom: true, ambient: '#7a84c2', contrast: 0.12, saturate: -0.06, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
+    hollow: { custom: true, ambient: '#5e66a0', bloom: 0.17, contrast: 0.25, saturate: 0.04, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#a8accc', bloom: 0.08, contrast: 0.2, saturate: 0,          // cool street, warm windows: chosen by side-by-side ranking
       farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { custom: true, ambient: '#a09cc8', bloom: 0.12, contrast: 0.21, saturate: 0.03, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
@@ -223,8 +223,8 @@
         layers = { sky, far: bake(0.14, P.far, 0, T, true, T.farLine), mid: bake(0.4, P.mid, T.midHaze || 0.1, T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
         return;
       }
-      const f = NN.town.front(L.W, L.start.y, 2, L.holes);
-      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, T.farLine), mid: bake(0.4, NN.town.mid, 0.16, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
+      const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow });
+      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, T.farLine), mid: bake(0.4, NN.town.mid, 0.07, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
       return;
     }
     // sky: flat bands joined by rows of halftone dots, stars, moons and planets with a hard ink edge
@@ -632,7 +632,7 @@
       light.blendMode = PIXI.BLEND_MODES.MULTIPLY;
       const bloom = new PIXI.BlurFilter(12, 4); bloom.blendMode = PIXI.BLEND_MODES.ADD; glowS.filters = [bloom]; glowS.blendMode = PIXI.BLEND_MODES.ADD; glowS.alpha = 0.1;
       const vc = document.createElement('canvas'); vc.width = 256; vc.height = 144;
-      const vg = vc.getContext('2d'), gr = vg.createRadialGradient(128, 72, 40, 128, 72, 160); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.7, '#f1ecf6'); gr.addColorStop(1, '#a79bbd'); vg.fillStyle = gr; vg.fillRect(0, 0, 256, 144);
+      const vg = vc.getContext('2d'), gr = vg.createRadialGradient(128, 72, 40, 128, 72, 160); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.7, '#f6f2f9'); gr.addColorStop(1, '#c6bdd6'); vg.fillStyle = gr; vg.fillRect(0, 0, 256, 144);
       const vig = spr(vc); vig.blendMode = PIXI.BLEND_MODES.MULTIPLY;
       // a little paper grain over everything keeps flat colour from looking like plastic
       const nc = document.createElement('canvas'); nc.width = nc.height = 160; const ng = nc.getContext('2d'), nr = rng(5);

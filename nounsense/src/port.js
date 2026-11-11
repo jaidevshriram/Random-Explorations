@@ -51,14 +51,15 @@
         continue;
       }
       const p = () => { c.beginPath(); c.moveTo(x - hw, y + 4); c.lineTo(x + hw, y + 4); c.quadraticCurveTo(x + hw + 12, y + sh * 0.5, x + hw - 4, y + sh); c.quadraticCurveTo(x, y + sh - 18, x - hw + 4, y + sh); c.quadraticCurveTo(x - hw - 12, y + sh * 0.5, x - hw, y + 4); c.closePath(); };
-      p(); const g = c.createLinearGradient(0, y, 0, y + sh); g.addColorStop(0, K.sail); g.addColorStop(1, '#f2c69a'); c.fillStyle = g; c.fill();
-      c.save(); c.clip(); c.fillStyle = 'rgba(120,70,110,0.22)'; c.fillRect(x + hw * 0.3, y, hw, sh + 4);
-      { const bg = c.createLinearGradient(0, y + sh * 0.4, 0, y + sh); bg.addColorStop(0, 'rgba(120,56,110,0)'); bg.addColorStop(1, 'rgba(120,56,110,0.34)'); c.fillStyle = bg; c.fillRect(x - hw - 12, y, hw * 2 + 24, sh + 4); c.fillStyle = 'rgba(255,250,235,0.4)'; c.fillRect(x - hw - 12, y, 18, sh + 4); }   // the belly of the sail falls into shade; the windward edge catches the sun
-      for (let i = -3; i <= 3; i++) { const fx = x + i * hw * 0.27; const fg = c.createLinearGradient(fx - 14, 0, fx + 14, 0); fg.addColorStop(0, 'rgba(110,60,110,0)'); fg.addColorStop(0.5, 'rgba(110,60,110,0.3)'); fg.addColorStop(1, 'rgba(255,255,255,0.1)'); c.fillStyle = fg; c.fillRect(fx - 14, y, 28, sh + 4); line(c, [fx, y + 6, fx + i * 1.5, y + sh], 1.1, 'rgba(120,90,80,0.4)'); }   // seams, with the cloth bellying between them
+      p(); const g = c.createLinearGradient(0, y, 0, y + sh); g.addColorStop(0, '#fff3dc'); g.addColorStop(0.55, '#fbe0c0'); g.addColorStop(1, '#f7b9a8'); c.fillStyle = g; c.fill();   // cream, warming to sunset pink at the foot
+      c.save(); c.clip(); c.fillStyle = 'rgba(150,80,110,0.12)'; c.fillRect(x + hw * 0.3, y, hw, sh + 4);
+      { const bg = c.createLinearGradient(0, y + sh * 0.4, 0, y + sh); bg.addColorStop(0, 'rgba(120,56,110,0)'); bg.addColorStop(1, 'rgba(150,70,110,0.16)'); c.fillStyle = bg; c.fillRect(x - hw - 12, y, hw * 2 + 24, sh + 4); c.fillStyle = 'rgba(255,250,235,0.4)'; c.fillRect(x - hw - 12, y, 18, sh + 4); }   // the belly of the sail falls into shade; the windward edge catches the sun
+      for (let i = -3; i <= 3; i++) { const fx = x + i * hw * 0.27; const fg = c.createLinearGradient(fx - 14, 0, fx + 14, 0); fg.addColorStop(0, 'rgba(110,60,110,0)'); fg.addColorStop(0.5, 'rgba(150,80,110,0.16)'); fg.addColorStop(1, 'rgba(255,255,255,0.1)'); c.fillStyle = fg; c.fillRect(fx - 14, y, 28, sh + 4); line(c, [fx, y + 6, fx + i * 1.5, y + sh], 1.1, 'rgba(120,90,80,0.4)'); }   // seams, with the cloth bellying between them
       const cs = c.createLinearGradient(0, y, 0, y + 26); cs.addColorStop(0, 'rgba(70,30,90,0.34)'); cs.addColorStop(1, 'rgba(70,30,90,0)'); c.fillStyle = cs; c.fillRect(x - hw - 12, y, hw * 2 + 24, 26);                        // shadow under the yard
       for (const k of [0.3, 0.52]) { line(c, [x - hw, y + sh * k, x + hw, y + sh * k], 1.2, 'rgba(120,90,80,0.45)'); for (let tx = x - hw + 10; tx < x + hw - 4; tx += 17) line(c, [tx, y + sh * k, tx - 1, y + sh * k + 9], 1.6, K.rope); }   // reef points
       if (o.patch) for (const [px, py, pw, ph, col] of [[-hw * 0.56, sh * 0.62, 26, 20, '#d9a878'], [hw * 0.3, sh * 0.7, 20, 24, '#c9b48a']]) { c.fillStyle = col; c.fillRect(x + px, y + py, pw, ph); c.setLineDash([4, 3]); c.lineWidth = 1.3; c.strokeStyle = K.rope; c.strokeRect(x + px + 2, y + py + 2, pw - 4, ph - 4); c.setLineDash([]); } if (o.mark) icon(c, o.mark, x, y + sh * 0.48, Math.min(26, sh * 0.3)); c.restore();
       p(); c.lineWidth = 2.8; c.strokeStyle = O; c.stroke();
+      glow(c, x, y + sh * 0.5, hw * 0.75, 0.3, '255,214,180');                   // the low sun on the canvas, so it stays cream under the cool ambient light
       line(c, [x - hw + 4, y + sh, x - hw - 6, y + sh + 26], 1.4); line(c, [x + hw - 4, y + sh, x + hw + 6, y + sh + 26], 1.4);
     }
     if (o.nest) { const y = top + o.nest; poly(c, [x - 26, y, x + 26, y, x + 20, y + 22, x - 20, y + 22], K.plank2, 2.4); box(c, x - 28, y - 4, 56, 6, K.plankL, 2); shipLantern(c, x + 30, y + 2, 0.8); }
@@ -128,8 +129,9 @@
       box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y - 4], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y - 4], 2.4, K.gold);
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
-    mast(c, 1760, DECK, 520, { spread: 130, nest: 96, patch: 1, sails: [[150, 110, 120, 1], [290, 136, 136, 1]] });
-    mast(c, 2150, DECK, 560, { spread: 140, nest: 110, mark: 'star', sails: [[60, 84, 84, 1], [170, 124, 128, 1], [318, 150, 142, 1]] });
+    const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship
+    mast(c, 1760, DECK, 520, { spread: 130, nest: 96, patch: 1, sails: [[150, 110, 120, 1], [290, 136, 104, furl]] });
+    mast(c, 2150, DECK, 560, { spread: 140, nest: 110, mark: 'star', sails: [[60, 84, 84, 1], [170, 124, 128, 1], [318, 150, 108, furl]] });
     // deck clutter: a cannon at the bow, hatch, barrels
     { const x = 1590, y = DECK; poly(c, [x - 30, y - 8, x + 26, y - 8, x + 34, y, x - 38, y], K.plank2, 2.2); disc(c, x - 20, y - 6, 9, K.plank, 2.2); disc(c, x + 16, y - 6, 9, K.plank, 2.2); c.save(); c.translate(x, y - 22); c.rotate(-0.12); box(c, -52, -10, 84, 20, K.iron, 2.6); box(c, -58, -13, 10, 26, K.iron2, 2.2); box(c, 18, -12, 8, 24, K.iron2, 2); disc(c, 36, 0, 7, K.iron2, 2.2); c.restore(); for (const [bx, by] of [[x + 52, y - 6], [x + 64, y - 6], [x + 58, y - 16]]) disc(c, bx, by, 6, K.iron2, 1.8); }
     box(c, 2010, DECK - 10, 70, 10, K.plank2, 2.2); for (let i = 1; i < 7; i++) line(c, [2010 + i * 10, DECK - 10, 2010 + i * 10, DECK], 1.3);

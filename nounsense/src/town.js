@@ -233,10 +233,11 @@
       tank(c, x + w - 46, g - h - 8);
     },
   };
+  let OPTS = {};
   const ROW = [['teashop', 250], [null, 70], ['lab', 320], [null, 60], ['museum', 420], [null, 80], ['tower', 250], [null, 60], ['potions', 300], [null, 50], ['observatory', 330], [null, 70], ['workshop', 340], [null, 60], ['teashop', 250]];
 
   // the street front, baked once into a canvas in world coordinates
-  function front(W, ground, scale, holes) { const r = capture(() => paintFront(W, ground, scale, holes || [])); r.out.lights = r.lights; r.out.emitters = r.emitters; return r.out; }
+  function front(W, ground, scale, holes, opts) { OPTS = opts || {}; const r = capture(() => paintFront(W, ground, scale, holes || [])); r.out.lights = r.lights; r.out.emitters = r.emitters; return r.out; }
   function paintFront(W, ground, scale, holes) {
     const inHole = (x, pad) => holes.some(([a, b]) => x > a - (pad || 0) && x < b + (pad || 0));
     const top = ground - 560, cv = document.createElement('canvas');
@@ -249,7 +250,7 @@
     const gaps = [];
     // A second row of buildings behind the street row: the same detailed fronts, standing on higher ground and
     // paled by distance. Their roofs, signs and upper windows fill the sky above the shopfronts.
-    {
+    if (OPTS.backRow) {                                    // off by default: side by side, the street read better against open sky
       const lift = 150, bcv = document.createElement('canvas'); bcv.width = cv.width; bcv.height = cv.height;
       const bc = bcv.getContext('2d'); bc.scale(scale, scale); bc.translate(0, -top - lift);
       const n0 = SINK ? SINK.length : 0, e0 = EMS ? EMS.length : 0, rb = rng(909);
