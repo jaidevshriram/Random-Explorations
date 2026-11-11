@@ -299,6 +299,7 @@
     const at = (f, t) => [f.x + Math.sin(t * f.f + f.a) * f.rx + Math.sin(t * f.f * 0.37 + f.a * 2) * 12, f.y + Math.cos(t * f.f * 1.3 + f.a) * f.ry, 0.5 + 0.5 * Math.sin(t * 2.2 + f.a * 3)];
     const spores = []; for (let i = 0; i < 46; i++) spores.push({ x: fr() * L.W, y: fr() * 520, s: 4 + fr() * 8, a: fr() * 6.3 });
     function animate(ctx, t, layer, cam, WW, WH) {
+      if (layer === 'top') return;                               // nothing here is drawn over the water
       const vis = (x) => x > cam.x - 60 && x < cam.x + WW + 60;
       if (layer === 'back') {
         if (!vis(RX)) return;

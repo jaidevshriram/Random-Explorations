@@ -672,6 +672,7 @@
     if (layers.over) drawLayer(layers.over);   // railings and such, in front of the action
     if (layers.animate) layers.animate(ctx, reduceMotion ? 0 : sim.time, 'front', cam, WW, WH);
     drawWater();
+    if (layers.animate) layers.animate(ctx, reduceMotion ? 0 : sim.time, 'top', cam, WW, WH);   // reflections ride on the water
     drawFx();
     drawHints();
     ctx.restore();

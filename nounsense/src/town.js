@@ -150,7 +150,7 @@
       wall(c, x, g - h, w, h, C.slate); shade(c, x + w - 16, g - h, 16, h); cornice(c, x, g - h, w, C.stone);
       box(c, x + 14, g - h + 18, w - 28, 44, C.dark, 2); icon(c, 'flask', x + 44, g - h + 40, 15); for (let i = 0; i < 5; i++) disc(c, x + 80 + i * 22, g - h + 40, 5, i % 2 ? '#9be06a' : C.lit, 1.4);
       win(c, x + 20, g - 128, 70, 76, { lit: true, inside: 'shelf', frame: C.stone }); win(c, x + w - 90, g - 128, 70, 76, { lit: true, inside: 'person', frame: C.stone });
-      door(c, x + w / 2 - 24, g - 96, 48, 96, '#8fe06a', true); glow(c, x + w / 2, g - 60, 70, 0.3);
+      door(c, x + w / 2 - 24, g - 96, 48, 96, '#d9a85a', true); glow(c, x + w / 2, g - 60, 70, 0.3);
       line(c, [x + 6, g - h + 70, x + 6, g - 8], 6); line(c, [x + 6, g - h + 70, x + 6, g - 8], 3, C.stone); for (let y = g - h + 90; y < g - 10; y += 42) box(c, x + 1, y, 10, 5, C.dark, 1.4);
       // the shopfront: a name, awnings, window boxes, a lamp over the door, notices, pots, things on the roof
       c.font = '700 19px "Bangers", "Comic Neue", sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillStyle = C.cream; c.fillText('ALCHEMY & CO.', x + w - 26, g - h + 41);
@@ -248,7 +248,7 @@
       const bc = bcv.getContext('2d'); bc.scale(scale, scale); bc.translate(0, -top - lift);
       const n0 = SINK ? SINK.length : 0, e0 = EMS ? EMS.length : 0, rb = rng(909);
       let bx = -170;
-      for (const [kind, w] of [['tower', 250], ['potions', 300], ['workshop', 340], ['teashop', 250], ['observatory', 330], ['tower', 250], ['lab', 320], ['potions', 300], ['workshop', 340], ['teashop', 250], ['tower', 250], ['observatory', 330]]) {
+      for (const [kind, w] of [['tower', 250], ['potions', 300], ['workshop', 340], ['teashop', 250], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340]]) {
         box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4); for (let wy = ground + 16; wy < ground + lift - 20; wy += 44) for (let wx = bx + 24; wx < bx + w - 50; wx += 46) win(bc, wx, wy, 24, 28, { lit: ((wx + wy) | 0) % 3 === 0 });   // the storeys below, for where a gap shows them
         BUILD[kind](bc, bx, ground, w, rb); bx += w - 6; if (bx > W + 60) break;
       }
@@ -258,6 +258,12 @@
       if (EMS) for (let i = e0; i < EMS.length; i++) EMS[i][1] -= lift;
     }
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }
+    for (const [gx, gw] of gaps) {                        // an alley wall closes each gap, so the row is continuous and nothing floats behind it
+      if (inHole(gx + gw / 2, 30)) continue;
+      const ah = 232; box(c, gx - 6, ground - ah, gw + 12, ah, C.brick2, 2.6); bricks(c, gx - 6, ground - ah, gw + 12, ah, '#7a3a34', r, 10); shade(c, gx - 6, ground - ah, gw + 12, ah, 0.22); cast(c, gx - 6, ground - ah, gw + 12, 40, 0.4);
+      box(c, gx - 10, ground - ah - 6, gw + 20, 8, C.stone2, 2.2); win(c, gx + gw / 2 - 11, ground - ah + 30, 22, 28, { lit: ((gx | 0) % 2) === 0 });
+      line(c, [gx + 2, ground - ah + 4, gx + 2, ground - 6], 4); line(c, [gx + 2, ground - ah + 4, gx + 2, ground - 6], 2, C.stone2);
+    }
     for (const [gx, gw] of gaps) { const k = r(), ts = 1 + r() * 0.3; if (inHole(gx + gw / 2, 30)) continue; tree(c, gx + gw / 2, ground, ts, C.sage, C.sage2); if (k < 0.6) lamps.push(gx + gw * 0.2); else { box(c, gx + gw * 0.62, ground - 26, 30, 6, '#8a5a3a', 2); box(c, gx + gw * 0.62 + 2, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62 + 24, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62, ground - 42, 30, 6, '#8a5a3a', 2); } }
     // string lights across the gaps, and things left out on the pavement
     for (const [gx, gw] of gaps) {

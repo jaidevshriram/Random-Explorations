@@ -174,9 +174,15 @@
 
   function ground(c, t, x0, x1, y1) {
     const y = t.y0;
-    if (t.kind === 'stair') {                       // one slab of the staircase: tread, runner and a panelled side
-      box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.wood, 2.2); c.lineWidth = 1.4; c.strokeStyle = M.wood2; for (let x = t.x0 + 34; x + 34 < t.x1 - 6; x += 44) c.strokeRect(x, y + 4, 34, t.y1 - y - 8);
-      box(c, t.x0 - 3, y - 3, 34, 6, M.woodL, 2); box(c, t.x0 + 3, y - 3, 26, 6, M.red, 1.6); return;
+    if (t.kind === 'stair') {                       // one slab of the staircase
+      const hh = t.y1 - y;
+      c.fillStyle = M.wood; c.fillRect(t.x0, y, t.x1 - t.x0, hh);
+      for (let x = Math.ceil((t.x0 + 36) / 58) * 58; x < t.x1 - 4; x += 58) { c.fillStyle = 'rgba(30,14,20,0.4)'; c.fillRect(x, y, 2.4, hh); c.fillStyle = 'rgba(255,220,180,0.12)'; c.fillRect(x + 2.4, y, 1.6, hh); }   // grooves on one grid, so stacked slabs read as tall panels
+      const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.5)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
+      box(c, t.x0, y + 5, 30, hh - 5, M.wood2, 1.8);                                                   // riser, in shade
+      box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, M.red, 1.4); line(c, [t.x0 + 2, y + 1.5, t.x0 + 28, y + 1.5], 1, M.gold);   // tread, lit, with the runner
+      line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
+      return;
     }
     if (t.kind === 'balcony') {
       box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.woodL, 2.6); line(c, [t.x0, y + 7, t.x1, y + 7], 1.6, M.gold); for (let x = t.x0 + 8; x < t.x1; x += 34) poly(c, [x, t.y1, x + 14, t.y1, x, t.y1 + 12], M.wood, 1.8);
