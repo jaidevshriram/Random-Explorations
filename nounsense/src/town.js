@@ -241,6 +241,22 @@
     const r = rng(2024);
     let x = -30;
     const gaps = [];
+    // A second row of buildings behind the street row: the same detailed fronts, standing on higher ground and
+    // paled by distance. Their roofs, signs and upper windows fill the sky above the shopfronts.
+    {
+      const lift = 150, bcv = document.createElement('canvas'); bcv.width = cv.width; bcv.height = cv.height;
+      const bc = bcv.getContext('2d'); bc.scale(scale, scale); bc.translate(0, -top - lift);
+      const n0 = SINK ? SINK.length : 0, e0 = EMS ? EMS.length : 0, rb = rng(909);
+      let bx = -170;
+      for (const [kind, w] of [['tower', 250], ['potions', 300], ['workshop', 340], ['teashop', 250], ['observatory', 330], ['tower', 250], ['lab', 320], ['potions', 300], ['workshop', 340], ['teashop', 250], ['tower', 250], ['observatory', 330]]) {
+        box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4); for (let wy = ground + 16; wy < ground + lift - 20; wy += 44) for (let wx = bx + 24; wx < bx + w - 50; wx += 46) win(bc, wx, wy, 24, 28, { lit: ((wx + wy) | 0) % 3 === 0 });   // the storeys below, for where a gap shows them
+        BUILD[kind](bc, bx, ground, w, rb); bx += w - 6; if (bx > W + 60) break;
+      }
+      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(178,188,222,0.44)'; bc.fillRect(0, 0, bcv.width, bcv.height);
+      c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(bcv, 0, 0); c.restore();
+      if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.55; }      // their lights sit where they were drawn, and are fainter
+      if (EMS) for (let i = e0; i < EMS.length; i++) EMS[i][1] -= lift;
+    }
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }
     for (const [gx, gw] of gaps) { const k = r(), ts = 1 + r() * 0.3; if (inHole(gx + gw / 2, 30)) continue; tree(c, gx + gw / 2, ground, ts, C.sage, C.sage2); if (k < 0.6) lamps.push(gx + gw * 0.2); else { box(c, gx + gw * 0.62, ground - 26, 30, 6, '#8a5a3a', 2); box(c, gx + gw * 0.62 + 2, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62 + 24, ground - 20, 4, 20, C.dark, 1.6); box(c, gx + gw * 0.62, ground - 42, 30, 6, '#8a5a3a', 2); } }
     // string lights across the gaps, and things left out on the pavement

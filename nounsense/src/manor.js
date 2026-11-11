@@ -7,7 +7,14 @@
 (function (NN) {
   'use strict';
   const { O, C, box, shade, line, poly, disc, glow: lampGlow, icon, rng } = NN.town.parts;
-  const glow = (c, x, y, r, a, col) => lampGlow(c, x, y, r, a, col || '255,176,96');   // candlelight here is amber, so it reads as warm against the teal walls
+  // Candlelight is recorded as a real light and also painted onto whatever is behind it as a warm pool.
+  // The light map only brightens; on teal paper that turns grey-green, so the amber has to be in the paint.
+  const glow = (c, x, y, r, a, col) => {
+    lampGlow(c, x, y, r, a, col || '255,176,96');
+    if (col) return;
+    const rr = r * 1.9, g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(255,170,78,${Math.min(0.5, (a || 0.5) * 0.85)})`); g.addColorStop(0.45, `rgba(255,150,70,${Math.min(0.5, (a || 0.5) * 0.3)})`); g.addColorStop(1, 'rgba(255,150,70,0)');
+    c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(x - rr, y - rr, rr * 2, rr * 2); c.restore();
+  };   // candlelight here is amber, so it reads as warm against the teal walls
   const M = { wall: '#3f5e62', wall2: '#324b50', pat: '#52787c', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 

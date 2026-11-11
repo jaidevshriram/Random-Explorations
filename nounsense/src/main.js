@@ -105,10 +105,10 @@
       ground: { dust: { body: '#b96a3a', body2: '#a35a30', cap: '#e9a35a', line: '#8a4a28' }, island: { body: '#8a5a44', body2: '#74493a', cap: '#7cc46a', line: '#5b3a2e', glow: '#fff3b0' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
-    manor: { custom: true, ambient: '#86829c', bloom: 0.3, fore: 'manor', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    hollow: { custom: true, ambient: '#7a84c2', fore: 'hollow', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
-    town: { custom: true, ambient: '#d0cedc', farLine: '#8492bc', fore: 'town', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    port: { custom: true, ambient: '#b8a0d4', farLine: '#7f62ac', fore: 'port', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
+    manor: { custom: true, ambient: '#a09cb2', bloom: 0.2, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    hollow: { custom: true, ambient: '#7a84c2', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
+    town: { custom: true, ambient: '#d0cedc', farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    port: { custom: true, ambient: '#b8a0d4', farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
   // background props, in the same shape language as the dictionary art
   const BG = {
@@ -210,28 +210,6 @@
     return { tiles, top: l.top, h: l.h };
   }
   function drawLayer(l) { for (const t of l.tiles) if (t.x < cam.x + WW + 4 && t.x + t.w > cam.x - 4) ctx.drawImage(t.cv, t.x, l.top, t.w, l.h); }
-  // ---- foreground: dark shapes along the bottom of the frame that slide past faster than the world ----
-  // They sit below the walking line, so they frame the scene without hiding anyone.
-  const FS = {
-    fern(c, x, b, s, r, k) { for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + (i - 2.5) * 0.36, len = (40 + r() * 22) * s, ex = x + Math.cos(a) * len, ey = b + Math.sin(a) * len * 0.95, mx = (x + ex) / 2, my = Math.min(b, ey) - len * 0.22; c.beginPath(); c.moveTo(x, b + 4); c.quadraticCurveTo(mx - 9 * s, my, ex, ey); c.quadraticCurveTo(mx + 9 * s, my + 8 * s, x, b + 4); c.fillStyle = k.col; c.fill(); c.lineWidth = 1.6; c.strokeStyle = k.rim; c.stroke(); } },
-    post(c, x, b, s, r, k) { const hh = 46 * s; c.fillStyle = k.col; c.fillRect(x - 7, b - hh, 14, hh + 4); c.beginPath(); c.arc(x, b - hh, 10, 0, 7); c.fill(); c.strokeStyle = k.rim; c.lineWidth = 1.6; c.beginPath(); c.arc(x, b - hh, 10, Math.PI * 0.9, Math.PI * 1.9); c.stroke(); c.beginPath(); c.moveTo(x - 7, b - hh + 8); c.lineTo(x - 7, b); c.stroke(); },
-    rail(c, x, b, s, r, k) { const wv = 150 * s, hh = 46; c.fillStyle = k.col; c.fillRect(x, b - hh, wv, 7); c.fillRect(x, b - hh * 0.45, wv, 5); for (let i = 0; i <= 6; i++) c.fillRect(x + i * wv / 6 - 3, b - hh, 6, hh + 4); c.strokeStyle = k.rim; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, b - hh); c.lineTo(x + wv, b - hh); c.stroke(); },
-    crate(c, x, b, s, r, k) { const z = 40 * s; c.fillStyle = k.col; c.fillRect(x - z / 2, b - z, z, z + 4); c.strokeStyle = k.rim; c.lineWidth = 1.6; c.strokeRect(x - z / 2 + 5, b - z + 5, z - 10, z); c.beginPath(); c.moveTo(x - z / 2, b - z); c.lineTo(x + z / 2, b - z); c.stroke(); },
-    shroom(c, x, b, s, r, k) { const hh = (30 + r() * 22) * s, cw = 24 * s; c.fillStyle = k.col; c.fillRect(x - 5 * s, b - hh, 10 * s, hh + 4); c.beginPath(); c.moveTo(x - cw, b - hh + 4); c.quadraticCurveTo(x, b - hh - cw * 1.3, x + cw, b - hh + 4); c.closePath(); c.fill(); c.strokeStyle = k.rim; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - cw, b - hh + 4); c.quadraticCurveTo(x, b - hh - cw * 1.3, x + cw, b - hh + 4); c.stroke(); },
-    coil(c, x, b, s, r, k) { for (let i = 0; i < 4; i++) { c.beginPath(); c.ellipse(x, b - 6 - i * 9 * s, 30 * s, 9 * s, 0, 0, 7); c.fillStyle = k.col; c.fill(); c.strokeStyle = k.rim; c.lineWidth = 1.4; c.stroke(); } },
-    urn(c, x, b, s, r, k) { const hh = 40 * s; c.fillStyle = k.col; c.beginPath(); c.moveTo(x - 12 * s, b + 4); c.quadraticCurveTo(x - 30 * s, b - hh * 0.5, x - 10 * s, b - hh); c.lineTo(x + 10 * s, b - hh); c.quadraticCurveTo(x + 30 * s, b - hh * 0.5, x + 12 * s, b + 4); c.closePath(); c.fill(); c.strokeStyle = k.rim; c.lineWidth = 1.6; c.stroke(); FS.fern(c, x, b - hh + 6, s * 0.5, r, k); },
-  };
-  const FORE = {
-    town: { col: '#2c3150', rim: '#5d668e', items: [FS.rail, FS.post, FS.post, FS.crate] }, manor: { col: '#1e1826', rim: '#4e435c', items: [FS.urn, FS.post, FS.crate] },
-    hollow: { col: '#16224a', rim: '#4460a8', items: [FS.fern, FS.fern, FS.shroom] }, port: { col: '#2e2048', rim: '#6e538e', items: [FS.coil, FS.crate, FS.post] },
-  };
-  function bakeFore(kit) {
-    const par = 1.3, w = Math.ceil(VW + (L.W - WW) * par * Z) + 40, h = 78, cvs = document.createElement('canvas'); cvs.width = Math.ceil(w * LS); cvs.height = h * LS;
-    const c = cvs.getContext('2d'); c.scale(LS, LS); c.lineJoin = 'round';
-    const r = rng(L.W * 3 + 9); let x = 420 + r() * 200;
-    while (x < w - 60) { const n = 1 + Math.floor(r() * 3); for (let i = 0; i < n; i++) { kit.items[Math.floor(r() * kit.items.length)](c, x, h, 0.8 + r() * 0.4, r, kit); x += 46 + r() * 50; } x += 460 + r() * 420; }
-    return { cv: cvs, w, h, par };
-  }
   function buildWorldArt() {
     const T = THEMES[L.theme], S = SCENES[L.theme];
     if (T.custom) {   // the town is drawn from architectural parts, see town.js
@@ -274,7 +252,6 @@
     Z = L.zoom || 1.6; WW = VW / Z; WH = VH / Z; BASE = L.zoom ? 520 - WH * 0.84 : 290; HORIZON = (520 - BASE) * Z;
     cam.x = 0; cam.y = BASE; hover = null; selected = null;
     smoke.length = 0; buildWorldArt(); layers.front = tileLayer(layers.front); layers.over = tileLayer(layers.over);
-    if (THEMES[L.theme].fore) layers.fore = bakeFore(FORE[THEMES[L.theme].fore]);
     $('win').hidden = true; $('toast').classList.remove('show');          // a message from the last world must not follow you into this one
     $('cap').textContent = L.caption; $('cap').classList.add('show'); capT = 7;
     $('lvlname').textContent = `${NN.levels.filter((l, i) => !l.hidden && i <= levelIndex).length}. ${L.name}`;
@@ -698,7 +675,6 @@
     drawFx();
     drawHints();
     ctx.restore();
-    if (layers.fore) ctx.drawImage(layers.fore.cv, -cam.x * Z * layers.fore.par, VH - layers.fore.h, layers.fore.w, layers.fore.h);
     // the panel border
     u.setTransform(k, 0, 0, k, 0, 0); u.strokeStyle = INK; u.lineWidth = 7; u.strokeRect(3.5, 3.5, VW - 7, VH - 7);
     const t1 = performance.now(); drawLights(); const t2 = performance.now(); present(); const t3 = performance.now();
