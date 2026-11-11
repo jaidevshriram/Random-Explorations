@@ -119,6 +119,7 @@
       for (const [rx, ry, rot] of [[34, 34, 0], [34, 12, 0.5], [34, 12, -0.6], [12, 34, 0.2]]) { c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, 7); c.lineWidth = 4.6; c.strokeStyle = O; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = M.gold; c.stroke(); } disc(c, x, y, 7, '#8fb8c8', 1.8); }
     // the arcade below the gallery: columns, arches and what is kept behind them
     box(c, 1250, GAL + 22, 850, g - GAL - 22 - 112, M.wall2, 0);
+    { const bg = c.createLinearGradient(0, GAL + 22, 0, GAL + 100); bg.addColorStop(0, 'rgba(6,10,24,0.6)'); bg.addColorStop(1, 'rgba(6,10,24,0)'); c.fillStyle = bg; c.fillRect(1250, GAL + 22, 850, 78); }   // the gallery's shadow on the wall beneath it
     const bays = [1250, 1465, 1680, 1895, 2100];
     const gal = L.gallery || [[1250, 2100]], gaps = []; for (let i = 0; i + 1 < gal.length; i++) gaps.push([gal[i][1], gal[i + 1][0]]);
     const inGap = (x) => gaps.some(([a, b]) => x > a && x < b);

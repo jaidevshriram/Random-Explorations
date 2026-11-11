@@ -295,9 +295,9 @@
       else if (kind === 5) { for (const dx of [-0.26, 0.2]) { c.fillStyle = '#8a6a78'; c.fillRect(mx + dx * bw, ty - 22, 12, 22); c.strokeRect(mx + dx * bw, ty - 22, 12, 22); } c.fillStyle = '#b9c6e0'; c.beginPath(); c.moveTo(mx - 14, ty); c.lineTo(mx - 4, ty - 12); c.lineTo(mx + 14, ty - 12); c.lineTo(mx + 4, ty); c.closePath(); c.fill(); c.stroke(); }
       else { c.fillStyle = '#efe6d2'; c.beginPath(); c.arc(mx, ty - 26, 17, 0, 7); c.fill(); c.stroke(); c.fillStyle = col; c.fillRect(mx - 22, ty - 12, 44, 12); c.strokeRect(mx - 22, ty - 12, 44, 12); c.beginPath(); c.moveTo(mx, ty - 26); c.lineTo(mx, ty - 37); c.moveTo(mx, ty - 26); c.lineTo(mx + 8, ty - 22); c.stroke(); }   // a clock
     }
-    const vy = horizon - 150;
+    const vy = horizon - 250;                              // high enough to clear the shopfronts, so the line and its train are seen
     c.fillStyle = '#9aa6c4'; c.strokeStyle = LO; c.lineWidth = 2;
-    for (let x = -60; x < w; x += 150) { c.beginPath(); c.moveTo(x, horizon); c.lineTo(x, vy + 24); c.lineTo(x + 26, vy + 24); c.lineTo(x + 26, horizon - 40); c.arc(x + 88, horizon - 40, 62, Math.PI, 0); c.lineTo(x + 150, vy + 24); c.lineTo(x + 176, vy + 24); c.lineTo(x + 176, horizon); c.closePath(); c.fill(); c.stroke(); }
+    for (let x = -60; x < w; x += 150) { c.beginPath(); c.moveTo(x, horizon); c.lineTo(x, vy + 24); c.lineTo(x + 26, vy + 24); c.lineTo(x + 26, vy + 112); c.arc(x + 88, vy + 112, 62, Math.PI, 0); c.lineTo(x + 150, vy + 24); c.lineTo(x + 176, vy + 24); c.lineTo(x + 176, horizon); c.closePath(); c.fill(); c.stroke(); }
     c.fillRect(-60, vy, w + 120, 26); c.strokeRect(-60, vy, w + 120, 26);
     for (let x = 30; x < w; x += 210 + r() * 160) { const s = 1.2 + r() * 0.8; for (const [dx, dy, rr] of [[-20, -30, 26], [20, -34, 26], [0, -56, 30]]) { c.beginPath(); c.arc(x + dx * s, horizon + dy * s, rr * s, 0, 7); c.fillStyle = '#7d9a7a'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke(); } }
     // a sky-barge

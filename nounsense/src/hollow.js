@@ -23,6 +23,20 @@
   let EM = null;                                                 // chimneys found while painting
 
   // ---- small parts ---------------------------------------------------------------
+  // Falling water as one shape: narrow at the lip, spreading and ragged toward the pool. The baked crag and the
+  // live streaks both use it, so they line up.
+  const fallHalf = (y, yTop, yBot) => 15 + 17 * Math.max(0, Math.min(1, (y - yTop) / (yBot - yTop)));
+  const fallWob = (y, s) => Math.sin(y * 0.07 + s) * 2.4 + Math.sin(y * 0.19 + s * 2) * 1.3;
+  function fallShape(c, RX, y0, y1, yTop, yBot) {
+    c.beginPath(); c.moveTo(RX - fallHalf(y0, yTop, yBot) + fallWob(y0, 0), y0);
+    for (let y = y0 + 8; y < y1; y += 8) c.lineTo(RX - fallHalf(y, yTop, yBot) + fallWob(y, 0), y);
+    c.lineTo(RX - fallHalf(y1, yTop, yBot) + fallWob(y1, 0), y1); c.lineTo(RX + fallHalf(y1, yTop, yBot) + fallWob(y1, 3), y1);
+    for (let y = y1 - 8; y > y0; y -= 8) c.lineTo(RX + fallHalf(y, yTop, yBot) + fallWob(y, 3), y);
+    c.lineTo(RX + fallHalf(y0, yTop, yBot) + fallWob(y0, 3), y0); c.closePath();
+  }
+  function fallEdges(c, RX, y0, y1, yTop, yBot) {
+    for (const [sd, ph] of [[-1, 0], [1, 3]]) { c.beginPath(); for (let y = y0; y <= y1; y += 8) { const x = RX + sd * fallHalf(y, yTop, yBot) + fallWob(y, ph); if (y === y0) c.moveTo(x, y); else c.lineTo(x, y); } c.lineWidth = 2.2; c.strokeStyle = O; c.lineJoin = 'round'; c.stroke(); }
+  }
   // a soft patch of light painted straight onto a distant layer (those layers get no real lights)
   function halo(c, x, y, r, rgb, a) { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); }
   // a closed smooth curve through a ring of points
@@ -65,6 +79,7 @@
     }
     for (let i = 0; i < (g - top) / 150; i++) { const kx = x + (r() - 0.5) * w * 0.6, ky = top + 60 + r() * (g - top - 220); if (o.avoid && o.avoid(kx, ky)) continue; c.beginPath(); c.ellipse(kx, ky, 9, 13, 0, 0, 7); c.fillStyle = H.bark2; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke(); c.beginPath(); c.ellipse(kx, ky, 4, 7, 0, 0, 7); c.lineWidth = 1.2; c.stroke(); }
     c.fillStyle = 'rgba(26,20,58,0.26)'; c.fillRect(x + hw * 0.4, top, hw + fl, g - top + 6);
+    { const cg = c.createLinearGradient(0, top + 60, 0, top + 330); cg.addColorStop(0, 'rgba(20,14,52,0.55)'); cg.addColorStop(1, 'rgba(20,14,52,0)'); c.fillStyle = cg; c.fillRect(x - hw - fl, top, w + fl * 2, 330); }   // the canopy's shadow on the trunk
     c.fillStyle = 'rgba(255,240,220,0.1)'; c.fillRect(x - hw - fl, top, fl + 10, g - top + 6);
     blob(c, [x - hw - fl - 6, g + 8, x - hw - fl * 0.7, g - 20, x - hw - 4, g - 54, x - hw + 26, g - 36, x - hw + 44, g - 10, x - hw + 30, g + 8], H.moss2, 0);       // moss up the lit side of the foot
     blob(c, [x - hw - fl - 6, g + 8, x - hw - fl * 0.6, g - 12, x - hw + 2, g - 36, x - hw + 22, g - 20, x - hw + 30, g + 8], H.moss, 0);
@@ -109,6 +124,7 @@
     c.beginPath(); c.moveTo(x - sw / 2 - 14, g + 3); c.bezierCurveTo(x - sw / 2 - 6, g - sh * 0.35, x - sw / 2 + 4, g - sh * 0.7, x - sw / 2 + 2, cy - 4); c.lineTo(x + sw / 2 - 2, cy - 4); c.bezierCurveTo(x + sw / 2 - 4, g - sh * 0.7, x + sw / 2 + 6, g - sh * 0.35, x + sw / 2 + 14, g + 3); c.closePath();
     const gr = c.createLinearGradient(x - sw / 2, 0, x + sw / 2 + 10, 0); gr.addColorStop(0, '#fff6e0'); gr.addColorStop(0.5, H.stalk); gr.addColorStop(1, H.stalk2); c.fillStyle = gr; c.fill(); c.lineWidth = 3.2; c.strokeStyle = O; c.lineJoin = 'round'; c.stroke();
     for (let i = 0; i < 5; i++) line(c, [x - sw / 2 + 14 + i * (sw - 28) / 4, cy + 24 + (i % 2) * 14, x - sw / 2 + 12 + i * (sw - 28) / 4, cy + 44 + (i % 2) * 22], 1.3, 'rgba(120,96,70,0.45)');
+    { const sg = c.createLinearGradient(0, cy - 4, 0, cy + sh * 0.45); sg.addColorStop(0, 'rgba(46,30,80,0.5)'); sg.addColorStop(1, 'rgba(46,30,80,0)'); c.fillStyle = sg; c.fillRect(x - sw / 2 + 4, cy - 2, sw - 8, sh * 0.45); }   // the cap's shadow on the stalk
     // gills, then the cap over them
     const lip = cy + 16;
     c.beginPath(); c.moveTo(x - cw / 2 + 10, lip - 6); c.quadraticCurveTo(x, lip + 34, x + cw / 2 - 10, lip - 6); c.lineTo(x + sw / 2 - 2, cy - 16); c.lineTo(x - sw / 2 + 2, cy - 16); c.closePath(); c.fillStyle = o.gill || '#e7c9a8'; c.fill(); c.lineWidth = 2.4; c.stroke();
@@ -205,11 +221,11 @@
       for (let i = 0; i < 16; i++) { const lx = x0 + r() * (x1 - x0), ly = G - 330 + r() * 320; if (Math.abs(lx - RX) < 44) continue; line(c, [lx, ly, lx + 8 + r() * 14, ly + 5 + r() * 9, lx + 4 + r() * 10, ly + 16 + r() * 10], 1.2, 'rgba(43,48,68,0.5)'); }
       // the channel, the cave at its head, and the water (the moving streaks are drawn live)
       poly(c, [RX - 36, G - 310, RX - 30, G - 352, RX, G - 366, RX + 32, G - 350, RX + 36, G - 310, RX + 36, G + 24, RX - 36, G + 24], '#333856', 2.2);
-      const wg = c.createLinearGradient(0, G - 330, 0, G); wg.addColorStop(0, '#c9f6f8'); wg.addColorStop(1, '#7fd0e6'); c.fillStyle = wg; c.fillRect(RX - 27, G - 328, 54, 356);
-      c.beginPath(); c.ellipse(RX, G - 328, 27, 8, 0, 0, 7); c.fillStyle = '#e6fdff'; c.fill();
+      const wg = c.createLinearGradient(0, G - 330, 0, G); wg.addColorStop(0, '#c9f6f8'); wg.addColorStop(1, '#7fd0e6'); fallShape(c, RX, G - 328, G + 26, G - 328, river.y); c.fillStyle = wg; c.fill();
+      for (const dx of [-7, 2, 9]) { c.beginPath(); for (let y = G - 304; y < G + 26; y += 10) { const x = RX + dx * (1 + (y - G + 328) / 420) + Math.sin(y * 0.05 + dx) * 2; if (y === G - 304) c.moveTo(x, y); else c.lineTo(x, y); } c.lineWidth = 1.6; c.strokeStyle = 'rgba(40,120,180,0.4)'; c.stroke(); }   // the fall breaks into strands
       c.restore();
       poly(c, sil, null, 3.4);
-      line(c, [RX - 27, G - 326, RX - 27, G + 24], 2.2); line(c, [RX + 27, G - 326, RX + 27, G + 24], 2.2);
+      fallEdges(c, RX, G - 328, G + 24, G - 328, river.y); for (const [dx, rr] of [[-11, 7], [1, 8.5], [12, 6.5]]) disc(c, RX + dx, G - 328, rr, '#f2fdff', 1.8);   // foam where it leaves the cave
       // moss and plants on every ledge
       for (const [mx, my, mw] of [[x0 - 2, G - 86, 34], [x0 + 20, G - 198, 36], [x0 + 60, G - 302, 40], [RX + 6, G - 370, 86], [x1 - 34, G - 264, 40], [x1 + 4, G - 166, 30], [x1 + 24, G - 58, 30]]) { blob(c, [mx - mw, my + 5, mx - mw * 0.6, my - 9, mx, my - 12, mx + mw * 0.6, my - 8, mx + mw, my + 5, mx, my + 9], H.moss2, 2.2); blob(c, [mx - mw * 0.7, my, mx - mw * 0.3, my - 9, mx + mw * 0.2, my - 9, mx + mw * 0.4, my], H.moss, 0); }
       glow(c, RX, G - 200, 150, 0.3, CY); glow(c, RX, G - 20, 120, 0.42, CY);
@@ -289,12 +305,12 @@
         // the crag carries on down to the water, so it does not float above the river
         ctx.fillStyle = H.rock2; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G + 8); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 50) continue; ctx.beginPath(); ctx.moveTo(bx, river.y + 6); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y + 6); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
-        ctx.fillStyle = '#7fd0e6'; ctx.fillRect(RX - 27, G + 18, 54, river.y - G - 10);
-        ctx.save(); ctx.beginPath(); ctx.rect(RX - 27, G - 324, 54, river.y - G + 326); ctx.clip();
-        for (let i = 0; i < 16; i++) { const sx = RX - 23 + ((i * 37) % 46), len = 40 + (i * 53) % 70, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.75)' : 'rgba(210,250,255,0.5)'; ctx.fillRect(sx, y, i % 3 ? 2.4 : 5, len); }
-        for (const [ex, dx] of [[RX - 27, 1], [RX + 27, -1]]) { const eg = ctx.createLinearGradient(ex, 0, ex + dx * 14, 0); eg.addColorStop(0, 'rgba(30,90,150,0.5)'); eg.addColorStop(1, 'rgba(30,90,150,0)'); ctx.fillStyle = eg; ctx.fillRect(Math.min(ex, ex + dx * 14), G - 324, 14, river.y - G + 326); }   // the column is round: darker at the edges
+        fallShape(ctx, RX, G + 14, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
+        ctx.save(); fallShape(ctx, RX, G - 324, river.y + 4, G - 328, river.y); ctx.clip();
+        for (let i = 0; i < 20; i++) { const sx = RX - 28 + ((i * 37) % 56), len = 36 + (i * 53) % 80, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.75)' : 'rgba(210,250,255,0.5)'; ctx.fillRect(sx, y, [2, 3.4, 6][i % 3], len); }
+        for (const [ex, dx] of [[RX - 33, 1], [RX + 33, -1]]) { const eg = ctx.createLinearGradient(ex, 0, ex + dx * 18, 0); eg.addColorStop(0, 'rgba(30,90,150,0.55)'); eg.addColorStop(1, 'rgba(30,90,150,0)'); ctx.fillStyle = eg; ctx.fillRect(Math.min(ex, ex + dx * 18), G - 324, 18, river.y - G + 326); }   // the fall is round: darker at the edges
         ctx.restore();
-        ctx.lineWidth = 2.2; ctx.strokeStyle = O; for (const sx of [RX - 27, RX + 27]) { ctx.beginPath(); ctx.moveTo(sx, G + 14); ctx.lineTo(sx, river.y + 2); ctx.stroke(); }
+        fallEdges(ctx, RX, G + 14, river.y + 2, G - 328, river.y);
         return;
       }
       if (vis(RX)) {                                              // foam where the water lands
