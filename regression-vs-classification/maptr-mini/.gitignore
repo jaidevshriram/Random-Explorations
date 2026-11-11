@@ -2,3 +2,5 @@ data*.npz
 __pycache__/
 models/
 runs_f_tmp/
+av2_patches.npz
+runs_av2_tmp/
