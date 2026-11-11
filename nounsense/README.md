@@ -94,6 +94,13 @@ plays 65 scripted solutions and interactions in a headless browser, then
 spawns every word with random adjectives and inputs to look for crashes. It
 takes several minutes. `test/sheet.html` draws every object on one page.
 
+```bash
+node nounsense/test/ui-playthrough.js
+```
+
+That one finishes Gloamwick Manor the way a player would, with mouse clicks, typed
+words and held keys only (three words, three stars), to check the interface end to end.
+
 ## Not done yet
 
 - Nothing has been tuned by long hand play; difficulty and phone layout are untested by people.
