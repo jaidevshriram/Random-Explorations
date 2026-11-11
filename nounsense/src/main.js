@@ -107,7 +107,7 @@
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
     manor: { custom: true, ambient: '#666686', bloom: 0.3, contrast: 0.24, saturate: 0.1, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     hollow: { custom: true, ambient: '#5e66a0', bloom: 0.17, contrast: 0.25, saturate: 0.04, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
-    town: { custom: true, ambient: '#a8accc', bloom: 0.08, contrast: 0.2, saturate: 0,          // cool street, warm windows: chosen by side-by-side ranking
+    town: { custom: true, ambient: '#8e90c6', bloom: 0.1, contrast: 0.22, saturate: 0.04,          // cool street, warm windows: chosen by side-by-side ranking
       farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { custom: true, ambient: '#a09cc8', bloom: 0.12, contrast: 0.21, saturate: 0.03, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
@@ -215,7 +215,8 @@
     const T = THEMES[L.theme], S = SCENES[L.theme];
     if (T.custom) {   // the town is drawn from architectural parts, see town.js
       const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
-      const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH);
+      const dusk = L.theme === 'town' && L.sky2 !== 'plain';      // the town at moonrise; 'plain' keeps the pale evening
+      const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH, dusk);
       if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over, lights: m.lights }; return; }
       const P = NN[L.theme];
       if (P && P.build && P.far) {                               // worlds with a full painter: hollow, port
@@ -224,7 +225,7 @@
         return;
       }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow, spills: L.spills !== false });
-      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, T.farLine), mid: bake(0.4, NN.town.mid, 0.07, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
+      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, dusk ? '#5a3f7c' : T.farLine), mid: bake(0.4, NN.town.mid, dusk ? 0.3 : 0.07, dusk ? { haze: '#4a3f8a' } : T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train(), skyLights: dusk ? [{ x: VW * 0.4, y: 112, r: 260, color: '255,226,170', a: 0.55 }] : [] };   // the moon lights the air around it
       return;
     }
     // sky: flat bands joined by rows of halftone dots, stars, moons and planets with a hard ink edge
