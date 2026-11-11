@@ -635,7 +635,7 @@
       const vig = spr(vc); vig.blendMode = PIXI.BLEND_MODES.MULTIPLY;
       // a little paper grain over everything keeps flat colour from looking like plastic
       const nc = document.createElement('canvas'); nc.width = nc.height = 160; const ng = nc.getContext('2d'), nr = rng(5);
-      for (let i = 0; i < 1500; i++) { ng.fillStyle = nr() > 0.5 ? 'rgba(20,16,40,0.035)' : 'rgba(255,250,235,0.035)'; ng.fillRect(nr() * 160, nr() * 160, 1 + nr() * 1.8, 1 + nr() * 1.8); }
+      for (let i = 0; i < 1500; i++) { ng.fillStyle = nr() > 0.5 ? 'rgba(20,16,40,0.02)' : 'rgba(255,250,235,0.02)'; ng.fillRect(nr() * 160, nr() * 160, 1 + nr() * 1.8, 1 + nr() * 1.8); }
       const grain = new PIXI.TilingSprite(PIXI.Texture.from(nc), cv.width, cv.height);
       const world = new PIXI.Container(); world.addChild(scene, light, glowS, vig, grain);
       const grade = new PIXI.ColorMatrixFilter(); grade.saturate(-0.08, false); grade.contrast(0.05, true); world.filters = [grade];

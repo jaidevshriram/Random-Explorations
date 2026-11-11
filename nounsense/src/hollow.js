@@ -304,7 +304,7 @@
       if (layer === 'back') {
         if (!vis(RX)) return;
         // the crag carries on down to the water, so it does not float above the river
-        ctx.fillStyle = H.rock2; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G + 8); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 50) continue; ctx.beginPath(); ctx.moveTo(bx, river.y + 6); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y + 6); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
+        ctx.fillStyle = H.rock2; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G); ctx.fillStyle = '#333856'; ctx.fillRect(RX - 36, G + 2, 72, river.y - G); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 60) continue; ctx.beginPath(); ctx.moveTo(bx, river.y); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
         fallShape(ctx, RX, G + 14, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
         ctx.save(); fallShape(ctx, RX, G - 324, river.y + 4, G - 328, river.y); ctx.clip();

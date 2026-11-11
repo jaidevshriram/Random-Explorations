@@ -276,7 +276,7 @@
     c.fillStyle = K.deck; c.fillRect(x0, y, x1 - x0, 13); c.fillStyle = K.deck2; c.fillRect(x0, y + 9, x1 - x0, 4); for (let x = Math.floor(x0 / 38) * 38; x < x1; x += 38) line(c, [x, y + 1, x, y + 12], 1.2, 'rgba(43,48,68,0.45)');
     line(c, [x0, y, x1, y], 2.8);
     c.restore();
-    if (t.x1 < x1 + 30) { box(c, t.x1 - 10, y - 2, 12, y1 - y, K.plankL, 2.6); disc(c, t.x1 + 4, y + 15, 9, '#3a3550', 2.4); disc(c, t.x1 + 4, y + 15, 3.6, '#6a6088', 1.4); }
+    if (t.x1 < x1 + 30) { box(c, t.x1 - 10, y - 2, 12, y1 - y, K.plankL, 2.6);  }
   }
 
   const skyLights = (VW, VH) => [{ x: VW * 0.74, y: VH * 0.74, r: 420, color: '255,214,170', a: 0.6 }, { x: VW * 0.24, y: 150, r: 220, color: '255,220,230', a: 0.35 }];   // the sun and the ringed giant
