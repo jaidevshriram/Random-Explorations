@@ -34,6 +34,7 @@ H, W = 100, 200  # raster rows (y, 30 m) x columns (x, 60 m)
 XR, YR = 60.0, 30.0
 W_FOCAL, W_PTS, W_DIR = 2.0, 5.0, 0.005
 K_BINS = mf.K_BINS
+K_REL, R_REL = 64, 0.125  # rbins: bins over the correction ref + delta, delta in [-R, R] (normalized; +-7.5 m in x, +-3.75 m in y)
 CLASSES = ["divider", "ped_crossing", "boundary"]
 
 
@@ -57,7 +58,7 @@ class AV2MapTR(nn.Module):
         self.pts = nn.Embedding(P, 2 * d)
         self.ref = nn.Linear(d, 2)
         self.layers = nn.ModuleList([mf.DecoderLayer(d) for _ in range(layers)])
-        out = 2 if head == "l1" else 2 * K_BINS
+        out = {"l1": 2, "bins": 2 * K_BINS, "rbins": 2 * K_REL}[head]
         mk_cls = lambda: nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d), nn.ReLU(), nn.Linear(d, d), nn.LayerNorm(d),
                                        nn.ReLU(), nn.Linear(d, N_CLS))
         mk_reg = lambda: nn.Sequential(nn.Linear(d, d), nn.ReLU(), nn.Linear(d, d), nn.ReLU(), nn.Linear(d, out))
@@ -84,6 +85,12 @@ class AV2MapTR(nn.Module):
             r = self.reg[l](h)
             if self.head == "l1":
                 pts = (r + mf.inverse_sigmoid(ref)).sigmoid()
+            elif self.head == "rbins":
+                lg = r.view(B, N_Q * P, 2, K_REL) - 0.5 * ((mf.bin_centers(K_REL) - 0.5) / 0.25) ** 2
+                u = mf.decode(lg)
+                pts = (ref + (2 * u - 1) * R_REL).clamp(0, 1)
+                o["bins"] = lg.view(B, N_Q, P, 2, K_REL)
+                o["ref"] = ref.view(B, N_Q, P, 2)
             else:
                 lg = r.view(B, N_Q * P, 2, K_BINS)
                 lg = lg + -0.5 * ((mf.bin_centers()[None, None, None] - ref[..., None]) / mf.PRIOR_SIGMA) ** 2
@@ -133,6 +140,9 @@ def loss_fn(outs, labels_b, orders_b, head, w_ce):
             tgt = torch.stack([orders_b[b][g][o] for g, o in zip(gi, oi)])
             if head == "l1":
                 l_pts = l_pts + (pts[qi] - tgt).abs().sum()
+            elif head == "rbins":
+                u = ((tgt - out["ref"][b][qi]) / (2 * R_REL) + 0.5).clamp(0, 1)
+                l_pts = l_pts + -(mf.hl_gauss(u, k=K_REL) * out["bins"][b][qi].log_softmax(-1)).sum()
             else:
                 l_pts = l_pts + -(mf.hl_gauss(tgt) * out["bins"][b][qi].log_softmax(-1)).sum()
             l_dir = l_dir + mf.dir_cos(to_metres(pts[qi]), to_metres(tgt))
