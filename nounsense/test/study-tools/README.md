@@ -11,3 +11,13 @@ in the repo.
 
 `study.html` accepts `?nofit` (ignore the fitted colours), `?o=rrggbb`
 (outline colour) and `?lw=1.2` (outline width multiplier).
+
+## Tracing, for comparison
+
+`trace.py <reference.png> <target dB> <min square px> <../study-traced-data.js>`
+fits an adaptive grid of flat-colour squares to the reference automatically and
+writes them out; `../study-traced.html` draws them. This is image compression,
+not drawing. It exists to show what a PSNR number costs: on the street
+reference, 29 dB took about 222,000 squares, most of them one or two pixels
+wide, where the hand-placed redraw uses about 480 shapes and scores 17 dB. The
+generated data file is ignored by git.

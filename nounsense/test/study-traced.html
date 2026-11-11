@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Street study, traced</title>
+<style>body { margin: 0; background: #222; color: #ddd; font: 14px sans-serif; } canvas { display: block; }</style>
+<canvas id="c" width="1672" height="941"></canvas>
+<p id="note" style="padding: 12px"></p>
+<script src="study-traced-data.js"></script>
+<script>
+// An automatic TRACE of the reference image, for comparison with the hand-placed
+// redraw in study.html. A script (study-tools/trace.py) fits an adaptive grid
+// of flat-colour squares to the reference, down to single pixels along lines.
+// This is image compression, not drawing: it shows what a given PSNR costs.
+// The data file is generated and is not kept in the repository.
+(function () {
+  const T = window.TRACE, note = document.getElementById('note');
+  if (!T) { note.textContent = 'No trace data. Generate study-traced-data.js with study-tools/trace.py.'; return; }
+  const raw = atob(T.data), bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  const cv = document.getElementById('c'), c = cv.getContext('2d'), img = c.createImageData(T.W, T.H), px = img.data;
+  const levels = []; let off = 0;
+  for (let s = T.top; s >= T.min; s >>= 1) { const bw = T.PW / s, bh = T.PH / s, len = Math.ceil(bw * bh / 8); levels.push({ s, bw, bh, mask: off }); off += len; }
+  let col = off, count = 0;
+  for (const { s, bw, bh, mask } of levels) for (let i = 0; i < bw * bh; i++) {
+    if (!(bytes[mask + (i >> 3)] & (128 >> (i & 7)))) continue;
+    const x0 = (i % bw) * s, y0 = Math.floor(i / bw) * s, r = bytes[col++], g = bytes[col++], b = bytes[col++]; count++;
+    for (let y = y0; y < Math.min(T.H, y0 + s); y++) for (let x = x0; x < Math.min(T.W, x0 + s); x++) { const k = (y * T.W + x) * 4; px[k] = r; px[k + 1] = g; px[k + 2] = b; px[k + 3] = 255; }
+  }
+  c.putImageData(img, 0, 0);
+  note.textContent = count + ' flat squares, from ' + T.top + 'px down to ' + T.min + 'px.';
+  document.title = 'done';
+})();
+</script>
