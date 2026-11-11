@@ -5,6 +5,7 @@ one valid route picked at random each time (at a fork there are 2-4). Heads:
   l2, l1        regress the 10 coordinates (MSE / L1)
   bins          64 bins per coordinate (HL-Gauss CE), peak + window-mean decode; x and y independent
   cbins         Tesla-style coarse + fine per coordinate: 16 coarse cells (CE) + a regressed offset in each (L1)
+  jcbins        joint 2D per point: one of 16x16 cells (CE) + an (x, y) offset in it (L1); points independent
   ar_l1         autoregressive: point k is regressed (L1) given points 1..k-1
   ar_cbins      autoregressive, joint 2D: point k = one of 16x16 cells (CE) + an (x, y) offset in it (L1), given
                 points 1..k-1 ("language of lanes"-style)
@@ -72,7 +73,7 @@ class Net(nn.Module):
             out = 2 if head == "ar_l1" else KC * KC * 3
             self.mlp = nn.Sequential(nn.Linear(d, d), nn.ReLU(), nn.Linear(d, d), nn.ReLU(), nn.Linear(d, out))
         else:
-            out = {"l2": 2 * NP, "l1": 2 * NP, "bins": 2 * NP * K, "cbins": 2 * NP * 2 * KC}[head]
+            out = {"l2": 2 * NP, "l1": 2 * NP, "bins": 2 * NP * K, "cbins": 2 * NP * 2 * KC, "jcbins": NP * KC * KC * 3}[head]
             self.mlp = nn.Sequential(nn.Linear(d, d), nn.ReLU(), nn.Linear(d, d), nn.ReLU(), nn.Linear(d, out))
 
     def ar_step(self, f, prev_u, k):
@@ -95,6 +96,14 @@ class Net(nn.Module):
                     c = torch.multinomial(lg.softmax(-1).view(-1, K), 1, generator=gen).view(B, NP, 2)
                     return (c.float() + 0.5) / K, lg
                 return window_decode(lg), lg
+            if self.head == "jcbins":
+                lg, off = r[:, :NP * KC * KC].view(B, NP, KC * KC), r[:, NP * KC * KC:].view(B, NP, KC * KC, 2).sigmoid()
+                if sample:
+                    c = torch.multinomial(lg.softmax(-1).view(-1, KC * KC), 1, generator=gen).view(B, NP)
+                else:
+                    c = lg.argmax(-1)
+                o = off.gather(2, c[:, :, None, None].expand(B, NP, 1, 2))[:, :, 0]
+                return torch.stack([(c // KC).float() + o[..., 0], (c % KC).float() + o[..., 1]], -1) / KC, (lg, off)
             r = r.view(B, NP, 2, 2 * KC)
             lg, off = r[..., :KC], r[..., KC:].sigmoid()
             if sample:
@@ -148,6 +157,13 @@ def loss_fn(model, x, tgt_u, w_ce):
     if head == "bins":
         return -(hl_gauss(tgt_u, K) * r.log_softmax(-1)).sum((1, 2, 3)).mean() * w_ce
     lg, off = r
+    if head == "jcbins":
+        B = tgt_u.shape[0]
+        ci = (tgt_u * KC).long().clamp(0, KC - 1)
+        cell = ci[..., 0] * KC + ci[..., 1]
+        o = off.gather(2, cell[:, :, None, None].expand(B, NP, 1, 2))[:, :, 0]
+        ce = F.cross_entropy(lg.reshape(-1, KC * KC), cell.reshape(-1), reduction="sum") / B
+        return w_ce * ce + ((ci.float() + o) / KC - tgt_u).abs().sum((1, 2)).mean()
     ci = (tgt_u * KC).long().clamp(0, KC - 1)
     o = off.gather(-1, ci[..., None])[..., 0]
     ce = -(hl_gauss(tgt_u, KC, sigma=0.3) * lg.log_softmax(-1)).sum((1, 2, 3)).mean()
@@ -242,9 +258,11 @@ def main():
     a.add_argument("--w-ce", type=float, default=0.1)
     a.add_argument("--procs", type=int, default=4)
     a.add_argument("--out", default="runs_forks")
+    a.add_argument("--skip-done", action="store_true")
     args = a.parse_args()
     cfg = dict(steps=args.steps, batch=args.batch, w_ce=args.w_ce, eval_every=max(args.steps // 6, 1), out=args.out)
-    jobs = [(h, s, cfg) for s in range(args.seeds) for h in args.heads]
+    jobs = [(h, s, cfg) for s in range(args.seeds) for h in args.heads
+            if args.skip_done is False or not os.path.exists(os.path.join(HERE, cfg["out"], f"{h}_s{s}.json"))]
     with Pool(args.procs) as p:
         p.map(run, jobs)
 
