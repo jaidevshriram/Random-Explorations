@@ -7,6 +7,8 @@ require('./ui-kit')(4, async (k) => {
   await k.press('e'); s = await k.st(); k.log('aboard', s); k.need(s.mount === 'boat', 'board the boat');
   s = await k.holdUntil(['d'], (s) => s.x >= 1436, 300000); k.log('at the hull', s); k.need(s.x >= 1436, 'sail right up to the cargo net');   // stepping off short of the net means a swim
   await k.press('e'); s = await k.holdUntil(['w', 'd'], (s) => s.y < 372 && s.x > 1545, 240000); k.log('on deck', s); k.need(s.y < 380 && s.x > 1530, 'climb to the deck and step well clear of the bow');
-  await k.place('treasure', s.x + 170, 350); s = await k.waitUntil((s) => s.nat.captain.friendly, 240000); k.log('captain bought', s); k.need(s.nat.captain.friendly && s.seed && s.x > 1500 && s.y < 380, 'buy off the captain, keep the seed and stay aboard');
+  await k.place('treasure', s.x + 170, 350); s = await k.waitUntil((s) => s.nat.captain.friendly, 240000);
+  if (!(s.x > 1500 && s.y < 380)) { k.log('knocked back to the net', s); s = await k.holdUntil(['w', 'd'], (s) => s.y < 372 && s.x > 1545, 240000); }   // his blow can knock a climber off the bow; the net catches them
+  k.log('captain bought', s); k.need(s.nat.captain.friendly && s.seed && s.x > 1500 && s.y < 380, 'buy off the captain, keep the seed and stay aboard');
   s = await k.holdUntil(['d'], (s) => s.x >= 2330, 300000); k.log('end', s);
 });

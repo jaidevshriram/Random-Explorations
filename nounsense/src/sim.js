@@ -220,7 +220,7 @@
       if (p.invuln > 0 || sim.won) return;
       if (kind === 'fire' ? g.fireproof : g.armor) { p.invuln = 0.5; bang(p, 'CLANG!'); sfx('clang'); return; }
       p.hp -= n; p.invuln = 1.3; bang(p, 'OUCH!'); sfx('hurt');
-      if (!p.mount) { Body.setVelocity(p.body, { x: (p.x >= fromX ? 1 : -1) * 4.5, y: -5 }); p.launched = true; p.climbing = false; }
+      if (!p.mount) { Body.setVelocity(p.body, { x: (p.x >= fromX ? 1 : -1) * 4.5, y: -5 }); p.launched = true; p.knocked = true; p.climbing = false; }
       if (p.hp <= 0) respawn(`${HERO} needs a lie down. Back to ${DEPOT}.`);
       changed();
     }
@@ -695,13 +695,14 @@
       const gb = onGround(b, p.w, p.h);
       if (gb && !p.grounded && vy > 3) sfx('land');
       p.grounded = !!gb;
-      if (p.grounded && vy > -0.5) p.launched = false;
+      if (p.grounded && vy > -0.5) { p.launched = false; p.knocked = false; }
       if (want) p.facing = want;
       const speed = 3.2 * g.speed;
       if (p.launched) vx += want * 0.1; else vx = p.grounded ? want * speed : vx + (want * speed - vx) * 0.22;
       if (want && p.grounded && !p.climbing) stepUp(b, p.w, p.h, want);
       const ladder = ents.find((e) => e.spec.climbable && !e.placing && !e.removed && gap(p, e) < -4);
       if (ladder && (inp.up || inp.down) && !p.launched) p.climbing = true;
+      if (ladder && p.knocked && b.velocity.y > 0.5) { p.climbing = true; p.launched = false; p.knocked = false; vx = 0; }   // knocked flying by a blow into something climbable: catch hold of it on the way down
       if (!ladder) p.climbing = false;
       const jumpPressed = inp.jumpPressed || (inp.upPressed && !ladder);
       if (p.climbing) {
