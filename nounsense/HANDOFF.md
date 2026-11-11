@@ -84,12 +84,22 @@ done. Do it before adding level two, not after.
 
 ## Art
 
-The look is the game's own: a bold, slightly wobbly ink line over flat washes
-with a cel-shaded edge, three wobble frames per sprite. Rigged creatures and the
-courier get plain ink-dot eyes drawn live in `main.js` (`drawEyes`), so they look at
-things, blink, widen when scared and frown when attacking; squash, stretch and
-walk bob are applied at draw time too. Hand-drawn creatures (dragon, ghost…)
-still have painted eyes and are the obvious next ones to convert. It is not modelled on any existing game
+The look is the game's own: a bold ink outline around flat colour, with a
+cel-shaded lower edge and a soft highlight, three slightly different frames per
+sprite so the line shimmers. Shapes of one colour can be put in a group
+(`['g', colour, [shapes]]`) so they merge into one silhouette with a single
+outline; the rigs use this for bodies, and it is the main tool for making a new
+object look clean. Corners are rounded by default; pass a small radius for
+sharp things. A colour name ending in `-` or `+` is a darker or lighter tone.
+
+Rigged creatures and the courier get plain ink-dot eyes drawn live in `main.js`
+(`drawEyes`), so they look at things, blink, widen when scared and frown when
+attacking; squash, stretch and walk bob are applied at draw time too.
+Hand-drawn creatures (dragon, ghost…) still have painted eyes and are the
+obvious next ones to convert.
+
+The sprite cache in `art.js` keeps the 70 most recently used sprites. Without
+that limit a long session, or the fuzz test, runs the tab out of memory. It is not modelled on any existing game
 and should stay that way; this is an original game in a genre, not a remake.
 Changes of direction (cleaner lines, jointed limbs, a different medium) are all
 fair game and mostly live in `shape()` and the rigs in `src/art.js`.

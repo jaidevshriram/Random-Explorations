@@ -94,7 +94,7 @@
       tags: ['plant', 'bramble', 'thorny'], edible: true, thorny: true, hp: 6, mass: 5, art: brambleArt() }, L.BRAMBLE_X, L.GROUND - brambleH / 2, { native: true });
     Body.setStatic(brambles.body, true);
     const mailbox = addEntity({ noun: 'mailbox', name: 'mailbox', w: 34, h: 64, anchored: true, upright: true, material: 'metal', flammable: false, tags: [], hp: Infinity,
-      art: [['r', -18, -10, 36, 110, 'brown'], ['p', [-100, -20, -100, -70, -60, -100, 60, -100, 100, -70, 100, -20], 'red'], ['l', [-100, -20, 100, -20]], ['r', 40, -84, 18, 40, 'yellow'], ['l', [-60, -52, 10, -52], 3]] },
+      art: [['r', -16, -8, 32, 108, 'brown', 2], ['p', [-100, -18, -100, -66, -64, -100, 64, -100, 100, -66, 100, -18], 'red', 6], ['l', [-100, -24, 100, -24], 1.6], ['r', -56, -64, 84, 14, 'dgrey', 2], ['r', 54, -98, 16, 46, 'yellow', 2]] },
     L.MAILBOX_X, L.GROUND - 32, { native: true });
     Body.setStatic(mailbox.body, true);
     sim.natives = { goat, brambles, mailbox };

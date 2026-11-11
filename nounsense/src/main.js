@@ -30,13 +30,15 @@
   const visible = (x, pad) => x > cam.x - (pad || 60) && x < cam.x + WW + (pad || 60);
 
   const scenery = [
-    { noun: '_post', w: 150, h: 150, x: L.DEPOT_X, art: [['r', -86, -30, 172, 130, 'cream'], ['p', [-100, -28, -70, -100, 70, -100, 100, -28], 'navy'], ['r', -34, 20, 46, 80, 'brown'], ['r', 28, 10, 44, 34, 'sky'], ['l', [28, 27, 72, 27]], ['l', [50, 10, 50, 44]],
-      ['r', -62, -74, 124, 30, 'white'], ['d', -4, 62, 1.8], ['r', -98, 66, 26, 34, 'tan'], ['l', [-98, 82, -72, 82]], ['r', -92, 40, 22, 26, 'tan'], ['l', [-81, 40, -81, 66]]] },
-    { noun: '_sign', w: 70, h: 80, x: 470, art: [['r', -8, -20, 16, 120, 'brown'], ['p', [-100, -100, 60, -100, 100, -62, 60, -24, -100, -24], 'tan']] },
-    { noun: '_stubL', w: 80, h: 70, x: L.RAV0 - 30, art: [['r', 30, -100, 16, 120, 'dbrown'], ['r', -30, -70, 14, 90, 'dbrown'], ['p', [-60, 20, 46, 20, 46, 40, -60, 40], 'brown'], ['p', [46, 20, 100, 60, 96, 82, 46, 40], 'brown'], ['l', [38, -80, -22, -52], 1.6], ['l', [-10, 20, -10, 40]], ['l', [20, 20, 20, 40]]] },
-    { noun: '_stubR', w: 80, h: 70, x: L.RAV1 + 30, flip: true, art: [['r', 30, -100, 16, 120, 'dbrown'], ['r', -30, -70, 14, 90, 'dbrown'], ['p', [-60, 20, 46, 20, 46, 40, -60, 40], 'brown'], ['p', [46, 20, 96, 44, 92, 66, 46, 40], 'brown'], ['l', [38, -80, -22, -52], 1.6], ['l', [-10, 20, -10, 40]]] },
-    { noun: '_cottage', w: 200, h: 180, x: 2480, art: [['r', -82, -22, 164, 122, 'cream'], ['p', [-100, -20, 0, -100, 100, -20], 'red'], ['r', 44, -86, 20, 44, 'grey'], ['r', -18, 36, 40, 64, 'teal'], ['r', -66, 4, 30, 30, 'sky'], ['r', 36, 4, 30, 30, 'sky'], ['d', 14, 70, 1.8],
-      ['l', [-66, 19, -36, 19]], ['l', [36, 19, 66, 19]], ['e', -84, 84, 18, 16, 'green'], ['e', 86, 86, 16, 14, 'green']] },
+    { noun: '_post', w: 150, h: 150, x: L.DEPOT_X, art: [['r', -86, -30, 172, 130, 'cream', 3], ['p', [-104, -26, -72, -100, 72, -100, 104, -26], 'navy', 4], ['l', [-86, -62, 86, -62], 1.4], ['r', -34, 20, 46, 80, 'brown', 3], ['r', -26, 30, 30, 22, 'sky', 2], ['d', 4, 66, 1.8, 'yellow'],
+      ['r', 28, 10, 46, 36, 'sky', 2], ['l', [28, 28, 74, 28], 1.4], ['l', [51, 10, 51, 46], 1.4], ['r', 24, 50, 54, 10, 'red', 2], ['r', -64, -80, 128, 34, 'white', 4],
+      ['r', -100, 66, 28, 34, 'tan', 3], ['l', [-100, 82, -72, 82], 1.4], ['l', [-86, 66, -86, 100], 1.4], ['r', -94, 40, 24, 26, 'tan', 3], ['l', [-82, 40, -82, 66], 1.4]] },
+    { noun: '_sign', w: 70, h: 80, x: 470, art: [['r', -8, -20, 16, 120, 'brown', 2], ['p', [-100, -100, 60, -100, 100, -62, 60, -24, -100, -24], 'tan', 3]] },
+    { noun: '_stubL', w: 80, h: 70, x: L.RAV0 - 30, art: [['r', 30, -100, 16, 120, 'dbrown', 2], ['r', -30, -70, 14, 90, 'dbrown', 2], ['p', [-60, 20, 46, 20, 46, 40, -60, 40], 'brown', 2], ['p', [46, 20, 100, 60, 96, 82, 46, 40], 'brown', 2], ['l', [38, -80, -22, -52], 2, 'tan'], ['l', [-10, 20, -10, 40], 1.4], ['l', [20, 20, 20, 40], 1.4]] },
+    { noun: '_stubR', w: 80, h: 70, x: L.RAV1 + 30, flip: true, art: [['r', 30, -100, 16, 120, 'dbrown', 2], ['r', -30, -70, 14, 90, 'dbrown', 2], ['p', [-60, 20, 46, 20, 46, 40, -60, 40], 'brown', 2], ['p', [46, 20, 96, 44, 92, 66, 46, 40], 'brown', 2], ['l', [38, -80, -22, -52], 2, 'tan'], ['l', [-10, 20, -10, 40], 1.4]] },
+    { noun: '_cottage', w: 200, h: 180, x: 2480, art: [['r', 44, -90, 20, 48, 'grey', 2], ['r', -82, -22, 164, 122, 'cream', 3], ['p', [-104, -18, 0, -100, 104, -18], 'red', 3], ['l', [-52, -58, 52, -58], 1.4], ['l', [-78, -38, 78, -38], 1.4], ['r', -18, 36, 40, 64, 'teal', 3],
+      ['r', -66, 4, 30, 30, 'sky', 2], ['r', 36, 4, 30, 30, 'sky', 2], ['l', [-51, 4, -51, 34], 1.4], ['l', [-66, 19, -36, 19], 1.4], ['l', [51, 4, 51, 34], 1.4], ['l', [36, 19, 66, 19], 1.4], ['d', 14, 70, 1.8, 'yellow'],
+      ['g', 'green', [['e', -84, 84, 18, 16], ['e', -64, 90, 14, 10]]], ['g', 'green', [['e', 86, 86, 16, 14], ['e', 68, 92, 12, 8]]], ['d', -88, 80, 1.8, 'red'], ['d', 84, 82, 1.8, 'pink']] },
   ];
   const courierSpec = { noun: '_courier', w: 34, h: 60, art: { a: 'person', top: 'teal', legs: 'navy', hat: 'cap', hatColor: 'red', satchel: 1 } };
   const parcelSpec = { noun: '_parcel', w: 16, h: 13, art: [['r', -100, -100, 200, 200, 'tan'], ['l', [0, -100, 0, 100]], ['l', [-100, 0, 100, 0]]] };
@@ -100,6 +102,26 @@
     ctx.restore();
   }
 
+  function drawMidground() {
+    const base = (L.GROUND - cam.y) * Z + 4, r = rng(555);
+    ctx.save(); ctx.translate(-cam.x * 0.55 * Z, 0);
+    for (let x = -40; x < L.W * 0.55 * Z + VW; x += 90 + r() * 170) {
+      const k = 0.8 + r() * 0.7, kind = r();
+      if (x + 120 < cam.x * 0.55 * Z || x - 120 > cam.x * 0.55 * Z + VW) continue;
+      const pen = { r: R(x), lw: 1.1, ink: 'rgba(42,37,32,0.22)', amp: 0.6 };
+      if (kind < 0.62) {
+        rough.poly(ctx, [x - 5 * k, base, x - 4 * k, base - 46 * k, x + 4 * k, base - 46 * k, x + 5 * k, base], Object.assign({ fill: '#cbbb9b' }, pen));
+        rough.ellipse(ctx, x - 16 * k, base - 56 * k, 22 * k, 20 * k, Object.assign({ fill: '#bfd3a2' }, pen));
+        rough.ellipse(ctx, x + 16 * k, base - 58 * k, 22 * k, 20 * k, Object.assign({ fill: '#bfd3a2' }, pen));
+        rough.ellipse(ctx, x, base - 78 * k, 26 * k, 24 * k, Object.assign({ fill: '#c6d8a8' }, pen));
+      } else {
+        rough.ellipse(ctx, x - 14 * k, base - 10 * k, 20 * k, 14 * k, Object.assign({ fill: '#bfd3a2' }, pen));
+        rough.ellipse(ctx, x + 12 * k, base - 12 * k, 22 * k, 16 * k, Object.assign({ fill: '#c6d8a8' }, pen));
+      }
+    }
+    ctx.restore();
+  }
+
   function block(x0, x1) {
     const G = L.GROUND;
     rough.poly(ctx, [x0, G, x1, G, x1, 900, x0, 900], { r: R(x0 + 11), fill: '#e0cc9c', step: 40, amp: 1.3 });
@@ -109,6 +131,14 @@
     for (let x = x0 + 20; x < x1 - 12; x += 22 + r() * 46) {
       const h = 5 + r() * 8;
       if (visible(x)) rough.line(ctx, [x - 4, G - 2, x - 2, G - 2 - h, x, G - 2, x + 3, G - 3 - h * 0.8, x + 6, G - 2], { r: R(x), lw: 1.3, step: 99, amp: 0.6 });
+    }
+    const rf = rng(x0 * 5 + 9), petals = [P.pink, P.yellow, P.white, P.red];
+    for (let x = x0 + 60; x < x1 - 30; x += 70 + rf() * 150) {
+      const h = 7 + rf() * 5, c = petals[Math.floor(rf() * 4)];
+      if (!visible(x)) continue;
+      rough.line(ctx, [x, G - 2, x + 1, G - 2 - h], { r: R(x + 7), lw: 1.4, color: P.dgreen, step: 99, amp: 0.3 });
+      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(x + 1, G - 3 - h, 3.4, 0, 7); ctx.fill();
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + 1, G - 3 - h, 2.3, 0, 7); ctx.fill();
     }
     const r2 = rng(x0 * 13 + 1), n = Math.round((x1 - x0) / 16);
     for (let i = 0; i < n; i++) {
@@ -262,6 +292,7 @@
     const k = cv.width / VW;
     ctx.setTransform(k, 0, 0, k, 0, 0);
     drawBackdrop();
+    drawMidground();
     ctx.save();
     ctx.scale(Z, Z); ctx.translate(-cam.x, -cam.y);
     drawTerrain();

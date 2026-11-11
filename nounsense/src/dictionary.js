@@ -42,27 +42,26 @@
 
   // herbivores (art: quadruped rig)
   N.goat = { is: 'herbivore', w: 56, h: 46, speed: 2.5, diet: ['paper', 'plant', 'grain', 'junk', 'cloth', 'sweet', 'meal'],
-    tags: ['goat', 'livestock'], sound: 'baa', art: { a: 'quad', c: 'white', horns: 'goat', beard: 1, ears: 'flop', tail: 'short' } };
-  N.sheep = { is: 'herbivore', w: 54, h: 42, speed: 1.8, tags: ['livestock'], sound: 'baa', art: { a: 'quad', c: 'cream', wool: 1, head: 'dgrey', ears: 'flop', tail: 'none' } };
-  N.cow = { is: 'herbivore', w: 76, h: 54, speed: 1.6, hp: 5, tags: ['livestock'], sound: 'moo', art: { a: 'quad', c: 'white', spots: 'dgrey', horns: 'bull', tail: 'long', ears: 'flop' } };
-  N.pig = { is: 'herbivore', w: 54, h: 38, speed: 1.9, diet: ['plant', 'grain', 'junk', 'meal', 'sweet'], tags: ['livestock'], sound: 'oink', art: { a: 'quad', c: 'pink', snout: 'pig', tail: 'curl', ears: 'point', legs: 'short' } };
-  N.horse = { is: 'herbivore', w: 84, h: 70, speed: 4.4, hp: 5, rideable: true, jump: 1.25, art: { a: 'quad', c: 'brown', mane: 'dbrown', tail: 'bushy', ears: 'point', neck: 1 } };
-  N.donkey = { is: 'herbivore', w: 70, h: 58, speed: 2.6, rideable: true, jump: 1, tags: ['livestock'], art: { a: 'quad', c: 'grey', mane: 'dgrey', tail: 'long', ears: 'long', neck: 1 } };
-  N.deer = { is: 'herbivore', w: 66, h: 62, speed: 3.6, art: { a: 'quad', c: 'tan', horns: 'antler', tail: 'short', ears: 'point', neck: 1 } };
+    tags: ['goat', 'livestock'], sound: 'baa', art: { a: 'quad', hoof: 'dgrey', c: 'white', horns: 'goat', beard: 1, ears: 'flop', tail: 'short' } };
+  N.sheep = { is: 'herbivore', w: 54, h: 42, speed: 1.8, tags: ['livestock'], sound: 'baa', art: { a: 'quad', hoof: 'dgrey', c: 'cream', wool: 1, head: 'dgrey', ears: 'flop', tail: 'none' } };
+  N.cow = { is: 'herbivore', w: 76, h: 54, speed: 1.6, hp: 5, tags: ['livestock'], sound: 'moo', art: { a: 'quad', hoof: 'dgrey', c: 'white', spots: 'dgrey', horns: 'bull', tail: 'long', ears: 'flop' } };
+  N.pig = { is: 'herbivore', w: 54, h: 38, speed: 1.9, diet: ['plant', 'grain', 'junk', 'meal', 'sweet'], tags: ['livestock'], sound: 'oink', art: { a: 'quad', hoof: 'dgrey', c: 'pink', snout: 'pig', tail: 'curl', ears: 'point', legs: 'short' } };
+  N.horse = { is: 'herbivore', w: 84, h: 70, speed: 4.4, hp: 5, rideable: true, jump: 1.25, art: { a: 'quad', hoof: 'dgrey', c: 'brown', mane: 'dbrown', tail: 'bushy', ears: 'point', neck: 1 } };
+  N.donkey = { is: 'herbivore', w: 70, h: 58, speed: 2.6, rideable: true, jump: 1, tags: ['livestock'], art: { a: 'quad', hoof: 'dgrey', c: 'grey', mane: 'dgrey', tail: 'long', ears: 'long', neck: 1 } };
+  N.deer = { is: 'herbivore', w: 66, h: 62, speed: 3.6, art: { a: 'quad', hoof: 'dgrey', c: 'tan', horns: 'antler', tail: 'short', ears: 'point', neck: 1 } };
   N.rabbit = { is: 'herbivore', w: 30, h: 28, speed: 3, hp: 1, tags: ['small'], art: { a: 'quad', c: 'white', ears: 'long', tail: 'puff', legs: 'short' } };
   N.mouse = { is: 'herbivore', w: 24, h: 16, speed: 2.8, hp: 1, diet: ['cheese', 'grain'], fears: ['cat', 'predator', 'fire', 'bird'],
     tags: ['mouse', 'small'], art: { a: 'quad', c: 'grey', ears: 'round', tail: 'long', legs: 'short' } };
   N.elephant = { is: 'herbivore', w: 130, h: 104, speed: 1.7, hp: 12, mass: 8, rideable: true, jump: 0, fears: ['mouse', 'fire'],
     art: { a: 'quad', c: 'grey', trunk: 1, ears: 'big', tail: 'short', legs: 'thick' } };
-  N.camel = { is: 'herbivore', w: 90, h: 80, speed: 2.4, hp: 5, rideable: true, jump: 0.8, art: { a: 'quad', c: 'tan', hump: 1, neck: 1, tail: 'short', ears: 'round' } };
-  N.llama = { is: 'herbivore', w: 56, h: 68, speed: 2.2, tags: ['livestock'], art: { a: 'quad', c: 'cream', wool: 1, neck: 1, ears: 'point', tail: 'puff' } };
-  N.unicorn = { is: 'herbivore', w: 84, h: 70, speed: 4.2, hp: 6, rideable: true, jump: 1.6, fears: [], tags: ['magic'], art: { a: 'quad', c: 'white', mane: 'pink', tail: 'bushy', ears: 'point', neck: 1, horn: 1 } };
-  N.pegasus = { is: 'herbivore', w: 90, h: 72, speed: 3.6, hp: 6, rideable: true, flies: true, fears: [], tags: ['magic'], art: { a: 'quad', c: 'white', mane: 'sky', tail: 'bushy', ears: 'point', neck: 1, wings: 'white' } };
+  N.camel = { is: 'herbivore', w: 90, h: 80, speed: 2.4, hp: 5, rideable: true, jump: 0.8, art: { a: 'quad', hoof: 'dgrey', c: 'tan', hump: 1, neck: 1, tail: 'short', ears: 'round' } };
+  N.llama = { is: 'herbivore', w: 56, h: 68, speed: 2.2, tags: ['livestock'], art: { a: 'quad', hoof: 'dgrey', c: 'cream', wool: 1, neck: 1, ears: 'point', tail: 'puff' } };
+  N.unicorn = { is: 'herbivore', w: 84, h: 70, speed: 4.2, hp: 6, rideable: true, jump: 1.6, fears: [], tags: ['magic'], art: { a: 'quad', hoof: 'yellow', c: 'white', mane: 'pink', tail: 'bushy', ears: 'point', neck: 1, horn: 1 } };
+  N.pegasus = { is: 'herbivore', w: 90, h: 72, speed: 3.6, hp: 6, rideable: true, flies: true, fears: [], tags: ['magic'], art: { a: 'quad', hoof: 'dgrey', c: 'white', mane: 'sky', tail: 'bushy', ears: 'point', neck: 1, wings: 'white' } };
   N.kangaroo = { is: 'herbivore', w: 58, h: 74, speed: 3.7, hp: 4, rideable: true, jump: 1.9, hops: true,
-    art: [['p', [-30, 45, -100, 95, -35, 70], 'tan'], ['e', -8, 12, 42, 52, 'tan', -18], ['p', [-5, 55, 45, 62, 60, 100, 5, 100], 'tan'],
-      ['e', 42, -62, 26, 17, 'tan'], ['p', [26, -76, 30, -100, 44, -78], 'tan'], ['l', [22, -8, 52, 8], 3], ['d', 50, -66, 2], ['a', 12, 22, 20, 20, 160]] };
+    art: [['g', 'tan', [['p', [-28, 48, -100, 94, -92, 100, -30, 76], 3], ['e', -8, 12, 42, 52, -18], ['p', [-8, 50, 40, 58, 66, 94, 66, 100, 4, 100, -10, 80], 4], ['p', [16, -30, 32, -58, 54, -50, 40, -14], 4], ['e', 44, -64, 28, 19], ['p', [24, -76, 22, -106, 42, -80], 2], ['p', [20, -10, 52, 2, 54, 12, 20, 6], 2]]], ['e', 2, 28, 22, 30, 'cream', -18], ['d', 50, -70, 2.2], ['d', 70, -62, 1.6], ['l', [-4, 36, 12, 46, 26, 36], 1.5], ['d', 30, -86, 1.4, 'pink']] };
   N.turtle = { is: 'herbivore', w: 46, h: 28, speed: 0.5, hp: 8, fears: [],
-    art: [['r', -62, 40, 20, 55, 'green'], ['r', 22, 40, 20, 55, 'green'], ['e', 80, 18, 22, 30, 'green'], ['e', -6, -8, 76, 78, 'dgreen'], ['l', [-50, -10, -15, -60, 30, -55, 55, -5]], ['d', 86, 8, 1.8]] };
+    art: [['g', 'green', [['r', -62, 36, 22, 60, 3], ['r', 22, 36, 22, 60, 3], ['e', 80, 16, 24, 32], ['p', [-70, 10, -100, 30, -70, 30], 1]]], ['e', -6, -8, 76, 78, 'dgreen'], ['l', [-50, -10, -15, -60, 30, -55, 55, -5], 1.6], ['l', [-15, -60, -10, -6], 1.6], ['l', [30, -55, 20, -4], 1.6], ['d', 88, 6, 1.8], ['l', [84, 26, 98, 24], 1.3]] };
 
   // predators
   N.wolf = { is: 'predator', w: 66, h: 46, speed: 3.5, tags: ['canine'], sound: 'grr', art: { a: 'quad', c: 'dgrey', ears: 'point', tail: 'bushy', snout: 'long', fangs: 1 } };
@@ -76,14 +75,12 @@
   N.dog = { is: 'predator', w: 50, h: 40, speed: 3.3, hp: 3, dmg: 1, hunts: ['cat'], diet: ['bone', 'meat', 'ball'], fears: ['fire', 'monster'], follows: true,
     tags: ['dog', 'canine'], sound: 'woof', art: { a: 'quad', c: 'tan', ears: 'flop', tail: 'curl', snout: 'short', patch: 'brown' } };
   N.crocodile = { is: 'predator', w: 110, h: 36, speed: 2.2, hp: 7, dmg: 2,
-    art: [['r', -50, 35, 13, 62, 'dgreen'], ['r', 12, 35, 13, 62, 'dgreen'], ['p', [-100, 20, -60, -40, 30, -50, 100, -22, 100, 18, 40, 42, -60, 50], 'dgreen'],
-      ['l', [-55, -42, -45, -68, -35, -45, -25, -70, -15, -47, -5, -72, 5, -50]], ['l', [45, 18, 53, 36, 61, 18, 69, 36, 77, 18, 85, 36, 93, 18]], ['d', 40, -32, 2.2]] };
+    art: [['g', 'dgreen', [['r', -56, 30, 16, 68, 3], ['r', 6, 30, 16, 68, 3], ['p', [-100, 16, -60, -40, 30, -50, 100, -22, 100, 18, 40, 42, -60, 50], 6], ['e', 38, -46, 12, 18]]], ['l', [-58, 40, 40, 34, 94, 14], 2.4, 'lime'], ['l', [-55, -42, -45, -66, -35, -45, -25, -68, -15, -47, -5, -70, 5, -50], 1.8], ['p', [46, 16, 52, 36, 58, 16, 64, 36, 70, 16, 76, 36, 82, 16, 88, 34, 94, 16], 'white', 0.5], ['d', 38, -48, 2.2], ['d', 94, -14, 1.4]] };
   N.snake = { is: 'predator', w: 56, h: 18, speed: 2.2, hp: 2, hunts: ['mouse', 'small', 'human'], tags: ['snake'],
     art: [['l', [-100, 60, -62, -30, -24, 60, 14, -30, 52, 50], 7, 'green'], ['e', 76, 22, 24, 62, 'green'], ['d', 82, 5, 1.6], ['l', [98, 30, 110, 20], 1.5]] };
   // exception: a shark out of water just flops
   N.shark = { is: 'predator', w: 110, h: 52, speed: 0, hp: 6, hunts: [], flops: true,
-    art: [['p', [-70, 0, -100, -72, -84, 0, -100, 72], 'grey'], ['p', [-80, 0, -55, -48, 20, -58, 100, -8, 30, 52, -55, 40], 'grey'], ['p', [-12, -55, 8, -100, 30, -52], 'grey'],
-      ['l', [58, 16, 96, 6]], ['l', [10, -10, 14, 22]], ['l', [22, -10, 26, 22]], ['d', 68, -18, 2.4]] };
+    art: [['g', 'grey', [['p', [-70, 0, -100, -72, -84, 0, -100, 72], 2], ['p', [-80, 0, -55, -48, 20, -58, 100, -8, 30, 52, -55, 40], 6], ['p', [-12, -55, 8, -100, 30, -52], 2]]], ['p', [-50, 36, 30, 48, 94, 0, 40, 24], 'white', 4], ['l', [58, 18, 94, 8], 1.6], ['l', [10, -12, 14, 16], 1.5], ['l', [22, -12, 26, 16], 1.5], ['d', 68, -18, 2.4]] };
   N.spider = { is: 'predator', w: 34, h: 24, speed: 2.4, hp: 1, hunts: ['bug'], diet: [], tags: ['spider'],
     art: [['l', [-25, -10, -65, -75, -100, 60]], ['l', [-25, 10, -60, -30, -80, 90]], ['l', [25, -10, 65, -75, 100, 60]], ['l', [25, 10, 60, -30, 80, 90]],
       ['l', [-10, -20, -40, -95, -70, -20]], ['l', [10, -20, 40, -95, 70, -20]], ['e', 0, 5, 46, 62, 'dgrey'], ['d', -12, -8, 1.5, 'white'], ['d', 12, -8, 1.5, 'white']] };
@@ -99,7 +96,7 @@
   N.crow = { is: 'bird', diet: ['grain', 'junk', 'meat'], art: { a: 'bird', c: 'dgrey', wing: 'ink', beak: 'dgrey' } };
   N.pigeon = { is: 'bird', diet: ['grain', 'meal'], art: { a: 'bird', c: 'grey', wing: 'dgrey', beak: 'tan' } };
   N.penguin = { is: 'bird', w: 32, h: 46, flies: false, speed: 1.2, diet: ['fish'], fears: ['predator', 'fire'],
-    art: [['e', -26, 94, 30, 8, 'orange'], ['e', 30, 94, 30, 8, 'orange'], ['e', 0, 5, 84, 92, 'navy'], ['e', 8, 22, 52, 68, 'white'], ['p', [42, -56, 84, -46, 42, -36], 'orange'], ['d', 24, -60, 2, 'white']] };
+    art: [['e', -26, 94, 30, 8, 'orange'], ['e', 30, 94, 30, 8, 'orange'], ['g', 'navy', [['e', 0, 5, 80, 92], ['p', [-66, -10, -100, 44, -66, 40], 3], ['p', [66, -10, 100, 44, 66, 40], 3]]], ['e', 8, 22, 50, 68, 'white'], ['p', [42, -56, 86, -46, 42, -36], 'orange', 1.5], ['d', 24, -60, 2.2, 'white']] };
   N.bat = { is: 'bird', w: 44, h: 26, diet: ['bug'], fears: ['light', 'fire'], tags: ['bat'],
     art: [['p', [0, -30, -30, -72, -100, -50, -70, 0, -82, 62, -40, 22, 0, 62, 40, 22, 82, 62, 70, 0, 100, -50, 30, -72], 'purple'], ['p', [-16, -40, -12, -78, -2, -44], 'purple'], ['p', [16, -40, 12, -78, 2, -44], 'purple'],
       ['d', -8, -14, 1.5, 'white'], ['d', 8, -14, 1.5, 'white']] };
@@ -115,9 +112,7 @@
   // monsters
   N.dragon = { is: 'monster', w: 124, h: 88, flies: true, speed: 3, hp: 12, dmg: 1, range: 70, breath: 'fire', fireproof: true, mass: 5,
     hunts: ['human', 'prey', 'livestock'], sound: 'roar',
-    art: [['p', [-58, 25, -100, -12, -92, 6, -100, 24, -55, 52], 'green'], ['r', -42, 55, 15, 45, 'green'], ['r', 12, 55, 15, 45, 'green'], ['e', -10, 25, 56, 46, 'green'], ['e', -5, 42, 36, 24, 'yellow'],
-      ['p', [22, 12, 52, -56, 76, -44, 50, 34], 'green'], ['p', [-26, 2, -70, -100, -6, -62, 32, -96, 16, -4], 'red'], ['e', 72, -62, 27, 22, 'green'], ['p', [86, -72, 104, -58, 86, -46], 'green'],
-      ['l', [60, -80, 50, -100]], ['l', [72, -84, 66, -100]], ['d', 72, -68, 2.4]] };
+    art: [['g', 'green', [['p', [-52, 20, -100, -22, -96, -2, -102, 14, -58, 54], 3], ['r', -46, 46, 20, 54, 4], ['r', 8, 46, 20, 54, 4], ['e', -10, 24, 56, 44], ['p', [18, 12, 48, -60, 80, -46, 54, 38], 5], ['e', 70, -62, 30, 25], ['e', 94, -54, 15, 13]]], ['e', -6, 42, 36, 24, 'yellow'], ['l', [-30, 34, 18, 34], 1.4], ['l', [-34, 46, 22, 46], 1.4], ['p', [-24, 2, -74, -102, -36, -72, -6, -100, 12, -64, 38, -94, 20, -2], 'red', 3], ['l', [-20, -2, -36, -72], 1.5], ['l', [-6, -6, 12, -64], 1.5], ['p', [56, -80, 48, -108, 66, -84], 'cream', 1.5], ['p', [70, -86, 70, -110, 82, -86], 'cream', 1.5], ['p', [-70, 2, -66, -14, -56, 0], 'orange', 1], ['p', [-88, -10, -86, -26, -76, -12], 'orange', 1], ['d', 74, -68, 2.6], ['d', 100, -58, 1.4], ['l', [82, -44, 104, -46], 1.5], ['p', [86, -45, 89, -36, 92, -45], 'white', 0.5]] };
   N.zombie = { is: 'monster', w: 28, h: 54, speed: 0.9, hp: 4, tags: ['undead'], hunts: ['human'], sound: 'urrgh', art: { a: 'person', skin: 'lime', top: 'dgrey', legs: 'brown', arms: 'reach', face: 'dead' } };
   N.vampire = { is: 'monster', w: 28, h: 54, speed: 2.2, hp: 5, tags: ['undead'], hunts: ['human'], fears: ['garlic', 'light'], art: { a: 'person', skin: 'white', top: 'ink', legs: 'ink', cape: 'red', hair: 'ink', face: 'fangs' } };
   // exception: a ghost is a monster that never hurts anyone, it only spooks
@@ -137,7 +132,7 @@
       ['e', -28, -48, 13, 9, 'yellow'], ['e', 28, -48, 13, 9, 'yellow'], ['d', -28, -48, 1.8], ['d', 28, -48, 1.8]] };
   N.robot = { is: 'creature', w: 32, h: 56, material: 'metal', speed: 1.6, hp: 8, fears: ['wet'], follows: true, tags: ['robot'], sound: 'beep', art: { a: 'person', skin: 'grey', top: 'grey', legs: 'dgrey', face: 'robot', hat: 'antenna', boxy: 1 } };
   N.frog = { is: 'animal', w: 30, h: 22, speed: 1.6, hp: 1, hops: true, diet: ['bug'], tags: ['prey', 'small'], sound: 'ribbit',
-    art: [['e', 0, 22, 96, 76, 'green'], ['e', -46, -55, 26, 36, 'green'], ['e', 46, -55, 26, 36, 'green'], ['d', -46, -60, 2], ['d', 46, -60, 2], ['l', [-50, 26, 0, 46, 50, 26]]] };
+    art: [['g', 'green', [['e', 0, 22, 96, 76], ['e', -46, -55, 28, 38], ['e', 46, -55, 28, 38]]], ['e', 0, 50, 60, 40, 'lime'], ['d', -46, -60, 2.2], ['d', 46, -60, 2.2], ['l', [-54, 22, 0, 42, 54, 22], 1.6]] };
 
   // people
   // exception (straight from the old games): humans flee monsters, but a cop
@@ -171,7 +166,7 @@
   N.donut = { is: 'food', w: 26, h: 24, tags: ['sweet', 'donut'], art: [['e', 0, 0, 100, 100, 'pink'], ['e', 0, 0, 34, 34, 'paper'], ['l', [-60, -30, -48, -46]], ['l', [50, -40, 62, -22]], ['l', [-40, 60, -24, 52]], ['l', [38, 54, 54, 44]]] };
   N.honey = { is: 'food', w: 22, h: 28, tags: ['sweet'], art: [['r', -80, -60, 160, 160, 'orange'], ['r', -62, -100, 124, 42, 'brown'], ['e', 0, 22, 42, 36, 'yellow']] };
   N.steak = { is: 'food', w: 32, h: 24, tags: ['meat'], art: [['e', 0, 0, 100, 95, 'red'], ['e', 26, -8, 32, 28, 'pink'], ['e', -40, 12, 16, 22, 'white']] };
-  N.bone = { is: 'food', w: 32, h: 14, tags: ['bone', 'meat'], art: [['r', -70, -30, 140, 60, 'white'], ['e', -78, -48, 26, 55, 'white'], ['e', -78, 48, 26, 55, 'white'], ['e', 78, -48, 26, 55, 'white'], ['e', 78, 48, 26, 55, 'white']] };
+  N.bone = { is: 'food', w: 32, h: 14, tags: ['bone', 'meat'], art: [['g', 'white', [['r', -70, -30, 140, 60, 2], ['e', -78, -48, 26, 55], ['e', -78, 48, 26, 55], ['e', 78, -48, 26, 55], ['e', 78, 48, 26, 55]]]] };
   N.fish = { is: 'food', w: 34, h: 20, tags: ['fish', 'meat'], art: [['p', [52, 0, 100, -90, 100, 90], 'blue'], ['e', -15, 0, 76, 90, 'blue'], ['d', -58, -22, 2], ['l', [-28, -50, -18, 0, -28, 50]]] };
   N.pizza = { is: 'food', w: 32, h: 30, tags: ['meal'], art: [['p', [-100, -78, 100, -78, 0, 100], 'yellow'], ['r', -100, -100, 200, 30, 'tan'], ['e', -26, -30, 18, 18, 'red'], ['e', 28, -22, 18, 18, 'red'], ['e', 0, 28, 16, 16, 'red']] };
   N.sandwich = { is: 'food', w: 34, h: 24, tags: ['meal'], art: [['p', [-100, 82, 100, 82, 0, -92], 'tan'], ['l', [-64, 30, 64, 30], 3, 'green'], ['l', [-74, 52, 74, 52], 2.5, 'red']] };
@@ -216,15 +211,14 @@
   N.bomb = { is: 'tool', w: 28, h: 30, use: 'bomb', art: [['r', -20, -76, 40, 26, 'dgrey'], ['e', 0, 22, 95, 78, 'dgrey'], ['l', [0, -76, 20, -100, 50, -90]], ['e', 56, -90, 14, 12, 'orange'], ['e', -34, -6, 16, 14, 'grey']] };
 
   // structures
-  N.bridge = { is: 'structure', w: 440, h: 20, upright: false, mass: 2, art: [['r', -100, -55, 200, 110, 'brown'], ['l', [-80, -55, -80, 55]], ['l', [-60, -55, -60, 55]], ['l', [-40, -55, -40, 55]], ['l', [-20, -55, -20, 55]], ['l', [0, -55, 0, 55]],
-    ['l', [20, -55, 20, 55]], ['l', [40, -55, 40, 55]], ['l', [60, -55, 60, 55]], ['l', [80, -55, 80, 55]], ['r', -100, -100, 200, 40, 'dbrown']] };
+  N.bridge = { is: 'structure', w: 440, h: 20, upright: false, mass: 2, art: [['r', -100, 10, 200, 86, 'dbrown', 3], ['r', -100, -100, 17, 130, 'brown+', 2], ['r', -82, -100, 17, 130, 'brown', 2], ['r', -64, -100, 17, 130, 'brown+', 2], ['r', -45, -100, 17, 130, 'brown', 2], ['r', -27, -100, 17, 130, 'brown+', 2], ['r', -9, -100, 17, 130, 'brown', 2], ['r', 9, -100, 17, 130, 'brown+', 2], ['r', 27, -100, 17, 130, 'brown', 2], ['r', 46, -100, 17, 130, 'brown+', 2], ['r', 64, -100, 17, 130, 'brown', 2], ['r', 82, -100, 17, 130, 'brown+', 2], ['d', -91, -60, 1.1, 'dbrown'], ['d', -73, -60, 1.1, 'dbrown'], ['d', -55, -60, 1.1, 'dbrown'], ['d', -36, -60, 1.1, 'dbrown'], ['d', -18, -60, 1.1, 'dbrown'], ['d', 0, -60, 1.1, 'dbrown'], ['d', 18, -60, 1.1, 'dbrown'], ['d', 36, -60, 1.1, 'dbrown'], ['d', 55, -60, 1.1, 'dbrown'], ['d', 73, -60, 1.1, 'dbrown'], ['d', 91, -60, 1.1, 'dbrown']] };
   N.plank = { is: 'structure', w: 220, h: 13, upright: false, mass: 1, art: [['r', -100, -100, 200, 200, 'tan'], ['l', [-80, 0, -20, 20]], ['l', [10, -30, 70, -10]]] };
   N.log = { is: 'structure', w: 380, h: 38, upright: false, tags: ['tree'], art: [['r', -100, -100, 200, 200, 'brown'], ['e', -97, 0, 3.5, 92, 'tan'], ['e', 97, 0, 3.5, 92, 'tan'], ['l', [-70, -30, -30, -24]], ['l', [0, 20, 50, 26]], ['l', [-50, 46, -20, 50]], ['l', [40, -50, 75, -46]]] };
   N.ladder = { is: 'structure', w: 32, h: 200, solid: false, climbable: true, mass: 1, art: [['l', [-70, -100, -70, 100], 3.5, 'tan'], ['l', [70, -100, 70, 100], 3.5, 'tan'], ['l', [-70, -85, 70, -85], 2.5], ['l', [-70, -68, 70, -68], 2.5], ['l', [-70, -51, 70, -51], 2.5],
     ['l', [-70, -34, 70, -34], 2.5], ['l', [-70, -17, 70, -17], 2.5], ['l', [-70, 0, 70, 0], 2.5], ['l', [-70, 17, 70, 17], 2.5], ['l', [-70, 34, 70, 34], 2.5], ['l', [-70, 51, 70, 51], 2.5], ['l', [-70, 68, 70, 68], 2.5], ['l', [-70, 85, 70, 85], 2.5]] };
   N.crate = { is: 'structure', w: 58, h: 58, upright: false, art: [['r', -100, -100, 200, 200, 'tan'], ['r', -78, -78, 156, 156, ''], ['l', [-78, -78, 78, 78]], ['l', [78, -78, -78, 78]]] };
   N.barrel = { is: 'structure', w: 46, h: 58, upright: false, art: [['p', [-70, -100, 70, -100, 100, 0, 70, 100, -70, 100, -100, 0], 'brown'], ['l', [-90, -45, 90, -45], 2.5], ['l', [-90, 45, 90, 45], 2.5]] };
-  N.rock = { is: 'structure', w: 92, h: 66, upright: false, material: 'stone', mass: 6, hp: 20, art: [['p', [-100, 100, -90, 10, -55, -70, 0, -100, 55, -80, 95, -10, 100, 100], 'grey'], ['l', [-30, -30, 0, -10, 20, -40]], ['l', [40, 30, 60, 10]]] };
+  N.rock = { is: 'structure', w: 92, h: 66, upright: false, material: 'stone', mass: 6, hp: 20, art: [['p', [-100, 100, -90, 10, -55, -70, 0, -100, 55, -80, 95, -10, 100, 100], 'grey', 7], ['l', [-70, 60, -48, 40], 1.6], ['l', [-30, -40, 0, -20, 20, -50], 1.6], ['l', [44, 30, 64, 10], 1.6]] };
   N.wall = { is: 'structure', w: 46, h: 170, material: 'stone', mass: 6, hp: 20, art: [['r', -100, -100, 200, 200, 'grey'], ['l', [-100, -67, 100, -67]], ['l', [-100, -33, 100, -33]], ['l', [-100, 0, 100, 0]], ['l', [-100, 33, 100, 33]], ['l', [-100, 67, 100, 67]],
     ['l', [0, -100, 0, -67]], ['l', [-50, -67, -50, -33]], ['l', [40, -67, 40, -33]], ['l', [0, -33, 0, 0]], ['l', [-50, 0, -50, 33]], ['l', [40, 0, 40, 33]], ['l', [0, 33, 0, 67]], ['l', [-50, 67, -50, 100]], ['l', [40, 67, 40, 100]]] };
   N.fence = { is: 'structure', w: 150, h: 66, art: [['l', [-100, -20, 100, -20], 3.5, 'tan'], ['l', [-100, 50, 100, 50], 3.5, 'tan'],
@@ -237,26 +231,26 @@
   N.table = { is: 'structure', w: 84, h: 50, art: [['r', -86, -70, 16, 170, 'brown'], ['r', 70, -70, 16, 170, 'brown'], ['r', -100, -100, 200, 34, 'brown']] };
   N.chair = { is: 'structure', w: 38, h: 56, art: [['r', -82, -100, 26, 200, 'brown'], ['r', 56, 12, 26, 88, 'brown'], ['r', -82, -4, 164, 24, 'brown']] };
   N.pillar = { is: 'structure', w: 48, h: 220, material: 'stone', mass: 6, hp: 20, art: [['r', -75, -92, 150, 184, 'cream'], ['r', -100, -100, 200, 10, 'grey'], ['r', -100, 90, 200, 10, 'grey'], ['l', [-35, -88, -35, 88]], ['l', [0, -88, 0, 88]], ['l', [35, -88, 35, 88]]] };
-  N.tree = { is: 'structure', w: 96, h: 220, solid: false, anchored: true, climbable: true, material: 'wood', tags: ['plant', 'tree'], hp: 6, art: [['r', -20, -12, 40, 112, 'brown'], ['l', [-6, 30, -4, 70]], ['e', -44, -36, 56, 32, 'green'], ['e', 46, -34, 54, 30, 'green'], ['e', 0, -62, 68, 36, 'green'], ['l', [-30, -60, -8, -72]], ['l', [28, -42, 50, -50]]] };
-  N.bush = { is: 'structure', w: 72, h: 46, solid: false, anchored: true, material: 'plant', tags: ['plant', 'bush'], edible: true, hp: 3, art: [['e', -42, 22, 58, 76, 'green'], ['e', 42, 22, 58, 76, 'green'], ['e', 0, -18, 64, 80, 'green'], ['d', -30, 10, 2.4, 'red'], ['d', 22, -22, 2.4, 'red'], ['d', 50, 34, 2.4, 'red']] };
+  N.tree = { is: 'structure', w: 96, h: 220, solid: false, anchored: true, climbable: true, material: 'wood', tags: ['plant', 'tree'], hp: 6, art: [['p', [-28, 100, -12, 62, -12, -14, 12, -14, 12, 62, 28, 100], 'brown', 3], ['e', 0, 38, 5, 4, 'dbrown'], ['l', [-5, 6, -3, 26], 1.4], ['g', 'green', [['e', -44, -36, 56, 32], ['e', 46, -34, 54, 30], ['e', 0, -62, 68, 36], ['e', 0, -26, 58, 24]]], ['l', [-34, -58, -10, -72], 1.6], ['l', [26, -40, 50, -50], 1.6], ['l', [-58, -28, -40, -34], 1.6], ['d', -22, -34, 2.6, 'red'], ['d', 36, -62, 2.6, 'red'], ['d', 8, -18, 2.6, 'red']] };
+  N.bush = { is: 'structure', w: 72, h: 46, solid: false, anchored: true, material: 'plant', tags: ['plant', 'bush'], edible: true, hp: 3, art: [['g', 'green', [['e', -42, 22, 58, 76], ['e', 42, 22, 58, 76], ['e', 0, -18, 64, 80]]], ['l', [-50, 4, -34, -22], 1.5], ['l', [10, -50, 30, -38], 1.5], ['d', -30, 14, 2.6, 'red'], ['d', 22, -18, 2.6, 'red'], ['d', 50, 38, 2.6, 'red'], ['d', -6, 50, 2.6, 'red']] };
   N.flower = { is: 'structure', w: 22, h: 38, solid: false, anchored: true, material: 'plant', tags: ['plant', 'flower'], edible: true, hp: 1, art: [['l', [0, 100, 0, -20], 2.5, 'green'], ['e', 48, 46, 46, 13, 'green', -30], ['e', 0, -56, 96, 44, 'pink'], ['e', 0, -56, 36, 19, 'yellow']] };
   N.statue = { is: 'structure', w: 46, h: 94, material: 'stone', mass: 6, hp: 20, art: [['r', -100, 62, 200, 38, 'grey'], ['p', [-50, -46, 50, -46, 70, 62, -70, 62], 'grey'], ['e', 0, -72, 36, 22, 'grey'], ['l', [50, -40, 92, -70], 3]] };
   N.anvil = { is: 'structure', w: 54, h: 38, upright: false, material: 'metal', mass: 10, hp: 30, art: [['p', [-100, -100, 100, -100, 60, -40, 30, -40, 30, 40, 80, 100, -80, 100, -30, 40, -30, -40, -60, -40], 'dgrey']] };
   N.piano = { is: 'structure', w: 96, h: 72, mass: 7, hp: 6, art: [['r', -90, 46, 14, 54, 'dgrey'], ['r', 76, 46, 14, 54, 'dgrey'], ['p', [-100, -56, -100, -100, 60, -100, 100, -56], 'dgrey'], ['r', -100, -56, 200, 104, 'dgrey'], ['r', -100, -8, 200, 32, 'white'],
     ['l', [-75, -8, -75, 24]], ['l', [-50, -8, -50, 24]], ['l', [-25, -8, -25, 24]], ['l', [0, -8, 0, 24]], ['l', [25, -8, 25, 24]], ['l', [50, -8, 50, 24]], ['l', [75, -8, 75, 24]]] };
-  N.house = { is: 'structure', w: 200, h: 190, solid: false, anchored: true, hp: 10, art: [['r', -85, -22, 170, 122, 'cream'], ['p', [-100, -20, 0, -100, 100, -20], 'red'], ['r', -20, 36, 40, 64, 'brown'], ['r', -66, 4, 30, 30, 'sky'], ['r', 36, 4, 30, 30, 'sky'], ['d', 12, 70, 1.8]] };
+  N.house = { is: 'structure', w: 200, h: 190, solid: false, anchored: true, hp: 10, art: [['r', 40, -96, 20, 50, 'grey', 2], ['r', -85, -22, 170, 122, 'cream', 3], ['p', [-104, -18, 0, -100, 104, -18], 'red', 3], ['l', [-52, -58, 52, -58], 1.4], ['l', [-78, -38, 78, -38], 1.4], ['r', -20, 36, 40, 64, 'brown', 3], ['r', -66, 4, 30, 30, 'sky', 2], ['r', 36, 4, 30, 30, 'sky', 2], ['l', [-51, 4, -51, 34], 1.4], ['l', [-66, 19, -36, 19], 1.4], ['l', [51, 4, 51, 34], 1.4], ['l', [36, 19, 66, 19], 1.4], ['d', 12, 70, 1.8]] };
   N.tent = { is: 'structure', w: 112, h: 82, solid: false, anchored: true, material: 'cloth', art: [['p', [-100, 100, 0, -100, 100, 100], 'orange'], ['p', [-26, 100, 0, 18, 26, 100], 'dbrown']] };
   N.cannon = { is: 'structure', w: 84, h: 58, solid: false, material: 'metal', hp: 20, launcher: { vx: 10.5, vy: -10.5 }, art: [['p', [-62, 10, 68, -100, 100, -62, -22, 62], 'dgrey'], ['e', -30, 50, 46, 52, 'brown'], ['d', -30, 50, 3], ['l', [-30, 4, -30, 96]], ['l', [-74, 50, 14, 50]]] };
   N.catapult = { is: 'structure', w: 98, h: 72, solid: false, launcher: { vx: 9.5, vy: -12 }, art: [['l', [-60, 60, 60, -80], 5, 'brown'], ['p', [-22, 62, 0, -12, 22, 62], 'brown'], ['r', -100, 58, 200, 24, 'brown'], ['e', 66, -84, 18, 17, 'brown'], ['e', -70, 88, 14, 13, 'dgrey'], ['e', 70, 88, 14, 13, 'dgrey']] };
   N.scarecrow = { is: 'structure', w: 42, h: 86, solid: false, anchored: true, material: 'plant', tags: ['scarecrow'], art: [['l', [0, -20, 0, 100], 3.5, 'brown'], ['l', [-100, -36, 100, -36], 3.5, 'brown'], ['p', [-56, -46, 56, -46, 42, 30, -42, 30], 'red'], ['e', 0, -72, 40, 24, 'tan'], ['p', [-58, -86, 58, -86, 30, -100, -30, -100], 'brown'], ['d', -12, -74, 1.6], ['d', 12, -74, 1.6]] };
   N.sign = { is: 'structure', w: 42, h: 62, solid: false, anchored: true, art: [['r', -10, -10, 20, 110, 'brown'], ['r', -100, -100, 200, 96, 'tan'], ['l', [-60, -70, 60, -70]], ['l', [-60, -40, 30, -40]]] };
   N.treasure = { is: 'thing', w: 36, h: 30, material: 'wood', tags: ['valuable'], edible: true, art: [['r', -100, -20, 200, 120, 'brown'], ['p', [-100, -20, -80, -100, 80, -100, 100, -20], 'brown'], ['e', 0, -18, 16, 22, 'yellow'], ['l', [-100, 30, 100, 30]]] };
-  N.teddy = { is: 'thing', w: 30, h: 34, material: 'cloth', tags: ['cloth'], edible: true, art: [['e', -50, -88, 22, 20, 'brown'], ['e', 50, -88, 22, 20, 'brown'], ['e', 0, 32, 76, 66, 'brown'], ['e', 0, -45, 60, 50, 'brown'], ['e', 0, -30, 24, 17, 'tan'], ['d', -20, -55, 1.8], ['d', 20, -55, 1.8]] };
+  N.teddy = { is: 'thing', w: 30, h: 34, material: 'cloth', tags: ['cloth'], edible: true, art: [['g', 'brown', [['e', -50, -88, 22, 20], ['e', 50, -88, 22, 20], ['e', 0, 32, 70, 62], ['e', 0, -45, 60, 50], ['e', -72, 8, 22, 32], ['e', 72, 8, 22, 32], ['e', -40, 84, 30, 18], ['e', 40, 84, 30, 18]]], ['e', 0, 40, 38, 36, 'tan'], ['e', 0, -30, 24, 17, 'tan'], ['d', 0, -36, 1.8], ['d', -20, -55, 1.8], ['d', 20, -55, 1.8]] };
   N.ball = { is: 'thing', w: 26, h: 26, shape: 'circle', material: 'rubber', bounce: 0.8, tags: ['ball'], edible: true, art: [['e', 0, 0, 100, 100, 'red'], ['l', [-95, -20, 0, 26, 95, -20]], ['l', [-60, -78, 0, -40, 60, -78]]] };
-  N.duckie = { is: 'thing', w: 28, h: 26, material: 'rubber', art: [['e', -10, 32, 90, 64, 'yellow'], ['e', 36, -40, 46, 46, 'yellow'], ['p', [76, -46, 100, -36, 76, -20], 'orange'], ['d', 44, -50, 2]] };
+  N.duckie = { is: 'thing', w: 28, h: 26, material: 'rubber', art: [['g', 'yellow', [['e', -10, 32, 90, 64], ['e', 36, -40, 46, 46], ['p', [-90, 10, -104, -30, -70, -6], 2]]], ['p', [76, -46, 102, -36, 76, -20], 'orange', 1.5], ['d', 44, -50, 2], ['l', [-40, 30, -10, 46, 24, 32], 1.5]] };
 
   // vehicles (E to ride)
-  N.car = { is: 'vehicle', w: 112, h: 54, speed: 6, art: [['p', [-100, 60, -100, 0, -60, -10, -35, -90, 40, -90, 65, -10, 100, 6, 100, 60], 'red'], ['p', [-30, -70, 35, -70, 50, -15, -50, -15], 'sky'], ['l', [5, -70, 5, -15]], ['e', -58, 62, 22, 40, 'dgrey'], ['e', 58, 62, 22, 40, 'dgrey'], ['d', -58, 62, 2, 'grey'], ['d', 58, 62, 2, 'grey']] };
+  N.car = { is: 'vehicle', w: 112, h: 54, speed: 6, art: [['p', [-100, 56, -100, 0, -60, -10, -35, -90, 40, -90, 65, -10, 100, 6, 100, 56], 'red', 6], ['p', [-30, -70, 35, -70, 50, -15, -50, -15], 'sky', 3], ['l', [5, -70, 5, -15]], ['l', [5, -10, 5, 46], 1.5], ['l', [16, 6, 30, 6], 2.2], ['r', 84, 2, 16, 16, 'yellow', 2.5], ['r', -104, 38, 208, 18, 'grey', 4], ['e', -58, 62, 24, 42, 'dgrey'], ['e', 58, 62, 24, 42, 'dgrey'], ['e', -58, 62, 10, 18, 'grey'], ['e', 58, 62, 10, 18, 'grey']] };
   N.bicycle = { is: 'vehicle', w: 74, h: 50, speed: 4.6, jump: 1, hp: 4, art: [['e', -62, 46, 36, 52, ''], ['e', 62, 46, 36, 52, ''], ['l', [-62, 46, -15, -30, 35, -30, 62, 46], 2.5], ['l', [-15, -30, 10, 46, 35, -30], 2.5], ['l', [-15, -30, -25, -70], 2.5], ['l', [-42, -70, -8, -70], 4], ['l', [35, -30, 45, -82], 2.5], ['l', [30, -88, 62, -76], 3]] };
   N.skateboard = { is: 'vehicle', w: 58, h: 16, speed: 4.8, jump: 1.15, material: 'wood', hp: 3, art: [['e', -60, 52, 15, 46, 'dgrey'], ['e', 60, 52, 15, 46, 'dgrey'], ['p', [-100, -92, -84, -20, 84, -20, 100, -92, 92, 16, -92, 16], 'purple']] };
   N.motorcycle = { is: 'vehicle', w: 90, h: 52, speed: 6.6, jump: 1.2, art: [['e', -65, 50, 32, 50, 'dgrey'], ['e', 65, 50, 32, 50, 'dgrey'], ['l', [62, 46, 40, -72], 3.5], ['l', [24, -82, 56, -70], 3.5], ['p', [-62, 10, -20, -50, 30, -50, 60, 0, 20, 42, -30, 42], 'red'], ['r', -48, -66, 52, 22, 'dgrey'], ['d', -65, 50, 2, 'grey'], ['d', 65, 50, 2, 'grey']] };
@@ -273,7 +267,7 @@
   N.bulldozer = { is: 'vehicle', w: 114, h: 78, speed: 1.6, smashes: true, mass: 9, hp: 30, art: [['r', -90, 46, 172, 52, 'dgrey'], ['r', -70, -20, 122, 66, 'yellow'], ['r', -52, -96, 66, 80, 'yellow'], ['r', -42, -84, 46, 46, 'sky'], ['l', [50, 30, 82, 40], 5], ['p', [72, -30, 100, -42, 100, 100, 82, 100], 'grey']] };
 
   // gear (hold it to get its ability)
-  N.wings = { is: 'gear', w: 52, h: 42, grants: { fly: 'flap' }, art: [['p', [-5, 0, -100, -90, -80, -10, -95, 50, -50, 30, -40, 90, -5, 40], 'white'], ['p', [5, 0, 100, -90, 80, -10, 95, 50, 50, 30, 40, 90, 5, 40], 'white']] };
+  N.wings = { is: 'gear', w: 52, h: 42, grants: { fly: 'flap' }, art: [['p', [-6, 6, -36, -56, -100, -92, -90, -44, -100, -12, -80, 4, -88, 38, -60, 32, -58, 66, -32, 48, -6, 62], 'white', 3], ['p', [6, 6, 36, -56, 100, -92, 90, -44, 100, -12, 80, 4, 88, 38, 60, 32, 58, 66, 32, 48, 6, 62], 'white', 3], ['l', [-20, -10, -78, -60], 1.4], ['l', [-18, 10, -80, -6], 1.4], ['l', [-14, 28, -64, 34], 1.4], ['l', [20, -10, 78, -60], 1.4], ['l', [18, 10, 80, -6], 1.4], ['l', [14, 28, 64, 34], 1.4]] };
   N.jetpack = { is: 'gear', w: 28, h: 38, material: 'metal', grants: { fly: 'thrust' }, art: [['p', [-80, 70, -50, 100, -20, 70], 'orange'], ['p', [20, 70, 50, 100, 80, 70], 'orange'], ['r', -90, -90, 80, 160, 'grey'], ['r', 10, -90, 80, 160, 'grey'], ['r', -30, -100, 60, 30, 'dgrey']] };
   N.balloon = { is: 'gear', w: 28, h: 42, material: 'rubber', grants: { gravity: 0.3 }, art: [['l', [0, 50, 8, 76, -4, 100]], ['e', 0, -30, 95, 68, 'red'], ['p', [-12, 38, 12, 38, 0, 52], 'red'], ['e', -35, -55, 16, 14, 'white']] };
   N.umbrella = { is: 'gear', w: 46, h: 48, grants: { slowfall: true }, art: [['l', [0, -20, 0, 80], 2.5], ['l', [0, 80, -10, 100, -26, 90], 2.5], ['p', [-100, -20, -70, -75, 0, -100, 70, -75, 100, -20, 50, -36, 0, -20, -50, -36], 'purple']] };
@@ -286,11 +280,11 @@
 
   // nature and stranger things
   N.fire = { is: 'nature', w: 42, h: 52, material: 'magic', hot: true, light: true, life: 18, tags: ['fire'],
-    art: [['p', [-80, 100, -100, 30, -60, -20, -70, -70, -20, -40, 0, -100, 30, -45, 70, -65, 60, -10, 100, 40, 80, 100], 'orange'], ['p', [-40, 100, -50, 40, -10, 0, 5, -45, 30, 10, 50, 50, 40, 100], 'yellow']] };
+    art: [['r', -84, 74, 168, 26, 'dbrown', 5], ['p', [-74, 86, -100, 30, -60, -20, -70, -70, -20, -40, 0, -100, 30, -45, 70, -65, 60, -10, 100, 40, 76, 86], 'orange', 3], ['p', [-40, 86, -50, 40, -10, 0, 5, -45, 30, 10, 50, 50, 40, 86], 'yellow', 3], ['p', [-14, 86, -16, 56, 4, 30, 18, 58, 16, 86], 'white', 3]] };
   N.lava = { is: 'nature', w: 124, h: 22, material: 'magic', hot: true, light: true, tags: ['fire'], art: [['p', [-100, 100, -100, -20, -70, -62, -40, -10, -10, -72, 20, -10, 55, -82, 80, -20, 100, -42, 100, 100], 'orange'], ['e', -50, 40, 8, 26, 'yellow'], ['e', 30, 50, 6, 20, 'yellow']] };
   N.water = { is: 'nature', w: 96, h: 16, material: 'water', wet: true, tags: ['wet'], art: [['e', 0, 20, 100, 80, 'blue'], ['l', [-50, -5, -12, -5]], ['l', [20, 30, 50, 30]]] };
-  N.raincloud = { is: 'nature', w: 116, h: 52, material: 'magic', floating: true, rains: true, tags: ['wet'], art: [['e', -45, 8, 52, 62, 'grey'], ['e', 38, 10, 60, 66, 'grey'], ['e', -5, -32, 52, 62, 'grey']] };
-  N.cloud = { is: 'nature', w: 124, h: 46, material: 'magic', floating: true, solid: true, art: [['e', -45, 12, 52, 62, 'white'], ['e', 38, 12, 60, 66, 'white'], ['e', -5, -30, 52, 62, 'white']] };
+  N.raincloud = { is: 'nature', w: 116, h: 52, material: 'magic', floating: true, rains: true, tags: ['wet'], art: [['g', 'grey', [['e', -45, 8, 52, 62], ['e', 38, 10, 60, 66], ['e', -5, -32, 52, 62]]], ['l', [-24, 12, -2, 28, 22, 14], 1.5]] };
+  N.cloud = { is: 'nature', w: 124, h: 46, material: 'magic', floating: true, solid: true, art: [['g', 'white', [['e', -45, 12, 52, 62], ['e', 38, 12, 60, 66], ['e', -5, -30, 52, 62]]], ['l', [-24, 14, -2, 30, 22, 16], 1.5]] };
   N.snowman = { is: 'nature', w: 46, h: 78, material: 'ice', melts: true, art: [['e', 0, 56, 76, 44, 'white'], ['e', 0, -10, 56, 32, 'white'], ['e', 0, -64, 40, 24, 'white'], ['r', -26, -100, 52, 20, 'dgrey'], ['d', -12, -70, 1.6], ['d', 12, -70, 1.6], ['p', [5, -64, 52, -58, 5, -56], 'orange'], ['d', 0, -18, 1.6], ['d', 0, 0, 1.6]] };
   N.ice = { is: 'nature', w: 58, h: 58, material: 'ice', upright: false, solid: true, melts: true, art: [['r', -100, -100, 200, 200, 'sky'], ['l', [-70, -40, -30, -80]], ['l', [-62, 0, 0, -72]]] };
   N.sun = { is: 'nature', w: 84, h: 84, material: 'magic', floating: true, light: true, warm: true, art: [['l', [0, -100, 0, -74], 3], ['l', [0, 100, 0, 74], 3], ['l', [-100, 0, -74, 0], 3], ['l', [100, 0, 74, 0], 3], ['l', [-70, -70, -52, -52], 3], ['l', [70, -70, 52, -52], 3], ['l', [-70, 70, -52, 52], 3], ['l', [70, 70, 52, 52], 3], ['e', 0, 0, 60, 60, 'yellow']] };
