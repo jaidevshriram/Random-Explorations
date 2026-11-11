@@ -7,7 +7,8 @@
 (function (NN) {
   'use strict';
   const { P, rough, rng, sprite } = NN.art;
-  const VW = 1100, VH = 620, Z = 1.6, WW = VW / Z, WH = VH / Z, BASE = 290, HORIZON = (520 - BASE) * Z, LS = 1.5;
+  const VW = 1100, VH = 620, LS = 1.5;
+  let Z = 1.6, WW = VW / Z, WH = VH / Z, BASE = 290, HORIZON = (520 - BASE) * Z;   // camera zoom is set per world
   const INK = '#1f1a17';
   const $ = (id) => document.getElementById(id);
   const cv = $('game'), ctx = cv.getContext('2d');
@@ -61,6 +62,8 @@
       ground: { dust: { body: '#b96a3a', body2: '#a35a30', cap: '#e9a35a', line: '#8a4a28' }, island: { body: '#8a5a44', body2: '#74493a', cap: '#7cc46a', line: '#5b3a2e', glow: '#fff3b0' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     keep: { sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
+    manor: { custom: true, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    town: { custom: true, haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { sky: ['#371c58', '#a83f78', '#f7a35c'], haze: '#7a3d7a', stars: 50, bodies: [[880, 120, 34, '#ffe9b0']],
       ground: { dock: { body: '#4f3b30', body2: '#43322a', cap: '#c08a52', line: '#2e221c', planks: 1 }, rock: { body: '#5a5670', body2: '#4c4962', cap: '#8c88a6', line: '#353248' }, hull: { body: '#7c3b3b', body2: '#6a3030', cap: '#d0a060', line: '#3f1d1d', planks: 1, hull: 1 }, pit: { body: '#2a2440', cap: '#2a2440', line: '#3b3458' } },
       water: ['rgba(196,208,232,0.8)', '#ffffff'] },
@@ -110,7 +113,7 @@
   };
   // props that sit in the world itself, behind the action
   const PROPS = {
-    forest: [], sky: [{ a: BG.skyrock, x: 1560, y: -420, w: 220, h: 120 }],
+    manor: [], town: [], forest: [], sky: [{ a: BG.skyrock, x: 1560, y: -420, w: 220, h: 120 }],
     keep: [{ a: BG.arch, x: 1500, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 1800, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 2100, y: 520, w: 260, h: 250 }, { a: BG.banner, x: 1650, y: 440, w: 50, h: 130 }, { a: BG.banner, x: 1950, y: 440, w: 50, h: 130 }],
     port: [{ a: BG.mast, x: 1780, y: 380, w: 200, h: 430 }, { a: BG.mast, x: 2110, y: 380, w: 180, h: 370 }, { a: BG.cabin, x: 2440, y: 380, w: 240, h: 160 }, { a: BG.crates, x: 420, y: 520, w: 90, h: 90 }, { a: BG.lamp, x: 590, y: 520, w: 50, h: 130 }],
   };
@@ -134,16 +137,23 @@
       c.drawImage(s.frames[0], -s.w / 2, -s.h / 2, s.w, s.h); c.restore();
     };
   }
-  function bake(par, paint, hazeAlpha, T) {
+  function bake(par, paint, hazeAlpha, T, raw) {
     const w = Math.ceil(VW + (L.W - WW) * par * Z) + 60, extra = Math.ceil((BASE - (L.sky - 120)) * Z * par), h = VH + extra;
     const c0 = document.createElement('canvas'); c0.width = Math.ceil(w * LS); c0.height = Math.ceil(h * LS);
     const c = c0.getContext('2d'); c.scale(LS, LS);
-    paint(stampInto(c), w, extra + HORIZON + 4, rng(par * 1000 + 7));
+    paint(raw ? c : stampInto(c), w, extra + HORIZON + 4, rng(par * 1000 + 7));
     c.globalCompositeOperation = 'source-atop'; c.globalAlpha = hazeAlpha; c.fillStyle = T.haze; c.fillRect(0, 0, w, h);
     return { cv: c0, w, h, extra, par };
   }
   function buildWorldArt() {
     const T = THEMES[L.theme], S = SCENES[L.theme];
+    if (T.custom) {   // the town is drawn from architectural parts, see town.js
+      const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
+      const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH);
+      if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over }; return; }
+      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true), mid: bake(0.4, NN.town.mid, 0.16, T, true), front: NN.town.front(L.W, L.start.y, 2) };
+      return;
+    }
     // sky: flat bands joined by rows of halftone dots, stars, moons and planets with a hard ink edge
     const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
     const c = sky.getContext('2d'); c.scale(LS, LS);
@@ -167,6 +177,7 @@
     L = NN.levels[levelIndex];
     store.last = levelIndex; save();
     sim = NN.createSim({ toast: showToast, changed: updateHud, won: onWin, sfx }, L);
+    Z = L.zoom || 1.6; WW = VW / Z; WH = VH / Z; BASE = L.zoom ? 520 - WH * 0.84 : 290; HORIZON = (520 - BASE) * Z;
     cam.x = 0; cam.y = BASE; hover = null; selected = null;
     buildWorldArt();
     $('win').hidden = true;
@@ -179,7 +190,7 @@
   // ---- drawing helpers -----------------------------------------------------------
   const R = (seed) => rng(((seed | 0) * 131 + boil * 977 + 5) >>> 0);
   const visible = (x, pad) => x > cam.x - (pad || 60) && x < cam.x + WW + (pad || 60);
-  const heroSpec = { noun: '_nib', w: 34, h: 60, art: { a: 'person', top: 'orange', legs: 'orange', shoe: 'navy', hat: 'bubble', hair: 'purple' } };
+  const heroSpec = { noun: '_nib', w: 34, h: 60, art: { a: 'person', top: 'teal', legs: 'navy', shoe: 'dbrown', hat: 'goggles', hair: 'red', satchel: 1 } };
 
   function shadow(x, y, rx, a) { ctx.fillStyle = `rgba(20,14,30,${a})`; ctx.beginPath(); ctx.ellipse(x, y + 1, rx, Math.max(2.5, rx * 0.16), 0, 0, 7); ctx.fill(); }
   function blit(spec, x, y, o) {
@@ -201,14 +212,14 @@
     if (!eyes.length) return;
     const r0 = Math.max(1.8, Math.min(3.6, Math.min(spec.w, spec.h) * 0.075)) * (st.k || 1);
     for (const [nx, ny, k] of eyes) {
-      const ex = x + facing * nx / 100 * spec.w / 2 * (st.k || 1), ey = y + (st.flipY ? -1 : 1) * ny / 100 * spec.h / 2 * (st.k || 1) + (st.dy || 0), r = r0 * (k ? 0.95 : 1) * (st.wide ? 1.35 : 1);
+      const ex = x + facing * nx / 100 * spec.w / 2 * (st.k || 1), ey = y + (st.flipY ? -1 : 1) * ny / 100 * spec.h / 2 * (st.k || 1) + (st.dy || 0), r = r0 * (k || 1) * (st.wide ? 1.3 : 1);
       ctx.strokeStyle = INK; ctx.lineCap = 'round';
       if (st.closed || st.happy) {
         ctx.lineWidth = 1.7; ctx.beginPath();
         if (st.happy) ctx.arc(ex, ey + r * 0.5, r, Math.PI * 1.12, Math.PI * 1.88); else { ctx.moveTo(ex - r, ey); ctx.lineTo(ex + r, ey); }
         ctx.stroke(); continue;
       }
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ex + st.lx * r * 0.3, ey + st.ly * r * 0.25, r * 0.62, 0, 7); ctx.fill();
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(ex + st.lx * r * 0.25, ey + st.ly * r * 0.2, r * 0.52, r * (k ? 0.72 : 0.6), 0, 0, 7); ctx.fill();   // tall oval dots
       if (st.angry) { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex - facing * r * 1.4, ey - r * 1.9); ctx.lineTo(ex + facing * r * 1.2, ey - r * 0.9); ctx.stroke(); }
     }
   }
@@ -242,12 +253,14 @@
   // ---- backdrop and ground -----------------------------------------------------------
   function drawBackdrop() {
     ctx.drawImage(layers.sky, 0, 0, VW, VH);
-    for (const l of [layers.far, layers.mid]) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
+    for (const l of [layers.far, layers.mid]) if (l) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
   }
   function drawBlock(t) {
     const T = THEMES[L.theme], st = T.ground[t.kind] || Object.values(T.ground)[0];
     const x0 = Math.max(t.x0, cam.x - 40), x1 = Math.min(t.x1, cam.x + WW + 40), y0 = t.y0, y1 = Math.min(t.y1, cam.y + WH + 40);
     if (x1 <= x0 || y0 > cam.y + WH + 20) return;
+    if (t.kind === 'street') { NN.town.street(ctx, t, x0, x1, y1, reduceMotion ? 0 : sim.time); return; }
+    if (L.theme === 'manor') { NN.manor.ground(ctx, t, x0, x1, y1); return; }
     const r0 = rng(t.x0 * 7 + t.y0 * 3 + 11);
     if (t.kind === 'island') {
       // a floating island: flat top, ragged rock hanging underneath
@@ -298,6 +311,7 @@
     if (st.hull) { ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.fillStyle = st.cap; for (let x = Math.max(t.x0 + 6, Math.ceil(x0 / 60) * 60); x < x1; x += 60) { ctx.fillRect(x - 3, y0 - 26, 6, 26); ctx.strokeRect(x - 3, y0 - 26, 6, 26); } ctx.beginPath(); ctx.moveTo(Math.max(t.x0 + 3, x0), y0 - 26); ctx.lineTo(x1, y0 - 26); ctx.stroke(); }
   }
   function drawWorld() {
+    if (layers.front) ctx.drawImage(layers.front.cv, 0, layers.front.top, L.W, layers.front.h);
     for (const t of L.terrain) if (t.trench) {   // the far wall of a trench, in shadow
       const st = THEMES[L.theme].ground.pit;
       ctx.fillStyle = st.line; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench);
@@ -485,6 +499,7 @@
     if (sim.player.mount) { drawEnt(sim.player.mount); drawPlayer(); }
     for (const e of list) if (layerOf(e) >= 4 && e !== sim.player.mount) drawEnt(e);
     if (!sim.player.mount) drawPlayer();
+    if (layers.over) ctx.drawImage(layers.over.cv, 0, layers.over.top, L.W, layers.over.h);   // railings and such, in front of the action
     drawWater();
     drawFx();
     drawHints();
@@ -515,7 +530,7 @@
       cam.y = Math.max(L.sky - 120, Math.min(BASE, cam.y));
     } else {
       cam.x += (p.x - WW * 0.42 + p.facing * 40 - cam.x) * 0.08;
-      cam.y += (Math.min(BASE, Math.max(L.sky - 120, p.y - 205)) - cam.y) * 0.1;
+      cam.y += (Math.min(BASE, Math.max(L.sky - 120, p.y - WH * 0.53)) - cam.y) * 0.1;
     }
     cam.x = Math.max(0, Math.min(L.W - WW, cam.x));
     mouse.x = mouse.sx / Z + cam.x; mouse.y = mouse.sy / Z + cam.y;
