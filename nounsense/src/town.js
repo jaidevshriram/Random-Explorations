@@ -326,7 +326,7 @@
     const r = rng(77), lr = rng(321);
     if (DUSK) { const tr = rng(5150); for (let x = -10; x < w; x += 54 + tr() * 70) { const bw = 22 + tr() * 26, bh = 330 + tr() * 110, top = horizon - bh, k = tr();   // tall enough to stand over the viaduct, short enough to leave the moon alone
       c.fillStyle = '#6a56a0'; c.fillRect(x, top, bw, bh); c.fillStyle = 'rgba(255,226,214,0.4)'; c.fillRect(x, top, bw, 2);
-      c.fillStyle = '#6a56a0'; if (k < 0.3) { c.beginPath(); c.moveTo(x, top); c.lineTo(x + bw / 2, top - 30 - tr() * 30); c.lineTo(x + bw, top); c.fill(); } else if (k < 0.55) { c.fillRect(x + bw * 0.3, top - 14, bw * 0.4, 14); c.fillRect(x + bw / 2 - 1, top - 44, 2, 30); } else if (k < 0.75) { c.beginPath(); c.arc(x + bw / 2, top, bw / 2, Math.PI, 0); c.fill(); }
+      c.fillStyle = '#6a56a0'; if (k < 0.3) { c.beginPath(); c.moveTo(x, top); c.lineTo(x + bw / 2, top - 30 - tr() * 30); c.lineTo(x + bw, top); c.fill(); } else if (k < 0.55) { c.fillRect(x + bw * 0.3, top - 14, bw * 0.4, 14); c.fillRect(x + bw / 2 - 1, top - 44, 2, 30); }
       c.fillStyle = 'rgba(255,214,150,0.5)'; for (let wy = top + 12; wy < horizon - 150; wy += 16) for (let wx = x + 5; wx < x + bw - 6; wx += 9) if (tr() < 0.22) c.fillRect(wx, wy, 3.4, 5); } }   // furthest: tall, thin, a few windows lit
     for (let x = 90; x < w; x += 250 + lr() * 180) {                         // landmarks: a domed hall, a stepped tower, a clock tower, chimneys
       const k = Math.floor(lr() * 4), col = DUSK ? '#a06aa2' : '#b6c2de'; c.fillStyle = col;
@@ -415,10 +415,12 @@
   function duskSky(c, VW, VH) {
     const g = c.createLinearGradient(0, 0, 0, VH * 0.6); g.addColorStop(0, '#232f78'); g.addColorStop(0.3, '#5a479c'); g.addColorStop(0.55, '#b85a98'); g.addColorStop(0.78, '#ff9468'); g.addColorStop(1, '#ffd58c'); c.fillStyle = g; c.fillRect(0, 0, VW, VH);
     const sr = rng(9); c.fillStyle = '#fff6e0'; for (let i = 0; i < 80; i++) { const y = sr() * VH * 0.42; c.globalAlpha = 1 - y / (VH * 0.44); c.beginPath(); c.arc(sr() * VW, y, 0.6 + sr() * 1.3, 0, 7); c.fill(); } c.globalAlpha = 1;
-    const mx = VW * 0.4, my = 112;                         // a huge harvest moon, high enough to clear most roofs wherever the camera is
+    const mx = VW * 0.4, my = 100;                         // a huge harvest moon, high enough to clear most roofs wherever the camera is
+    c.save(); c.translate(mx, my); c.scale(1.2, 1.2); c.translate(-mx, -my);
     { const hg = c.createRadialGradient(mx, my, 60, mx, my, 250); hg.addColorStop(0, 'rgba(255,232,180,0.42)'); hg.addColorStop(0.4, 'rgba(255,214,170,0.16)'); hg.addColorStop(1, 'rgba(255,214,170,0)'); c.fillStyle = hg; c.fillRect(mx - 250, my - 250, 500, 500); }   // a soft graded glow
     c.fillStyle = '#fff1cc'; c.beginPath(); c.arc(mx, my, 72, 0, 7); c.fill(); c.lineWidth = 3; c.strokeStyle = '#f0c48a'; c.stroke();
     c.fillStyle = '#f3dcae'; for (const [dx, dy, cr] of [[-27, -20, 14], [20, 9, 19], [-11, 30, 9], [32, -32, 8], [-41, 14, 7], [5, -41, 6]]) { c.beginPath(); c.arc(mx + dx, my + dy, cr, 0, 7); c.fill(); }
+    c.restore();
     for (const [cx, cy, w, hh] of [[150, 226, 200, 11], [660, 122, 230, 12], [960, 200, 210, 11], [790, 262, 260, 12], [250, 84, 170, 9]]) { const n = Math.max(3, Math.round(w / 46)); c.fillStyle = 'rgba(70,50,130,0.5)'; c.beginPath(); for (let k = 0; k < n; k++) { const t = (k + 0.5) / n, bw = w / n * 1.5, bh = hh * (0.9 + 1.5 * Math.sin(t * Math.PI) * (0.7 + ((k * 37 + cx) % 5) * 0.09)); c.moveTo(cx - w / 2 + t * w + bw / 2, cy); c.ellipse(cx - w / 2 + t * w, cy, bw / 2, bh, 0, 0, Math.PI, true); } c.rect(cx - w / 2 + 6, cy - 1, w - 12, hh * 0.5); c.fill(); c.fillStyle = 'rgba(255,170,130,0.7)'; c.beginPath(); c.ellipse(cx, cy + hh * 0.3, w * 0.44, hh * 0.3, 0, 0, 7); c.fill(); }   // banks of cloud, lit from below
     // constellations: a cat, a key and a little boat, the kind of things a star-wizard writes
     for (const [ox, oy, s, pts, joins] of [
@@ -445,12 +447,15 @@
     const y = t.y0;
     c.fillStyle = '#4c5169'; c.fillRect(x0, y + 26, x1 - x0, y1 - y - 26);
     c.strokeStyle = '#3a3f55'; c.lineWidth = 2;
-    for (let yy = y + 60, row = 0; yy < y1; yy += 34, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 80) * 80 + (row % 2 ? 40 : 0); x < x1; x += 80) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 34); c.stroke(); } }
+    for (let yy = y + 46, row = 0; yy < y1; yy += 24, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 80) * 80 + (row % 2 ? 40 : 0); x < x1; x += 80) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 24); c.stroke(); } }
     // arches with bars, pipes and round lamps
     for (let x = Math.floor(x0 / 560) * 560 + 300; x < x1 + 120; x += 560) { c.beginPath(); c.moveTo(x - 80, y1 + 10); c.lineTo(x - 80, y + 150); c.arc(x, y + 150, 80, Math.PI, 0); c.lineTo(x + 80, y1 + 10); c.closePath(); c.fillStyle = '#2f3349'; c.fill(); c.lineWidth = 5; c.strokeStyle = '#6a708a'; c.stroke(); c.lineWidth = 2.4; c.strokeStyle = O; c.stroke(); for (let b = -60; b <= 60; b += 24) line(c, [x + b, y + 150 - Math.sqrt(6400 - b * b) + 6, x + b, y1], 3, '#555b75'); }
     const py = y + 96;
     c.fillStyle = '#737b98'; c.fillRect(x0, py - 9, x1 - x0, 18); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(x0, py - 7, x1 - x0, 4); line(c, [x0, py - 9, x1, py - 9], 2.2); line(c, [x0, py + 9, x1, py + 9], 2.2);
     for (let x = Math.floor(x0 / 190) * 190 + 60; x < x1; x += 190) box(c, x - 5, py - 13, 10, 26, '#5d6480', 2);
+    for (let x = Math.floor(x0 / 300) * 300 + 150; x < x1 + 40; x += 300) { const lg = c.createRadialGradient(x, y + 58, 4, x, y + 58, 84); lg.addColorStop(0, 'rgba(255,224,150,0.42)'); lg.addColorStop(1, 'rgba(255,224,150,0)'); c.fillStyle = lg; c.fillRect(x - 84, y + 28, 168, 120); }   // each lamp's light on the stone
+    for (let x = Math.floor(x0 / 300) * 300; x < x1 + 40; x += 300) { if (x < t.x0 + 24 || x > t.x1 - 24) continue; c.beginPath(); c.moveTo(x - 15, y + 88); c.lineTo(x - 15, y + 62); c.arc(x, y + 62, 15, Math.PI, 0); c.lineTo(x + 15, y + 88); c.closePath(); c.fillStyle = '#23263a'; c.fill(); c.lineWidth = 4; c.strokeStyle = '#6a708a'; c.stroke(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); for (const bx of [-7, 0, 7]) line(c, [x + bx, y + 50, x + bx, y + 88], 2); c.fillStyle = 'rgba(40,60,70,0.4)'; c.fillRect(x - 6, y + 88, 12, 40); }   // barred drains, each with its stain
+    for (let x = Math.floor(x0 / 46) * 46; x < x1; x += 46) { const k = ((x * 2654435761) >>> 0) % 7; if (k < 3) { c.fillStyle = 'rgba(96,150,120,0.42)'; c.fillRect(x + 4, y + 28, 10 + k * 5, 7 + k * 5); } }   // moss under the kerb
     for (let x = Math.floor(x0 / 300) * 300 + 150; x < x1 + 40; x += 300) { disc(c, x, y + 52, 9, C.lit, 2.2); box(c, x - 13, y + 38, 26, 5, '#5d6480', 1.8); }
     // kerb and paving
     box(c, x0 - 4, y + 14, x1 - x0 + 8, 14, '#a8a49b', 2.4); for (const ex of [t.x0, t.x1]) if (ex > x0 - 2 && ex < x1 + 2) line(c, [ex, y, ex, y1], 3.4);

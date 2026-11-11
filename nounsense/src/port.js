@@ -154,7 +154,7 @@
     { const x = 1930, y = DECK;
       box(c, x - 46, y - 58, 92, 58, K.iron, 2.6); box(c, x - 52, y - 66, 104, 10, K.gold2, 2.2); for (let i = 0; i < 4; i++) { box(c, x - 36 + i * 20, y - 46, 12, 30, '#1f2a44', 1.6); c.fillStyle = K.cyan; c.fillRect(x - 34 + i * 20, y - 44 + (i % 2) * 8, 8, 14); } glow(c, x, y - 30, 90, 0.5, CY);
       box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 2.4, K.gold); box(c, x + 69, y - 6, 14, 6, K.gold2, 1.6); for (const by of [y - 138, y - 84]) box(c, x - 16, by, 32, 6, K.gold2, 1.6);
-      blob(c, [x - 6, y - 162, x - 18, y - 176, x - 8, y - 196, x + 8, y - 192, x + 14, y - 214, x + 36, y - 222, x + 50, y - 206, x + 44, y - 188, x + 28, y - 184, x + 22, y - 168, x + 8, y - 160], '#f0e2da', 2); blob(c, [x + 46, y - 226, x + 58, y - 240, x + 76, y - 236, x + 78, y - 222, x + 64, y - 214, x + 50, y - 216], '#f0e2da', 1.8);   // steam
+      for (const [px2, py2, ps, pa] of [[2, -176, 1, 0.92], [20, -204, 1.35, 0.7], [48, -232, 1.75, 0.46], [86, -256, 2.2, 0.24]]) { c.save(); c.globalAlpha = pa; c.translate(x + px2, y + py2); c.scale(ps, ps); blob(c, [-12, 4, -14, -8, -4, -14, 6, -12, 14, -6, 12, 6, 2, 10], '#f0e2da', 1.6); c.restore(); }   // steam, thinning as it drifts off
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
     const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship

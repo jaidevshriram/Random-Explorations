@@ -72,11 +72,12 @@
     }
   }
   function column(c, x, y0, y1, w) { box(c, x - w / 2, y0 + 12, w, y1 - y0 - 24, M.stone, 2.4); shade(c, x + w / 2 - 6, y0 + 12, 6, y1 - y0 - 24, 0.2); box(c, x - w / 2 - 6, y0, w + 12, 13, M.stone, 2.2); box(c, x - w / 2 - 6, y1 - 13, w + 12, 13, M.stone, 2.2); line(c, [x - 4, y0 + 18, x - 4, y1 - 18], 1.1, 'rgba(43,48,68,0.3)'); line(c, [x + 4, y0 + 18, x + 4, y1 - 18], 1.1, 'rgba(43,48,68,0.3)'); }
-  function chandelier(c, x, drop) {
-    line(c, [x, CEIL + 10, x, CEIL + drop], 3.4); line(c, [x, CEIL + 10, x, CEIL + drop], 1.4, M.gold);
-    c.beginPath(); c.ellipse(x, CEIL + drop + 10, 46, 9, 0, 0, 7); c.lineWidth = 5; c.strokeStyle = O; c.stroke(); c.lineWidth = 2.6; c.strokeStyle = M.gold; c.stroke();
-    for (const dx of [-46, -24, 0, 24, 46]) candle(c, x + dx, CEIL + drop + 6 - (dx ? 0 : 4), 13, true); glow(c, x, CEIL + drop - 10, 50, 0.4);   // one soft light for the whole ring: five stacked ones burned out to white
-    disc(c, x, CEIL + drop + 24, 5, M.gold, 1.8);
+  function chandelier(c, x, drop, s) {
+    s = s || 1;
+    for (let yy = CEIL + 8; yy < CEIL + drop - 2; yy += 9) { c.beginPath(); c.ellipse(x, yy + 4.5, 2.8, 5, 0, 0, 7); c.lineWidth = 3; c.strokeStyle = O; c.stroke(); c.lineWidth = 1.3; c.strokeStyle = M.gold; c.stroke(); }   // it hangs on a chain
+    c.beginPath(); c.ellipse(x, CEIL + drop + 10 * s, 46 * s, 9 * s, 0, 0, 7); c.lineWidth = 5; c.strokeStyle = O; c.stroke(); c.lineWidth = 2.6; c.strokeStyle = M.gold; c.stroke();
+    for (const dx of [-46, -24, 0, 24, 46]) candle(c, x + dx * s, CEIL + drop + 6 * s - (dx ? 0 : 4), 13 * s, true); glow(c, x, CEIL + drop - 10, 50 * s, 0.4);   // one soft light for the whole ring: five stacked ones burned out to white
+    disc(c, x, CEIL + drop + 24 * s, 5 * s, M.gold, 1.8);
   }
 
   function build(L, scale) { POOLS = []; COOL = []; const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
@@ -91,6 +92,11 @@
     { const wg = c.createLinearGradient(0, CEIL, 0, g - 120); wg.addColorStop(0, 'rgba(8,14,28,0.5)'); wg.addColorStop(0.5, 'rgba(8,14,28,0.1)'); wg.addColorStop(1, 'rgba(8,14,28,0.24)'); c.fillStyle = wg; c.fillRect(0, CEIL, W, g - 120 - CEIL); }   // gloom gathering under the ceiling
     box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
     box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
+    for (const tx of [150, 420, 690, 1040, 1330, 1560, 1790, 2020, 2300, 2560]) if (tx < W) {   // heavy trusses across the ceiling, each on a carved corbel, throwing shadow down the paper
+      const sg = c.createLinearGradient(0, CEIL + 12, 0, CEIL + 150); sg.addColorStop(0, 'rgba(8,6,20,0.42)'); sg.addColorStop(1, 'rgba(8,6,20,0)'); c.fillStyle = sg; c.beginPath(); c.moveTo(tx - 20, CEIL + 12); c.lineTo(tx + 20, CEIL + 12); c.lineTo(tx + 46, CEIL + 150); c.lineTo(tx - 46, CEIL + 150); c.closePath(); c.fill();
+      box(c, tx - 14, top, 28, CEIL - top + 8, M.wood2, 2.6); c.fillStyle = 'rgba(255,214,170,0.14)'; c.fillRect(tx - 12, top + 2, 5, CEIL - top + 4);
+      poly(c, [tx - 14, CEIL + 8, tx + 14, CEIL + 8, tx + 14, CEIL + 22, tx + 5, CEIL + 40, tx - 5, CEIL + 40, tx - 14, CEIL + 22], M.wood, 2.4); line(c, [tx - 9, CEIL + 13, tx + 9, CEIL + 13], 1.4, M.gold2); disc(c, tx, CEIL + 26, 3, M.gold, 1.2);
+    }
     { const br = rng(4711);                                 // the ceiling is lived in: cobwebs in the coffers and bats asleep on the beams
       for (let x = 20; x < W; x += 96) { if (br() < 0.2) cobweb(c, x + 16, top + 8, 1, 1, 16 + br() * 26); if (br() < 0.12) cobweb(c, x + 80, top + 8, -1, 1, 14 + br() * 22);
         if (br() < 0.34) { const bx = x + 34 + br() * 30, by = CEIL - 12; line(c, [bx, by - 6, bx, by], 1.6); poly(c, [bx - 7, by, bx + 7, by, bx + 5, by + 16, bx, by + 22, bx - 5, by + 16], '#2a2238', 1.6); poly(c, [bx - 4, by + 20, bx - 6, by + 27, bx - 1, by + 23], '#2a2238', 1.2); poly(c, [bx + 4, by + 20, bx + 6, by + 27, bx + 1, by + 23], '#2a2238', 1.2); line(c, [bx - 7, by + 2, bx - 11, by + 12, bx - 5, by + 15], 1.4, '#4a3e5c'); line(c, [bx + 7, by + 2, bx + 11, by + 12, bx + 5, by + 15], 1.4, '#4a3e5c'); disc(c, bx - 2, by + 18, 1.1, '#ffd978', 0); disc(c, bx + 2, by + 18, 1.1, '#ffd978', 0); } } }
@@ -173,7 +179,7 @@
       c.fillStyle = 'rgba(240,248,255,0.5)'; c.beginPath(); c.arc(x + 6, y0 + 90, 18, Math.PI, 0); c.lineTo(x + 24, y0 + 130); c.lineTo(x + 15, y0 + 122); c.lineTo(x + 6, y0 + 130); c.lineTo(x - 3, y0 + 122); c.lineTo(x - 12, y0 + 130); c.closePath(); c.fill(); disc(c, x, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0); disc(c, x + 12, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0);
       c.lineWidth = 2; c.strokeStyle = O; c.strokeRect(x - w / 2, y0, w, y1 - y0); poly(c, [x - 26, y0 - 9, x, y0 - 34, x + 26, y0 - 9], M.gold, 2.2); }
     sconce(c, 2112 + 14, 250); sconce(c, 2340, 250); candelabra(c, 2364, g);
-    chandelier(c, 480, 56); chandelier(c, 1212, 34); chandelier(c, 1660, 26);
+    chandelier(c, 480, 92, 1.5); chandelier(c, 1212, 62, 1.3); chandelier(c, 1660, 30);
     sconce(c, 1660, 170); sconce(c, 2010, 150);
     for (let i = 0; i < 4; i++) { const lx = (bays[i] + bays[i + 1]) / 2; if (inGap(lx)) continue; line(c, [lx, GAL + 22, lx, GAL + 52], 2); box(c, lx - 7, GAL + 52, 14, 18, '#ffdc94', 2); box(c, lx - 9, GAL + 48, 18, 5, M.gold2, 1.6); glow(c, lx, GAL + 62, 74, 0.42); }
     cobweb(c, 2, CEIL + 16, 1, 1, 80); cobweb(c, W - 2, CEIL + 16, -1, 1, 90); cobweb(c, 1264, GAL + 24, 1, 1, 50); cobweb(c, 2098, CEIL + 16, -1, 1, 60);

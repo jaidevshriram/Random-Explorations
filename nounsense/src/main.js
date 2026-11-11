@@ -226,7 +226,7 @@
         return;
       }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow, spills: L.spills !== false });
-      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, dusk ? '#5a3f7c' : T.farLine), mid: bake(0.4, NN.town.mid, dusk ? 0.3 : 0.07, dusk ? { haze: '#4a3f8a' } : T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train(), skyLights: dusk ? [{ x: VW * 0.4, y: 112, r: 260, color: '255,226,170', a: 0.55 }] : [] };   // the moon lights the air around it
+      layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, dusk ? '#5a3f7c' : T.farLine), mid: bake(0.4, NN.town.mid, dusk ? 0.3 : 0.07, dusk ? { haze: '#4a3f8a' } : T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train(), skyLights: dusk ? [{ x: VW * 0.4, y: 100, r: 290, color: '255,226,170', a: 0.55 }] : [] };   // the moon lights the air around it
       return;
     }
     // sky: flat bands joined by rows of halftone dots, stars, moons and planets with a hard ink edge
@@ -411,7 +411,7 @@
       const bottom = Math.min(...L.terrain.filter((b) => b.kind === 'pit' && b.x0 <= w.x0 + 4 && b.x1 >= w.x1 - 4).map((b) => b.y0).concat(w.y + 120));
       ctx.fillStyle = T.water[0]; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2);
       if (T.custom) { const wg = ctx.createLinearGradient(0, w.y, 0, w.y + 90); wg.addColorStop(0, 'rgba(255,255,255,0.16)'); wg.addColorStop(1, T.waterDeep || 'rgba(34,22,96,0.34)'); ctx.fillStyle = wg; ctx.fillRect(w.x0, w.y, w.x1 - w.x0, bottom - w.y + 2); }   // paler at the surface, darker with depth
-      ctx.fillStyle = dots('rgba(255,255,255,0.35)', 1.8, 8); ctx.fillRect(w.x0, w.y + 8, w.x1 - w.x0, 22);
+      if (!T.waterDeep) { ctx.fillStyle = dots('rgba(255,255,255,0.35)', 1.8, 8); ctx.fillRect(w.x0, w.y + 8, w.x1 - w.x0, 22); }
       for (const e of sim.ents) { if (e.removed || e.placing || e.x - e.w / 2 < w.x0 + 14 || e.x + e.w / 2 > w.x1 - 14 || e.y - e.h / 2 > w.y - 2 || e.y + e.h / 2 < w.y + 4) continue; const hw = e.w / 2; ctx.fillStyle = 'rgba(255,255,255,0.75)'; for (const sd of [-1, 1]) { const fw = 12 + 3 * Math.sin(t * 3 + e.id + sd); ctx.beginPath(); ctx.ellipse(e.x + sd * hw * 0.5, w.y + 1.5, fw, 1.6, 0, 0, 7); ctx.fill(); } }   // a waterline where something breaks the surface
       for (let k = 0; k < 3; k++) {
         ctx.beginPath();
