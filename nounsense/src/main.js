@@ -7,7 +7,7 @@
 (function (NN) {
   'use strict';
   const { P, rough, rng, sprite } = NN.art;
-  const VW = 1100, VH = 620, LS = 1.5;
+  const VW = 1100, VH = 620, LS = 2;
   let Z = 1.6, WW = VW / Z, WH = VH / Z, BASE = 290, HORIZON = (520 - BASE) * Z;   // camera zoom is set per world
   const INK = '#1f1a17';
   const $ = (id) => document.getElementById(id);
@@ -105,9 +105,9 @@
       ground: { dust: { body: '#b96a3a', body2: '#a35a30', cap: '#e9a35a', line: '#8a4a28' }, island: { body: '#8a5a44', body2: '#74493a', cap: '#7cc46a', line: '#5b3a2e', glow: '#fff3b0' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
-    manor: { custom: true, ambient: '#70669c', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    hollow: { custom: true, ambient: '#6670ae', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
-    town: { custom: true, ambient: '#9ba1cf', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    manor: { custom: true, ambient: '#8a80b4', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    hollow: { custom: true, ambient: '#7a84c2', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
+    town: { custom: true, ambient: '#b4b8de', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { custom: true, ambient: '#b8a0d4', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
   // background props, in the same shape language as the dictionary art
@@ -246,7 +246,7 @@
     Z = L.zoom || 1.6; WW = VW / Z; WH = VH / Z; BASE = L.zoom ? 520 - WH * 0.84 : 290; HORIZON = (520 - BASE) * Z;
     cam.x = 0; cam.y = BASE; hover = null; selected = null;
     smoke.length = 0; buildWorldArt(); layers.front = tileLayer(layers.front); layers.over = tileLayer(layers.over);
-    $('win').hidden = true;
+    $('win').hidden = true; $('toast').classList.remove('show');          // a message from the last world must not follow you into this one
     $('cap').textContent = L.caption; $('cap').classList.add('show'); capT = 7;
     $('lvlname').textContent = `${NN.levels.filter((l, i) => !l.hidden && i <= levelIndex).length}. ${L.name}`;
     $('introtitle').textContent = L.name; $('introbody').textContent = L.story;
@@ -383,8 +383,8 @@
     for (const pf of smoke) { const k = pf.age / 2.6; ctx.globalAlpha = Math.max(0, 0.85 - k); ctx.beginPath(); ctx.arc(pf.x + pf.age * 7, pf.y - pf.age * 20, 5 + pf.age * 5, 0, 7); ctx.fillStyle = '#f6f1e6'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke(); ctx.globalAlpha = 1; }
     for (const t of L.terrain) if (t.trench) {   // the far wall of a trench, in shadow
       const st = THEMES[L.theme].ground.pit;
-      ctx.fillStyle = st.line; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench);
-      ctx.fillStyle = dots('rgba(10,8,20,0.35)', 2.2, 7); ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench);
+      if (THEMES[L.theme].custom) { const tg = ctx.createLinearGradient(0, t.trench, 0, t.y0); tg.addColorStop(0, st.body); tg.addColorStop(1, st.line); ctx.fillStyle = tg; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); for (let yy = t.trench + 26; yy < t.y0; yy += 24) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(t.x0, yy, t.x1 - t.x0, 2); } }   // a plain shaded far wall
+      else { ctx.fillStyle = st.line; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); ctx.fillStyle = dots('rgba(10,8,20,0.35)', 2.2, 7); ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); }
     }
     for (const t of L.terrain) if (t.kind === 'pit') drawBlock(t);
     for (const pr of PROPS[L.theme]) if (visible(pr.x, pr.w)) blit({ noun: '_prop' + pr.w + 'x' + pr.h + pr.x, w: pr.w, h: pr.h, art: pr.a, still: true }, pr.x, pr.y - pr.h / 2);
@@ -404,7 +404,7 @@
       for (let k = 0; k < 3; k++) {
         ctx.beginPath();
         for (let x = w.x0; x <= w.x1; x += 12) { const y = w.y + k * 16 + Math.sin(x * 0.05 + t * 2 + k * 1.7) * 3; if (x === w.x0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
-        ctx.strokeStyle = k ? T.water[1] : INK; ctx.lineWidth = k ? 1.6 : 3; ctx.globalAlpha = k ? 0.7 : 1; ctx.stroke(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = k ? T.water[1] : (T.custom ? 'rgba(36,44,96,0.75)' : INK); ctx.lineWidth = k ? 1.6 : (T.custom ? 2.2 : 3); ctx.globalAlpha = k ? 0.7 : 1; ctx.stroke(); ctx.globalAlpha = 1;
       }
     }
   }
@@ -622,7 +622,7 @@
       const spr = (c) => { const sp = new PIXI.Sprite(PIXI.Texture.from(c)); sp.width = cv.width; sp.height = cv.height; return sp; };
       const scene = spr(cv), light = spr(lmCv), glowS = spr(glCv), ui = spr(uiCv);
       light.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-      const bloom = new PIXI.BlurFilter(12, 4); bloom.blendMode = PIXI.BLEND_MODES.ADD; glowS.filters = [bloom]; glowS.blendMode = PIXI.BLEND_MODES.ADD; glowS.alpha = 0.16;
+      const bloom = new PIXI.BlurFilter(12, 4); bloom.blendMode = PIXI.BLEND_MODES.ADD; glowS.filters = [bloom]; glowS.blendMode = PIXI.BLEND_MODES.ADD; glowS.alpha = 0.1;
       const vc = document.createElement('canvas'); vc.width = 256; vc.height = 144;
       const vg = vc.getContext('2d'), gr = vg.createRadialGradient(128, 72, 40, 128, 72, 160); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.7, '#f1ecf6'); gr.addColorStop(1, '#a79bbd'); vg.fillStyle = gr; vg.fillRect(0, 0, 256, 144);
       const vig = spr(vc); vig.blendMode = PIXI.BLEND_MODES.MULTIPLY;

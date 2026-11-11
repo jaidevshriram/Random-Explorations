@@ -183,7 +183,11 @@
     for (const [x, w, g] of [[330, 46, G], [610, 60, G], [1340, 52, G], [1690, 44, G], [2470, 50, TOPY], [2600, 58, TOPY]]) {
       const tg = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0); tg.addColorStop(0, '#6c68a4'); tg.addColorStop(0.3, '#55528c'); tg.addColorStop(1, '#3f3d70'); c.fillStyle = tg;
       c.beginPath(); c.moveTo(x - w / 2, top - 4); c.lineTo(x - w / 2, g - 50); c.quadraticCurveTo(x - w / 2, g - 10, x - w * 0.9, g + 4); c.lineTo(x + w * 0.9, g + 4); c.quadraticCurveTo(x + w / 2, g - 10, x + w / 2, g - 50); c.lineTo(x + w / 2, top - 4); c.closePath(); c.fill(); c.lineWidth = 2.4; c.strokeStyle = '#33345c'; c.stroke();
-      for (let y = top + 40; y < g - 40; y += 70 + r() * 60) line(c, [x - w * 0.2 + r() * w * 0.4, y, x - w * 0.2 + r() * w * 0.4, y + 30], 1.3, '#33345c');
+      c.fillStyle = 'rgba(190,205,255,0.28)'; c.fillRect(x - w / 2 + 2, top, 4, g - top - 54);                       // moonlight down one edge
+      for (let y = top + 20; y < g - 30; y += 34 + r() * 30) { const bx = x - w * 0.3 + r() * w * 0.6; c.beginPath(); c.moveTo(bx, y); c.quadraticCurveTo(bx + (r() - 0.5) * 7, y + 18, bx + (r() - 0.5) * 4, y + 30 + r() * 20); c.lineWidth = 1.4; c.strokeStyle = 'rgba(40,38,90,0.6)'; c.stroke(); }
+      for (let k = 0; k < 2; k++) { const ky = top + 120 + r() * (g - top - 300), sd = r() < 0.5 ? -1 : 1; poly(c, [x + sd * w / 2, ky, x + sd * (w / 2 + 26), ky - 16, x + sd * (w / 2 + 30), ky - 10, x + sd * w / 2, ky + 12], '#4a4880', 2); disc(c, x + sd * (w / 2 + 32), ky - 16, 9, '#3c6f7a', 2); }   // a stub of a branch with a tuft of leaves
+      shelves(c, x - w / 2, g - 110 - r() * 120, -1, 2 + Math.floor(r() * 2), r() < 0.5 ? H.cyan : H.pink, r() < 0.5 ? CY : PK);
+      blob(c, [x - w * 0.9, g + 6, x - w * 0.6, g - 16, x - w * 0.1, g - 26, x + w * 0.1, g - 8, x + w * 0.2, g + 6], H.moss2, 0);
     }
     // the waterfall crag behind the river: angular slabs, ledges with moss, a cave the water pours from
     {
@@ -282,14 +286,16 @@
         if (!vis(RX)) return;
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
         ctx.fillStyle = '#7fd0e6'; ctx.fillRect(RX - 27, G + 18, 54, river.y - G - 10);
-        ctx.save(); ctx.beginPath(); ctx.rect(RX - 27, G - 350, 54, river.y - G + 352); ctx.clip();
+        ctx.save(); ctx.beginPath(); ctx.rect(RX - 27, G - 324, 54, river.y - G + 326); ctx.clip();
         for (let i = 0; i < 16; i++) { const sx = RX - 23 + ((i * 37) % 46), len = 40 + (i * 53) % 70, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.75)' : 'rgba(210,250,255,0.5)'; ctx.fillRect(sx, y, i % 3 ? 2.4 : 5, len); }
+        for (const [ex, dx] of [[RX - 27, 1], [RX + 27, -1]]) { const eg = ctx.createLinearGradient(ex, 0, ex + dx * 14, 0); eg.addColorStop(0, 'rgba(30,90,150,0.5)'); eg.addColorStop(1, 'rgba(30,90,150,0)'); ctx.fillStyle = eg; ctx.fillRect(Math.min(ex, ex + dx * 14), G - 324, 14, river.y - G + 326); }   // the column is round: darker at the edges
         ctx.restore();
         ctx.lineWidth = 2.2; ctx.strokeStyle = O; for (const sx of [RX - 27, RX + 27]) { ctx.beginPath(); ctx.moveTo(sx, G + 14); ctx.lineTo(sx, river.y + 2); ctx.stroke(); }
         return;
       }
       if (vis(RX)) {                                              // foam where the water lands
         for (let i = 0; i < 7; i++) { const k = (t * 0.9 + i / 7) % 1, fx = RX + (i - 3) * 13 + Math.sin(i * 5) * 4, fy = river.y - 2 - Math.sin(k * Math.PI) * 14, fr2 = 7 + (i % 3) * 3 + k * 5; ctx.globalAlpha = 1 - k * 0.7; ctx.beginPath(); ctx.arc(fx, fy, fr2, 0, 7); ctx.fillStyle = '#f2fdff'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
+        for (let i = 0; i < 5; i++) { const k = (t * 0.25 + i / 5) % 1; ctx.globalAlpha = 0.16 * (1 - k); ctx.beginPath(); ctx.arc(RX + (i - 2) * 26 + Math.sin(i * 3 + t) * 8, river.y - 10 - k * 70, 22 + k * 26, 0, 7); ctx.fillStyle = '#eafcff'; ctx.fill(); }   // mist lifting off the pool
         ctx.globalAlpha = 1;
       }
       for (const s of spores) { const y = ((s.y - t * s.s) % 560 + 560) % 560 + (L.sky - 60), x = s.x + Math.sin(t * 0.5 + s.a) * 14; if (!vis(x)) continue; ctx.globalAlpha = 0.35 + 0.25 * Math.sin(t + s.a); ctx.fillStyle = s.a > 3 ? '#d8fff6' : '#ffe9f8'; ctx.beginPath(); ctx.arc(x, y, 1.5, 0, 7); ctx.fill(); }
@@ -326,6 +332,7 @@
       const tw = (44 + r() * 70) * k;
       if (r() < 0.3) { const sh = 120 + r() * 160, cw2 = tw * 3.4; c.fillStyle = col; c.fillRect(x - tw * 0.25, horizon - sh, tw * 0.5, sh); c.beginPath(); c.ellipse(x, horizon - sh, cw2 / 2, cw2 * 0.3, 0, Math.PI, 0); c.fill(); c.fillStyle = 'rgba(255,255,255,0.22)'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(x - cw2 * 0.3 + i * cw2 * 0.2, horizon - sh - cw2 * 0.12 - (i % 2) * 8, 6, 0, 7); c.fill(); } continue; }
       c.fillStyle = col; c.beginPath(); c.moveTo(x - tw / 2, 0); c.lineTo(x - tw / 2, horizon - 60); c.quadraticCurveTo(x - tw / 2, horizon - 10, x - tw * 0.9, horizon); c.lineTo(x + tw * 0.9, horizon); c.quadraticCurveTo(x + tw / 2, horizon - 10, x + tw / 2, horizon - 60); c.lineTo(x + tw / 2, 0); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(x - tw / 2, 0, tw * 0.16, horizon - 64); c.fillStyle = 'rgba(40,50,130,0.16)'; c.fillRect(x + tw * 0.2, 0, tw * 0.3, horizon - 64); c.fillStyle = col;
       for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(x + (r() - 0.5) * tw * 2.6, r() * 50, 34 + r() * 34, 0, 7); c.fill(); }
       if (win) for (let i = 0; i < 3; i++) { const wy = horizon - 90 - r() * 200; c.fillStyle = '#fff0b0'; c.beginPath(); c.arc(x + (r() - 0.5) * tw * 0.5, wy, 3.4, 0, 7); c.fill(); c.fillStyle = 'rgba(255,240,170,0.25)'; c.beginPath(); c.arc(x, wy, 12, 0, 7); c.fill(); c.fillStyle = col; }
     }
@@ -334,8 +341,14 @@
   // mid: nearer trunks with branches, mushroom towers, walkways hung with lanterns
   function mid(c, w, horizon) {
     const r = rng(404), LO = '#3a4682', xs = [];
-    for (let x = 20; x < w; x += 300 + r() * 240) {
-      const tw = 60 + r() * 50, col = ['#5c6cc0', '#6a62b8', '#5578b8'][Math.floor(r() * 3)]; xs.push(x);
+    for (let x = 20; x < w; x += 300 + r() * 240) xs.push(x);
+    for (let i = 0; i + 1 < xs.length; i++) if (r() < 0.75) {                // rope walkways first, so the trunks and towers stand in front of them
+      const x0 = xs[i] + 26, x1 = xs[i + 1] - 26, y = horizon - 150 - r() * 120, mx = (x0 + x1) / 2;
+      c.beginPath(); c.moveTo(x0, y); c.quadraticCurveTo(mx, y + 34, x1, y); c.lineWidth = 3; c.strokeStyle = LO; c.stroke(); c.beginPath(); c.moveTo(x0, y - 16); c.quadraticCurveTo(mx, y + 18, x1, y - 16); c.lineWidth = 1.4; c.stroke();
+      for (let k = 1; k < 8; k++) { const t = k / 8, px = x0 + (x1 - x0) * t, py = y + 34 * 2 * t * (1 - t); c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 16); c.stroke(); if (k % 2) { c.fillStyle = k % 4 === 1 ? '#ffe9a0' : '#a8fff0'; c.beginPath(); c.arc(px, py + 7, 3.6, 0, 7); c.fill(); c.fillStyle = 'rgba(255,240,180,0.2)'; c.beginPath(); c.arc(px, py + 7, 13, 0, 7); c.fill(); } }
+    }
+    for (const x of xs) {
+      const tw = 60 + r() * 50, col = ['#5c6cc0', '#6a62b8', '#5578b8'][Math.floor(r() * 3)];
       if (r() < 0.34) {                                                       // a mushroom tower
         const sh = 190 + r() * 120, cw2 = tw * 3.2; c.fillStyle = '#b9c4ec'; c.beginPath(); c.moveTo(x - tw * 0.36, horizon); c.lineTo(x - tw * 0.26, horizon - sh); c.lineTo(x + tw * 0.26, horizon - sh); c.lineTo(x + tw * 0.36, horizon); c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
         c.beginPath(); c.moveTo(x - cw2 / 2, horizon - sh + 8); c.bezierCurveTo(x - cw2 / 2, horizon - sh - cw2 * 0.44, x + cw2 / 2, horizon - sh - cw2 * 0.44, x + cw2 / 2, horizon - sh + 8); c.quadraticCurveTo(x, horizon - sh - 12, x - cw2 / 2, horizon - sh + 8); c.fillStyle = ['#c06fa8', '#6fa8c8', '#b88a5f'][Math.floor(r() * 3)]; c.fill(); c.stroke();
@@ -344,14 +357,11 @@
         continue;
       }
       c.fillStyle = col; c.beginPath(); c.moveTo(x - tw / 2, -10); c.lineTo(x - tw / 2, horizon - 80); c.quadraticCurveTo(x - tw / 2, horizon - 14, x - tw, horizon); c.lineTo(x + tw, horizon); c.quadraticCurveTo(x + tw / 2, horizon - 14, x + tw / 2, horizon - 80); c.lineTo(x + tw / 2, -10); c.closePath(); c.fill();
-      c.fillStyle = 'rgba(24,26,80,0.2)'; c.fillRect(x + tw * 0.12, 0, tw * 0.38, horizon - 60); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
+      c.fillStyle = 'rgba(24,26,80,0.2)'; c.fillRect(x + tw * 0.12, 0, tw * 0.38, horizon - 60); c.fillStyle = 'rgba(200,220,255,0.22)'; c.fillRect(x - tw / 2 + 2, 0, tw * 0.13, horizon - 76); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
+      for (let i = 0; i < 7; i++) { const bx = x - tw * 0.3 + r() * tw * 0.6, by = 30 + r() * (horizon - 160); c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + 3, by + 26, bx - 1, by + 52); c.lineWidth = 1.2; c.strokeStyle = 'rgba(40,50,110,0.5)'; c.stroke(); }
+      c.lineWidth = 2; c.strokeStyle = LO;
       for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(x + (r() - 0.5) * tw * 3.4, r() * 56, 40 + r() * 34, 0, 7); c.fillStyle = i % 2 ? '#4f8fa8' : '#447a9c'; c.fill(); }
       for (let i = 0; i < 2; i++) if (r() < 0.7) { const wy = horizon - 110 - r() * 190; c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x - tw * 0.1, wy, 6, 0, 7); c.fill(); c.lineWidth = 1.6; c.strokeStyle = LO; c.stroke(); c.fillStyle = 'rgba(255,236,160,0.22)'; c.beginPath(); c.arc(x - tw * 0.1, wy, 22, 0, 7); c.fill(); }
-    }
-    for (let i = 0; i + 1 < xs.length; i++) if (r() < 0.75) {                // rope walkways between them
-      const x0 = xs[i] + 26, x1 = xs[i + 1] - 26, y = horizon - 150 - r() * 120, mx = (x0 + x1) / 2;
-      c.beginPath(); c.moveTo(x0, y); c.quadraticCurveTo(mx, y + 34, x1, y); c.lineWidth = 3; c.strokeStyle = LO; c.stroke(); c.beginPath(); c.moveTo(x0, y - 16); c.quadraticCurveTo(mx, y + 18, x1, y - 16); c.lineWidth = 1.4; c.stroke();
-      for (let k = 1; k < 8; k++) { const t = k / 8, px = x0 + (x1 - x0) * t, py = y + 34 * 2 * t * (1 - t); c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 16); c.stroke(); if (k % 2) { c.fillStyle = k % 4 === 1 ? '#ffe9a0' : '#a8fff0'; c.beginPath(); c.arc(px, py + 7, 3.6, 0, 7); c.fill(); c.fillStyle = 'rgba(255,240,180,0.2)'; c.beginPath(); c.arc(px, py + 7, 13, 0, 7); c.fill(); } }
     }
     const m = c.createLinearGradient(0, horizon - 120, 0, horizon); m.addColorStop(0, 'rgba(170,235,235,0)'); m.addColorStop(1, 'rgba(170,235,235,0.5)'); c.fillStyle = m; c.fillRect(0, horizon - 120, w, 130);
   }

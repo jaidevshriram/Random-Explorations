@@ -113,7 +113,7 @@
     for (const [dx, dy] of [[-17, -84], [3, -98], [20, -82]]) { c.beginPath(); c.arc(x + dx * s, y + dy * s, 10 * s, Math.PI * 1.1, Math.PI * 1.7); c.lineWidth = 2.6; c.strokeStyle = 'rgba(232,248,196,0.6)'; c.lineCap = 'round'; c.stroke(); }
     for (const [dx, dy] of [[-24, -56], [-5, -64], [14, -60], [26, -68], [-10, -46], [8, -48], [-2, -78]]) line(c, [x + dx * s, y + dy * s, x + (dx + 5) * s, y + (dy - 3) * s], 1.5, 'rgba(43,48,68,0.45)');
   }
-  function lamp(c, x, y) { glow(c, x, y - 96, 70, 0.45); box(c, x - 7, y - 10, 14, 10, C.dark, 2); box(c, x - 3, y - 84, 6, 74, C.dark, 2); box(c, x - 9, y - 90, 18, 6, C.dark, 2); poly(c, [x - 10, y - 90, x - 13, y - 108, x + 13, y - 108, x + 10, y - 90], C.lit, 2); poly(c, [x - 15, y - 108, x, y - 118, x + 15, y - 108], C.dark, 2); }
+  function lamp(c, x, y) { glow(c, x, y - 96, 70, 0.45); glow(c, x, y - 6, 80, 0.28); box(c, x - 7, y - 10, 14, 10, C.dark, 2); box(c, x - 3, y - 84, 6, 74, C.dark, 2); box(c, x - 9, y - 90, 18, 6, C.dark, 2); poly(c, [x - 10, y - 90, x - 13, y - 108, x + 13, y - 108, x + 10, y - 90], C.lit, 2); poly(c, [x - 15, y - 108, x, y - 118, x + 15, y - 108], C.dark, 2); }
   function vine(c, x, y, h, r) { let px = x, py = y; c.beginPath(); c.moveTo(px, py); while (py < y + h) { px = x + (r() - 0.5) * 12; py += 12; c.lineTo(px, py); } c.lineWidth = 2.2; c.strokeStyle = C.sage2; c.stroke(); for (let yy = y + 6; yy < y + h; yy += 11) { c.beginPath(); c.ellipse(x + (r() - 0.5) * 16, yy, 5, 3.2, r() * 3, 0, 7); c.fillStyle = r() > 0.5 ? C.sage : C.sage2; c.fill(); c.lineWidth = 1.2; c.strokeStyle = O; c.stroke(); } }
   function cornice(c, x, y, w, col) { cast(c, x, y + 6, w, 22); box(c, x - 6, y - 8, w + 12, 9, col || C.stone, 2.6); box(c, x - 3, y + 1, w + 6, 5, col || C.stone2, 1.8); for (let i = 0; i < w / 18; i++) box(c, x + 4 + i * 18, y + 6, 7, 5, col || C.stone2, 1.2); }
   // rooftop clutter
@@ -148,6 +148,15 @@
       win(c, x + 20, g - 128, 70, 76, { lit: true, inside: 'shelf', frame: C.stone }); win(c, x + w - 90, g - 128, 70, 76, { lit: true, inside: 'person', frame: C.stone });
       door(c, x + w / 2 - 24, g - 96, 48, 96, '#8fe06a', true); glow(c, x + w / 2, g - 60, 70, 0.3);
       line(c, [x + 6, g - h + 70, x + 6, g - 8], 6); line(c, [x + 6, g - h + 70, x + 6, g - 8], 3, C.stone); for (let y = g - h + 90; y < g - 10; y += 42) box(c, x + 1, y, 10, 5, C.dark, 1.4);
+      // the shopfront: a name, awnings, window boxes, a lamp over the door, notices, pots, things on the roof
+      c.font = '700 19px "Bangers", "Comic Neue", sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillStyle = C.cream; c.fillText('ALCHEMY & CO.', x + w - 26, g - h + 41);
+      for (const wx of [x + 20, x + w - 90]) { awning(c, wx - 8, g - 150, 86, 16, C.teal, C.white); box(c, wx - 4, g - 50, 78, 9, '#8a5a3a', 2); for (let i = 0; i < 5; i++) disc(c, wx + 6 + i * 15, g - 54, 6, i % 2 ? C.sage : C.sage2, 1.5); for (let i = 0; i < 3; i++) disc(c, wx + 14 + i * 22, g - 60, 3, [C.red, C.gold, '#f0a0c0'][i], 1.1); }
+      box(c, x + w / 2 - 8, g - 116, 16, 12, C.dark, 1.8); box(c, x + w / 2 - 6, g - 106, 12, 9, C.lit, 1.4); glow(c, x + w / 2, g - 100, 46, 0.45);
+      for (const [px, ic, bg] of [[x + w / 2 - 62, 'gear', '#c9b48a'], [x + w / 2 + 36, 'star', '#a8c4d8']]) { box(c, px, g - 92, 26, 34, bg, 1.8); icon(c, ic, px + 13, g - 78, 8); line(c, [px + 5, g - 66, px + 21, g - 66], 1.2); line(c, [px + 5, g - 62, px + 16, g - 62], 1.2); }
+      for (const px of [x + w / 2 - 44, x + w / 2 + 44]) { poly(c, [px - 9, g - 16, px + 9, g - 16, px + 6, g, px - 6, g], C.brick2, 2); disc(c, px, g - 26, 10, C.sage, 1.8); disc(c, px - 6, g - 20, 6, C.sage2, 1.5); disc(c, px + 6, g - 21, 6, C.sage2, 1.5); }
+      box(c, x + w / 2 - 34, g - 5, 68, 5, C.stone, 1.8);
+      tank(c, x + 34, g - h - 8); vent(c, x + w - 36, g - h - 8); for (const px of [x + 70, x + w - 74]) { poly(c, [px - 8, g - h - 20, px + 8, g - h - 20, px + 6, g - h - 8, px - 6, g - h - 8], C.brick2, 1.8); disc(c, px, g - h - 28, 8, C.sage, 1.6); }
+      line(c, [x + w - 8, g - h + 8, x + w - 8, g - 6], 5); line(c, [x + w - 8, g - h + 8, x + w - 8, g - 6], 2.4, C.stone2);
     },
     museum(c, x, g, w, r) {
       const h = 250, p = 64;
@@ -160,7 +169,14 @@
       for (const cx of [x + 18, x + p - 8, x + w - p - 20, x + w - 46]) { box(c, cx, g - h + 30, 28, h - 46, C.cream, 2.2); box(c, cx - 5, g - h + 22, 38, 10, C.cream, 2); box(c, cx - 5, g - 26, 38, 10, C.cream, 2); for (let i = 1; i < 3; i++) line(c, [cx + i * 9.3, g - h + 36, cx + i * 9.3, g - 30], 1.1, 'rgba(43,48,68,0.3)'); }
       box(c, x - 4, g - 16, w + 8, 16, C.stone, 2.4); box(c, x + 6, g - 26, w - 12, 10, C.stone, 2.2);
       box(c, x, g - h, w, 24, C.cream, 2.4); poly(c, [x - 12, g - h, x + w / 2, g - h - 86, x + w + 12, g - h], C.sand, 2.6); poly(c, [x + 26, g - h - 8, x + w / 2, g - h - 66, x + w - 26, g - h - 8], C.cream, 2); icon(c, 'planet', x + w / 2, g - h - 30, 20);
-      for (let i = 0; i < 9; i++) box(c, x + 16 + i * (w - 40) / 8, g - h + 6, 8, 12, C.sand2, 1.2);
+      c.font = '700 15px "Bangers", "Comic Neue", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#7a6a58'; c.fillText('M U S E U M   O F   C U R I O S I T I E S', x + w / 2, g - h + 13);
+      for (const [ex, kind] of [[x + p + 74, 0], [x + w - p - 74, 1]]) {                        // things on plinths either side of the fossil
+        box(c, ex - 16, g - 62, 32, 42, C.stone, 2); box(c, ex - 20, g - 68, 40, 8, C.stone2, 1.8);
+        if (kind) { disc(c, ex, g - 86, 15, '#7fb0c8', 2); c.beginPath(); c.ellipse(ex, g - 86, 15, 5, -0.4, 0, 7); c.lineWidth = 1.4; c.strokeStyle = O; c.stroke(); line(c, [ex, g - 104, ex, g - 68], 1.6); }
+        else { poly(c, [ex - 9, g - 68, ex - 12, g - 86, ex - 5, g - 98, ex + 5, g - 98, ex + 12, g - 86, ex + 9, g - 68], '#c9744e', 2); line(c, [ex - 10, g - 84, ex + 10, g - 84], 1.4, C.cream); box(c, ex - 5, g - 104, 10, 6, '#c9744e', 1.6); }
+      }
+      for (let tx = x + p + 8; tx < x + w - p; tx += 26) line(c, [tx, g - 26, tx - 6, g - 20], 1.1, 'rgba(120,80,40,0.35)');
+      for (const cx of [x + 32, x + w - 32]) { box(c, cx - 6, g - 150, 12, 16, C.lit, 1.8); box(c, cx - 8, g - 154, 16, 5, C.dark, 1.6); glow(c, cx, g - 142, 44, 0.4); }
       flag(c, x + w / 2, g - h - 86, C.red);
     },
     tower(c, x, g, w, r) {

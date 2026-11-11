@@ -7,7 +7,7 @@
 (function (NN) {
   'use strict';
   const { O, C, box, shade, line, poly, disc, glow, icon, rng } = NN.town.parts;
-  const M = { wall: '#5d4263', wall2: '#4c3552', pat: '#6f5176', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#8c8794', stone2: '#75707e', paper: '#efe2c4', iron: '#9aa0b0' };
+  const M = { wall: '#5d4263', wall2: '#4c3552', pat: '#6f5176', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 
   function flame(c, x, y, s) { glow(c, x, y - 4 * s, 34 * s, 0.5); poly(c, [x - 3.2 * s, y, x, y - 11 * s, x + 3.2 * s, y], '#ffb347', 1.4); poly(c, [x - 1.4 * s, y, x, y - 6 * s, x + 1.4 * s, y], '#fff1b0', 0); }
@@ -69,7 +69,9 @@
     // walls: patterned paper above, panelled wood below, a moulding at the ceiling
     c.fillStyle = M.wall; c.fillRect(0, top, W, H);
     for (let y = CEIL + 34, row = 0; y < g - 120; y += 34, row++) for (let x = (row % 2) * 30; x < W; x += 60) poly(c, [x, y - 7, x + 6, y, x, y + 7, x - 6, y], M.pat, 0);
-    box(c, -10, top, W + 20, CEIL - top, '#2c1e2a', 2.6); box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
+    box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
+    box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
+    for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 80, 60, 0.45); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
     box(c, -10, g - 112, W + 20, 112, M.wood, 2.6); box(c, -10, g - 120, W + 20, 10, M.woodL, 2.2); line(c, [0, g - 121, W, g - 121], 1.6, M.gold);
     for (let x = 14; x < W; x += 78) { c.lineWidth = 1.8; c.strokeStyle = M.wood2; c.strokeRect(x, g - 98, 62, 74); c.strokeStyle = 'rgba(255,220,170,0.14)'; c.strokeRect(x + 3, g - 95, 56, 68); }
     box(c, -10, g - 16, W + 20, 16, M.wood2, 2.2);
@@ -172,9 +174,16 @@
       return;
     }
     // the hall floor: boards, a carpet runner to the stairs, foundations below
-    c.fillStyle = '#2c2130'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22);
-    c.strokeStyle = '#3d2f42'; c.lineWidth = 2; for (let yy = y + 50, row = 0; yy < y1; yy += 30, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 90) * 90 + (row % 2 ? 45 : 0); x < x1; x += 90) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 30); c.stroke(); } }
+    c.fillStyle = '#5c4c5e'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22);
+    c.strokeStyle = '#3f3344'; c.lineWidth = 2; for (let yy = y + 50, row = 0; yy < y1; yy += 30, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 90) * 90 + (row % 2 ? 45 : 0); x < x1; x += 90) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 30); c.stroke(); } }
     box(c, x0 - 4, y, x1 - x0 + 8, 22, M.woodL, 2.6); for (let x = Math.floor(x0 / 74) * 74; x < x1; x += 74) line(c, [x, y + 1, x, y + 21], 1.4, M.wood2); line(c, [x0, y + 11, x1, y + 11], 1.2, 'rgba(43,48,68,0.25)');
+    for (let ax = Math.floor((x0 - 200) / 400) * 400 + 200; ax < x1 + 200; ax += 400) {       // cellar arches under the hall: a barrel and a candle in each
+      c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 78); c.arc(ax, y + 78, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#2a1e2c'; c.fill(); c.lineWidth = 5; c.strokeStyle = '#7a6878'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke();
+      c.beginPath(); c.ellipse(ax - 18, y + 92, 22, 17, 0, 0, 7); c.fillStyle = M.wood; c.fill(); c.lineWidth = 2; c.stroke(); line(c, [ax - 30, y + 78, ax - 30, y + 106], 2.2, M.wood2); line(c, [ax - 6, y + 78, ax - 6, y + 106], 2.2, M.wood2);
+      box(c, ax + 22, y + 84, 5, 12, M.paper, 1.2); disc(c, ax + 24.5, y + 80, 3, '#ffd978', 0);
+    }
+    const rx0 = Math.max(x0, 1290), rx1 = Math.min(x1, 2090);
+    if (rx1 > rx0) { box(c, rx0, y - 3, rx1 - rx0, 9, '#6a4a8a', 2); line(c, [rx0, y - 0.5, rx1, y - 0.5], 1.4, M.gold); line(c, [rx0, y + 3.5, rx1, y + 3.5], 1.4, M.gold); for (let x = Math.ceil(rx0 / 40) * 40; x < rx1; x += 40) poly(c, [x - 5, y + 1.5, x, y - 1.5, x + 5, y + 1.5, x, y + 4.5], M.gold, 0); }   // a second runner through the arcade
     const cx0 = Math.max(x0, 360), cx1 = Math.min(x1, 922);
     if (cx1 > cx0) { box(c, cx0, y - 3, cx1 - cx0, 9, M.red, 2); line(c, [cx0, y - 0.5, cx1, y - 0.5], 1.4, M.gold); line(c, [cx0, y + 3.5, cx1, y + 3.5], 1.4, M.gold); }
   }

@@ -45,7 +45,11 @@
       box(c, x - hw - 8, y - 5, hw * 2 + 16, 9, K.plank2, 2.2);
       const p = () => { c.beginPath(); c.moveTo(x - hw, y + 4); c.lineTo(x + hw, y + 4); c.quadraticCurveTo(x + hw + 12, y + sh * 0.5, x + hw - 4, y + sh); c.quadraticCurveTo(x, y + sh - 18, x - hw + 4, y + sh); c.quadraticCurveTo(x - hw - 12, y + sh * 0.5, x - hw, y + 4); c.closePath(); };
       p(); const g = c.createLinearGradient(0, y, 0, y + sh); g.addColorStop(0, K.sail); g.addColorStop(1, '#f2c69a'); c.fillStyle = g; c.fill();
-      c.save(); c.clip(); c.fillStyle = 'rgba(120,70,110,0.22)'; c.fillRect(x + hw * 0.3, y, hw, sh + 4); for (let i = -2; i <= 2; i++) line(c, [x + i * hw * 0.38, y + 6, x + i * hw * 0.4, y + sh], 1.1, 'rgba(120,90,80,0.4)'); if (o.patch) { box(c, x - hw * 0.5, y + sh * 0.4, 22, 18, K.sail2, 1.4); } if (o.mark) icon(c, o.mark, x, y + sh * 0.48, Math.min(26, sh * 0.3)); c.restore();
+      c.save(); c.clip(); c.fillStyle = 'rgba(120,70,110,0.22)'; c.fillRect(x + hw * 0.3, y, hw, sh + 4);
+      for (let i = -3; i <= 3; i++) { const fx = x + i * hw * 0.27; const fg = c.createLinearGradient(fx - 14, 0, fx + 14, 0); fg.addColorStop(0, 'rgba(110,60,110,0)'); fg.addColorStop(0.5, 'rgba(110,60,110,0.16)'); fg.addColorStop(1, 'rgba(255,255,255,0.1)'); c.fillStyle = fg; c.fillRect(fx - 14, y, 28, sh + 4); line(c, [fx, y + 6, fx + i * 1.5, y + sh], 1.1, 'rgba(120,90,80,0.4)'); }   // seams, with the cloth bellying between them
+      const cs = c.createLinearGradient(0, y, 0, y + 26); cs.addColorStop(0, 'rgba(70,30,90,0.34)'); cs.addColorStop(1, 'rgba(70,30,90,0)'); c.fillStyle = cs; c.fillRect(x - hw - 12, y, hw * 2 + 24, 26);                        // shadow under the yard
+      for (const k of [0.3, 0.52]) { line(c, [x - hw, y + sh * k, x + hw, y + sh * k], 1.2, 'rgba(120,90,80,0.45)'); for (let tx = x - hw + 10; tx < x + hw - 4; tx += 17) line(c, [tx, y + sh * k, tx - 1, y + sh * k + 9], 1.6, K.rope); }   // reef points
+      if (o.patch) for (const [px, py, pw, ph, col] of [[-hw * 0.56, sh * 0.62, 26, 20, '#d9a878'], [hw * 0.3, sh * 0.7, 20, 24, '#c9b48a']]) { c.fillStyle = col; c.fillRect(x + px, y + py, pw, ph); c.setLineDash([4, 3]); c.lineWidth = 1.3; c.strokeStyle = K.rope; c.strokeRect(x + px + 2, y + py + 2, pw - 4, ph - 4); c.setLineDash([]); } if (o.mark) icon(c, o.mark, x, y + sh * 0.48, Math.min(26, sh * 0.3)); c.restore();
       p(); c.lineWidth = 2.8; c.strokeStyle = O; c.stroke();
       line(c, [x - hw + 4, y + sh, x - hw - 6, y + sh + 26], 1.4); line(c, [x + hw - 4, y + sh, x + hw + 6, y + sh + 26], 1.4);
     }
@@ -97,6 +101,9 @@
     line(c, [HX + 30, DECK - 6, HX - 150, DECK - 96], 9); line(c, [HX + 30, DECK - 6, HX - 150, DECK - 96], 5, K.plankL);
     poly(c, [HX + 6, DECK + 4, HX - 44, DECK + 10, HX - 78, DECK - 18, HX - 60, DECK - 46, HX - 24, DECK - 40, HX + 6, DECK - 24], K.gold, 2.6); disc(c, HX - 50, DECK - 22, 5, K.cyan, 1.6); glow(c, HX - 50, DECK - 22, 36, 0.4, CY);
     poly(c, [HX - 78, DECK - 18, HX - 104, DECK - 30, HX - 84, DECK - 34, HX - 100, DECK - 52, HX - 60, DECK - 46], K.gold2, 2.2);
+    // the far-side rail: behind everyone, so nobody on deck is hidden by it
+    for (let x = HX + 14; x < W; x += 26) box(c, x - 3, DECK - 30, 6, 30, K.plankL, 1.6);
+    box(c, HX, DECK - 35, W - HX + 10, 7, K.gold, 2.2);
     // quarterdeck cabin at the stern
     { const x = 2420, w = W - x + 40, y = DECK - 150;
       boards(c, x, y, w, 150, K.hull, K.hull2, 16);
@@ -119,17 +126,14 @@
     { const x = 1590, y = DECK; poly(c, [x - 30, y - 8, x + 26, y - 8, x + 34, y, x - 38, y], K.plank2, 2.2); disc(c, x - 20, y - 6, 9, K.plank, 2.2); disc(c, x + 16, y - 6, 9, K.plank, 2.2); c.save(); c.translate(x, y - 22); c.rotate(-0.12); box(c, -52, -10, 84, 20, K.iron, 2.6); box(c, -58, -13, 10, 26, K.iron2, 2.2); box(c, 18, -12, 8, 24, K.iron2, 2); disc(c, 36, 0, 7, K.iron2, 2.2); c.restore(); for (const [bx, by] of [[x + 52, y - 6], [x + 64, y - 6], [x + 58, y - 16]]) disc(c, bx, by, 6, K.iron2, 1.8); }
     box(c, 2010, DECK - 10, 70, 10, K.plank2, 2.2); for (let i = 1; i < 7; i++) line(c, [2010 + i * 10, DECK - 10, 2010 + i * 10, DECK], 1.3);
     barrel(c, 1674, DECK, 1.1); barrel(c, 2344, DECK, 1, K.teal2); crate(c, 1840, DECK, 40, 34); crate(c, 2296, DECK, 34, 30, '#b98a5a');
-    bulbs(c, 1768, DECK - 300, 2142, DECK - 330, 34, 12); bulbs(c, 2158, DECK - 250, 2424, DECK - 150, 22, 8);
+    bulbs(c, 1788, DECK - 416, 2122, DECK - 442, 60, 13); bulbs(c, 2178, DECK - 442, 2420, DECK - 186, 44, 10);   // strung between the crow's nests and down to the cabin rail
     shipLantern(c, 1520, DECK - 62, 1.1); line(c, [1520, DECK - 62, 1520, DECK - 4], 3);
 
     // ---- in front of the characters ----
     for (const lx of [372, 596]) lamp(d, lx, G);
     for (const bx of [604, 30]) { box(d, bx - 8, G - 22, 16, 22, K.iron, 2.2); box(d, bx - 11, G - 27, 22, 7, K.iron2, 2); }
-    // the ship's rail, low enough not to hide anyone
-    for (let x = HX + 14; x < W; x += 26) box(d, x - 3, DECK - 22, 6, 22, K.plankL, 1.6);
-    box(d, HX, DECK - 27, W - HX + 10, 7, K.gold, 2.2);
     // lights along the hull, recorded here so they are static
-    for (let x = HX + 120; x < W; x += 150) glow(c, x, DECK + 108, 44, 0.42, CY);
+    for (let x = HX + 120; x < W; x += 150) glow(c, x, DECK + 40, 40, 0.42, CY);
     return { cv, ocv, top, h };
   }
 
@@ -221,7 +225,12 @@
       c.beginPath(); c.moveTo(x + 84 * s, y - 8 * s); c.lineTo(x + 112 * s, y - 24 * s); c.lineTo(x + 112 * s, y + 24 * s); c.lineTo(x + 84 * s, y + 8 * s); c.closePath(); c.fill(); c.lineWidth = 2; c.stroke();
       c.fillStyle = '#5a4884'; c.fillRect(x - 30 * s, y + 38 * s, 60 * s, 16 * s); c.strokeRect(x - 30 * s, y + 38 * s, 60 * s, 16 * s); c.lineWidth = 1.2; for (const k of [-24, 0, 24]) { c.beginPath(); c.moveTo(x + k * s, y + 32 * s); c.lineTo(x + k * s * 0.9, y + 38 * s); c.stroke(); }
       c.fillStyle = '#ffe09a'; for (const k of [-18, -4, 10]) c.fillRect(x + k * s, y + 42 * s, 7 * s, 7 * s);
-      c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 10 * s, y + 54 * s); c.lineTo(x - 40 * s, horizon - 60); c.stroke();
+    }
+    for (let x = 90; x < w; x += 210 + r() * 190) {                              // boats tied up along the far shore
+      const bw = 50 + r() * 34, by = horizon + 4;
+      c.beginPath(); c.moveTo(x - bw / 2, by - 12); c.lineTo(x + bw / 2, by - 12); c.lineTo(x + bw / 2 - 9, by + 2); c.lineTo(x - bw / 2 + 7, by + 2); c.closePath(); c.fillStyle = ['#8a4a62', '#5a6a9c', '#9a7a52'][Math.floor(r() * 3)]; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke();
+      c.beginPath(); c.moveTo(x, by - 12); c.lineTo(x, by - 70 - r() * 30); c.stroke(); c.beginPath(); c.moveTo(x + 2, by - 62); c.lineTo(x + bw * 0.4, by - 20); c.lineTo(x + 2, by - 20); c.closePath(); c.fillStyle = '#f2dcc0'; c.fill(); c.stroke();
+      c.fillStyle = '#ffe09a'; c.beginPath(); c.arc(x - bw * 0.3, by - 18, 3, 0, 7); c.fill(); c.fillStyle = 'rgba(255,224,154,0.2)'; c.beginPath(); c.arc(x - bw * 0.3, by - 18, 12, 0, 7); c.fill();
     }
   }
 
@@ -233,11 +242,11 @@
     if (t.kind === 'hull') {
       c.fillStyle = K.hull; c.fillRect(x0, y, x1 - x0, y1 - y);
       for (let yy = y + 14, i = 0; yy < y1; yy += 22, i++) { if (i % 2) { c.fillStyle = K.hull2; c.fillRect(x0, yy, x1 - x0, 22); } line(c, [x0, yy, x1, yy], 1.6, 'rgba(43,48,68,0.55)'); for (let x = Math.floor(x0 / 130) * 130 + (i % 2 ? 65 : 0); x < x1; x += 130) line(c, [x, yy, x, yy + 22], 1.3, 'rgba(43,48,68,0.5)'); }
-      c.fillStyle = K.teal; c.fillRect(x0, y + 58, x1 - x0, 20); line(c, [x0, y + 58, x1, y + 58], 2); line(c, [x0, y + 78, x1, y + 78], 2); for (let x = Math.floor(x0 / 30) * 30; x < x1; x += 30) disc(c, x + 15, y + 68, 2.6, K.gold, 1);
-      for (let x = t.x0 + 120; x < x1 + 30; x += 150) if (x > x0 - 30) { disc(c, x, y + 108, 15, K.gold2, 2.4); disc(c, x, y + 108, 10, '#bff6ee', 2); line(c, [x - 6, y + 104, x - 1, y + 100], 1.6, 'rgba(255,255,255,0.9)'); }
+      c.fillStyle = K.teal; c.fillRect(x0, y + 62, x1 - x0, 20); line(c, [x0, y + 62, x1, y + 62], 2); line(c, [x0, y + 82, x1, y + 82], 2); for (let x = Math.floor(x0 / 30) * 30; x < x1; x += 30) disc(c, x + 15, y + 72, 2.6, K.gold, 1);
+      for (let x = t.x0 + 120; x < x1 + 30; x += 150) if (x > x0 - 30) { disc(c, x, y + 40, 13, K.gold2, 2.4); disc(c, x, y + 40, 8.5, '#bff6ee', 2); line(c, [x - 5, y + 37, x - 1, y + 34], 1.6, 'rgba(255,255,255,0.9)'); }
       c.fillStyle = 'rgba(30,18,58,0.3)'; c.fillRect(x0, y + 160, x1 - x0, y1 - y);                 // below the waterline
-      c.fillStyle = K.deck; c.fillRect(x0, y, x1 - x0, 14); c.fillStyle = K.deck2; c.fillRect(x0, y + 9, x1 - x0, 5); for (let x = Math.floor(x0 / 44) * 44; x < x1; x += 44) line(c, [x, y + 1, x, y + 9], 1.2, 'rgba(43,48,68,0.45)');
-      line(c, [x0, y, x1, y], 2.8); line(c, [x0, y + 14, x1, y + 14], 2.2);
+      c.fillStyle = K.deck; c.fillRect(x0, y, x1 - x0, 20); c.fillStyle = K.deck2; c.fillRect(x0, y + 13, x1 - x0, 7); for (let x = Math.floor(x0 / 44) * 44; x < x1; x += 44) line(c, [x, y + 1, x, y + 13], 1.2, 'rgba(43,48,68,0.45)');
+      c.fillStyle = 'rgba(255,240,210,0.3)'; c.fillRect(x0, y + 1, x1 - x0, 3); line(c, [x0, y, x1, y], 2.8); line(c, [x0, y + 20, x1, y + 20], 2.2);
       c.restore();
       if (t.x0 > x0 - 30) { box(c, t.x0 - 7, y - 2, 14, y1 - y, K.plank2, 2.6); for (let yy = y + 30; yy < y1; yy += 60) box(c, t.x0 - 9, yy, 18, 7, K.gold2, 1.8); }   // the stem post
       return;
@@ -252,7 +261,7 @@
     c.fillStyle = K.deck; c.fillRect(x0, y, x1 - x0, 13); c.fillStyle = K.deck2; c.fillRect(x0, y + 9, x1 - x0, 4); for (let x = Math.floor(x0 / 38) * 38; x < x1; x += 38) line(c, [x, y + 1, x, y + 12], 1.2, 'rgba(43,48,68,0.45)');
     line(c, [x0, y, x1, y], 2.8);
     c.restore();
-    if (t.x1 < x1 + 30) { box(c, t.x1 - 10, y - 2, 12, y1 - y, K.plankL, 2.6); for (const fy of [y + 34, y + 66]) { disc(c, t.x1 + 4, fy, 12, '#3a3550', 2.4); disc(c, t.x1 + 4, fy, 5, '#35284a', 1.6); } }
+    if (t.x1 < x1 + 30) { box(c, t.x1 - 10, y - 2, 12, y1 - y, K.plankL, 2.6); disc(c, t.x1 + 4, y + 15, 9, '#3a3550', 2.4); disc(c, t.x1 + 4, y + 15, 3.6, '#6a6088', 1.4); }
   }
 
   const skyLights = (VW, VH) => [{ x: VW * 0.74, y: VH * 0.74, r: 420, color: '255,214,170', a: 0.6 }, { x: VW * 0.24, y: 150, r: 220, color: '255,220,230', a: 0.35 }];   // the sun and the ringed giant
