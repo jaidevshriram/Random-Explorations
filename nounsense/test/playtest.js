@@ -78,6 +78,7 @@ const TESTS = [
   [3, 'fish feeds the shark', (s, p, run, at, N) => { s.spawn('fish', N.shark.x + 60, 540); run(200); return N.shark.fullUntil > s.time ? true : 'not fed'; }],
   [3, 'friendly shark can be ridden', (s, p, run, at, N) => { const r = s.describe(N.shark, 'friendly'); Matter.Body.setPosition(N.shark.body, { x: 700, y: N.shark.y }); run(20); at(612); run(3, {}, { interactPressed: true }); if (!p.mount) return ['no mount', r]; run(200, { right: true }); return p.x > 1000 && p.hp === 3 ? true : [p.x | 0, p.hp]; }],
   [3, 'treasure bribes the captain; beacon reached', (s, p, run, at, N) => { s.spawn('treasure', N.captain.x - 40, 340); run(200); if (!N.captain.spec.friendly) return 'not bribed'; at(2150, 380); run(120, { right: true }); return s.won ? true : [p.x | 0, s.won]; }],
+  [3, 'the captain does not pocket the star seed', (s, p, run, at, N) => { at(N.captain.x - 70, 380); run(90); return p.hasParcel ? true : 'seed pocketed'; }],
   [3, 'ghost spooks the captain', (s, p, run, at, N) => { const x0 = N.captain.x; s.spawn('ghost', x0 - 100, 300); let fled = false; for (let i = 0; i < 15; i++) { run(10); fled = fled || !!(N.captain.goal && N.captain.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.captain.x | 0]; }],
 ];
 

@@ -112,7 +112,7 @@
         { key: 'net', x: 1452, y: 548, fixed: true, resists: 'all',
           spec: { noun: 'cargonet', name: 'cargo net', w: 90, h: 188, climbable: true, anchored: true, upright: true, material: 'cloth', tags: [], hp: Infinity, art: cargonet() } },
         { key: 'captain', word: 'pirate', x: 1900, y: 380, range: 190, facing: -1, name: 'Captain Cogbeard',
-          spec: { noun: 'cogbeard', hunts: ['human'], fears: ['ghost', 'eldritch'], hp: 8, dmg: 1, bribable: true, speed: 2.2, sound: 'arr', art: { a: 'person', skin: 'grey', top: 'red', legs: 'dgrey', hat: 'tricorn', face: 'robot', beard: 'dgrey', prop: 'sword' } } },
+          spec: { noun: 'cogbeard', hunts: ['human'], fears: ['ghost', 'eldritch'], hp: 8, dmg: 1, bribable: true, sparesSeed: true, speed: 2.2, sound: 'arr', art: { a: 'person', skin: 'grey', top: 'red', legs: 'dgrey', hat: 'tricorn', face: 'robot', beard: 'dgrey', prop: 'sword' } } },
       ],
       signs: [{ x: 500, text: 'NO SWIMMING' }],
     },

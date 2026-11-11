@@ -27,7 +27,9 @@ module.exports = async function play(worldNumber, script) {
     // hold keys until a condition on the game state holds, or time runs out
     holdUntil: async (keys, done, max) => { for (const key of keys) await p.keyboard.down(key); const t0 = Date.now(); let s = await k.st(); while (!done(s) && !s.won && Date.now() - t0 < max) { await p.waitForTimeout(400); s = await k.st(); } for (const key of keys) await p.keyboard.up(key); return s; },
     waitUntil: async (done, max) => { const t0 = Date.now(); let s = await k.st(); while (!done(s) && Date.now() - t0 < max) { await p.waitForTimeout(500); s = await k.st(); } return s; },
-    log: (label, s) => console.log(label, JSON.stringify(s).slice(0, 420)),
+    log: (label, s) => { const { nat, ...rest } = s; console.log(label, JSON.stringify(rest).slice(0, 700), '| natives', Object.entries(nat).filter(([, v]) => !v.gone).map(([n, v]) => `${n}@${v.x},${v.y}${v.friendly ? ' friendly' : ''}${v.full ? ' full' : ''}${v.flee ? ' fleeing' : ''}${v.burning ? ' burning' : ''}`).join(' ')); },
+    // stop the run as soon as a step has not done what it should, and say which
+    need: (ok, what) => { if (!ok) throw new Error('step failed: ' + what); },
   };
   try { await script(k); } catch (e) { console.log('script error:', e.message); }
   await p.waitForTimeout(2500);
