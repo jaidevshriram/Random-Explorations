@@ -4,3 +4,5 @@ models/
 runs_f_tmp/
 av2_patches.npz
 runs_av2_tmp/
+forks.npz
+runs_forks_tmp/
