@@ -58,6 +58,44 @@
   };
   const sfx = (n) => { if (SOUNDS[n]) try { SOUNDS[n](); } catch (e) { /* audio is optional */ } };
 
+  // ---- music: a small generative tune per world, scheduled a moment ahead of the clock ----
+  // Each world has a key, a tempo and four chords. A soft pad holds the chord, a bass marks the bar, and a
+  // music-box voice wanders the scale. The wander is seeded per phrase and three phrases repeat, so it reads as a tune.
+  const TUNES = {
+    town: { bpm: 96, root: 57, scale: [0, 2, 4, 7, 9], chords: [[0, 4, 7], [9, 12, 16], [5, 9, 12], [7, 11, 14]], wave: 'triangle' },
+    manor: { bpm: 70, root: 50, scale: [0, 2, 3, 7, 8], chords: [[0, 3, 7], [8, 12, 15], [5, 8, 12], [7, 10, 14]], wave: 'sine' },
+    hollow: { bpm: 80, root: 52, scale: [0, 2, 4, 7, 9, 11], chords: [[0, 4, 7, 11], [5, 9, 12, 16], [9, 12, 16], [7, 11, 14]], wave: 'sine' },
+  };
+  let mus = null;
+  function musicInit() {
+    if (!ac || mus) return;
+    const out = ac.createGain(); out.gain.value = store.muted ? 0 : 1; out.connect(ac.destination);
+    const dly = ac.createDelay(1), fb = ac.createGain(), wet = ac.createGain(); dly.delayTime.value = 0.36; fb.gain.value = 0.3; wet.gain.value = 0.5;
+    dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(out);
+    mus = { out, dly, next: 0, step: 0, r: rng(7), last: 3 };
+  }
+  function mnote(midi, t, dur, vol, type, echo) {
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + (dur > 1.5 ? 0.6 : 0.012)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(mus.out); if (echo) g.connect(mus.dly); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function musicTick() {
+    if (!ac || !mus || !started || ac.state !== 'running' || store.muted) return;
+    const T = TUNES[L.theme] || TUNES.town, sp = 30 / T.bpm;      // one step is an eighth note
+    if (mus.next < ac.currentTime) mus.next = ac.currentTime + 0.05;
+    while (mus.next < ac.currentTime + 0.3) {
+      const st = mus.step % 8, bar = Math.floor(mus.step / 8), ch = T.chords[bar % T.chords.length], t = mus.next;
+      if (mus.step % 32 === 0) { mus.r = rng(L.W + (Math.floor(mus.step / 32) % 3) * 17); mus.last = 3; }
+      if (st === 0) { for (const n of ch) mnote(T.root + n, t, sp * 8.4, 0.02, 'sine'); mnote(T.root - 12 + ch[0], t, sp * 7, 0.045, 'triangle'); }
+      if (st === 4) mnote(T.root - 5 + ch[0], t, sp * 3, 0.026, 'triangle');
+      if (mus.r() < (st % 2 === 0 ? 0.64 : 0.28)) {
+        mus.last = Math.max(0, Math.min(T.scale.length * 2 - 1, mus.last + Math.round((mus.r() - 0.5) * 4)));
+        mnote(T.root + 12 + T.scale[mus.last % T.scale.length] + 12 * Math.floor(mus.last / T.scale.length), t, sp * 3.4, 0.034, T.wave, true);
+      }
+      mus.next += sp; mus.step++;
+    }
+  }
+
   // ---- worlds: palettes and background recipes -----------------------------------
   const THEMES = {
     forest: { ambient: '#8f86c4', sky: ['#241d4a', '#553a78', '#d9837f'], haze: '#6a4d8a', stars: 70, bodies: [[850, 110, 46, '#f3e3b0'], [960, 170, 20, '#bfe0d8']],
@@ -67,6 +105,7 @@
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
     manor: { custom: true, ambient: '#70669c', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    hollow: { custom: true, ambient: '#6670ae', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#9ba1cf', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     port: { ambient: '#c2a6c6', sky: ['#371c58', '#a83f78', '#f7a35c'], haze: '#7a3d7a', stars: 50, bodies: [[880, 120, 34, '#ffe9b0']],
       ground: { dock: { body: '#4f3b30', body2: '#43322a', cap: '#c08a52', line: '#2e221c', planks: 1 }, rock: { body: '#5a5670', body2: '#4c4962', cap: '#8c88a6', line: '#353248' }, hull: { body: '#7c3b3b', body2: '#6a3030', cap: '#d0a060', line: '#3f1d1d', planks: 1, hull: 1 }, pit: { body: '#2a2440', cap: '#2a2440', line: '#3b3458' } },
@@ -117,7 +156,7 @@
   };
   // props that sit in the world itself, behind the action
   const PROPS = {
-    manor: [], town: [], forest: [], sky: [{ a: BG.skyrock, x: 1560, y: -420, w: 220, h: 120 }],
+    manor: [], town: [], hollow: [], forest: [], sky: [{ a: BG.skyrock, x: 1560, y: -420, w: 220, h: 120 }],
     keep: [{ a: BG.arch, x: 1500, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 1800, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 2100, y: 520, w: 260, h: 250 }, { a: BG.banner, x: 1650, y: 440, w: 50, h: 130 }, { a: BG.banner, x: 1950, y: 440, w: 50, h: 130 }],
     port: [{ a: BG.mast, x: 1780, y: 380, w: 200, h: 430 }, { a: BG.mast, x: 2110, y: 380, w: 180, h: 370 }, { a: BG.cabin, x: 2440, y: 380, w: 240, h: 160 }, { a: BG.crates, x: 420, y: 520, w: 90, h: 90 }, { a: BG.lamp, x: 590, y: 520, w: 50, h: 130 }],
   };
@@ -155,6 +194,11 @@
       const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
       const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH);
       if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over, lights: m.lights }; return; }
+      if (L.theme === 'hollow') {
+        const hw = NN.hollow.build(L, 2); c.clearRect(0, 0, VW, VH); NN.hollow.sky(c, VW, VH);
+        layers = { sky, far: bake(0.14, NN.hollow.far, 0, T, true), mid: bake(0.4, NN.hollow.mid, 0.1, T, true), front: hw.front, over: hw.over, lights: hw.lights, emitters: hw.emitters, animate: hw.animate, liveLights: hw.liveLights, skyLights: [{ x: VW * 0.63, y: 150, r: 260, color: '255,250,225', a: 0.7 }] };
+        return;
+      }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes);
       layers = { sky, far: bake(0.14, NN.town.far, 0, T, true), mid: bake(0.4, NN.town.mid, 0.16, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
       return;
@@ -268,6 +312,7 @@
     if (x1 <= x0 || y0 > cam.y + WH + 20) return;
     if (t.kind === 'street') { NN.town.street(ctx, t, x0, x1, y1, reduceMotion ? 0 : sim.time); return; }
     if (L.theme === 'manor') { NN.manor.ground(ctx, t, x0, x1, y1); return; }
+    if (L.theme === 'hollow') { NN.hollow.ground(ctx, t, x0, x1, y1); return; }
     const r0 = rng(t.x0 * 7 + t.y0 * 3 + 11);
     if (t.kind === 'island') {
       // a floating island: flat top, ragged rock hanging underneath
@@ -327,6 +372,7 @@
     }
     for (const t of L.terrain) if (t.kind === 'pit') drawBlock(t);
     for (const pr of PROPS[L.theme]) if (visible(pr.x, pr.w)) blit({ noun: '_prop' + pr.w + 'x' + pr.h + pr.x, w: pr.w, h: pr.h, art: pr.a, still: true }, pr.x, pr.y - pr.h / 2);
+    if (layers.animate) layers.animate(ctx, reduceMotion ? 0 : sim.time, 'back', cam, WW, WH);
     for (const t of L.terrain) if (t.kind !== 'pit') drawBlock(t);
     // the crashed ship, where fresh star seeds come from
     const d = L.depot;
@@ -500,6 +546,8 @@
   function collectLights() {
     const out = (layers.lights || []).filter((l) => visible(l.x, l.r + 40)).map((l) => (l.r < 30 && !reduceMotion ? Object.assign({}, l, { a: l.a * (0.55 + 0.45 * Math.sin(sim.time * 3 + l.x)) }) : l));   // small lights twinkle
     const p = sim.player, add = (x, y, r, color, a) => out.push({ x, y, r, color, a });
+    if (layers.liveLights) for (const l of layers.liveLights(reduceMotion ? 0 : sim.time)) if (visible(l.x, l.r + 40)) out.push(l);
+    for (const l of layers.skyLights || []) add(cam.x + l.x / Z, cam.y + l.y / Z, l.r / Z, l.color, l.a);   // the moon stays put on screen
     for (const e of sim.ents) {
       if (e.removed || e.placing) continue;
       const s = e.spec, x = e.heldBy ? p.x + p.facing * 15 : e.x, y = e.heldBy ? p.y - 10 : e.y;
@@ -575,6 +623,7 @@
     for (const e of list) if (layerOf(e) >= 4 && e !== sim.player.mount) drawEnt(e);
     if (!sim.player.mount) drawPlayer();
     if (layers.over) ctx.drawImage(layers.over.cv, 0, layers.over.top, L.W, layers.over.h);   // railings and such, in front of the action
+    if (layers.animate) layers.animate(ctx, reduceMotion ? 0 : sim.time, 'front', cam, WW, WH);
     drawWater();
     drawFx();
     drawHints();
@@ -600,6 +649,7 @@
       acc -= 1 / 60; steps++;
     }
     if (steps === 4) acc = 0;
+    musicTick();
     // camera
     const p = sim.player, d = sim.dragging();
     if (d && mouse.inside) {
@@ -608,7 +658,8 @@
       cam.y = Math.max(L.sky - 120, Math.min(BASE, cam.y));
     } else {
       cam.x += (p.x - WW * 0.42 + p.facing * 40 - cam.x) * 0.08;
-      cam.y += (Math.min(BASE, Math.max(L.sky - 120, p.y - WH * 0.53)) - cam.y) * 0.1;
+      const gy = sim.groundBelow(p.x, p.y - 30);                // keep whatever the hero stands on low in the frame, so high ground does not fill the screen with dirt
+      cam.y += (Math.min(BASE, Math.max(L.sky - 120, Math.min(p.y - WH * 0.53, gy - WH * 0.84))) - cam.y) * 0.1;
     }
     cam.x = Math.max(0, Math.min(L.W - WW, cam.x));
     mouse.x = mouse.sx / Z + cam.x; mouse.y = mouse.sy / Z + cam.y;
@@ -716,6 +767,7 @@
     started = true; $('intro').hidden = true;
     if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
     if (ac && ac.state === 'suspended') ac.resume();
+    musicInit();
   }
   $('start').addEventListener('click', () => { start(); view.focus(); });
   $('again').addEventListener('click', () => { newGame(); view.focus(); });
@@ -723,7 +775,7 @@
   $('restart').addEventListener('click', () => { newGame(); setMsg('World reset.'); });
   $('pick').addEventListener('click', () => { started = false; $('intro').hidden = false; $('win').hidden = true; });
   $('clear').addEventListener('click', () => { sim.clearAll(); setMsg('Page cleared.'); });
-  $('mute').addEventListener('click', () => { store.muted = !store.muted; save(); $('mute').textContent = store.muted ? 'Sound: off' : 'Sound: on'; });
+  $('mute').addEventListener('click', () => { store.muted = !store.muted; save(); $('mute').textContent = store.muted ? 'Sound: off' : 'Sound: on'; if (mus) mus.out.gain.value = store.muted ? 0 : 1; });
   $('mute').textContent = store.muted ? 'Sound: off' : 'Sound: on';
   let hintI = 0;
   $('hint').addEventListener('click', () => { setMsg('Hint: ' + L.hints[hintI++ % L.hints.length]); });

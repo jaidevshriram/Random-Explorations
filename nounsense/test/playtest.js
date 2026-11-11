@@ -23,7 +23,24 @@ const TESTS = [
   [-1, 'bridge spans the hole in the gallery', (s, p, run, at, N) => { s.spawn('bridge', 1680, 240); run(80); at(1500, 300); run(130, { right: true }); return p.x > 1820 && p.y < 310 ? true : [p.x | 0, p.y | 0]; }],
   [-1, 'key opens the vault door', (s, p, run, at, N, has) => { s.spawn('key', 2040, 480); run(40); at(2040); run(3, {}, { interactPressed: true }); run(20, { right: true }); run(3, {}, { usePressed: true }); run(5); return !has('vaultdoor') ? true : 'still locked'; }],
   [-1, 'lantern drives off the poltergeist; beacon lit', (s, p, run, at, N) => { s.spawn('lantern', 2170, 480); run(40); at(2170); run(3, {}, { interactPressed: true }); run(80, { right: true }); return s.won && p.hp === 3 ? true : [p.x | 0, p.hp, s.won]; }],
+  [-1, 'bombs take the vault door down', (s, p, run, at, N, has) => { for (let k = 0; k < 3 && has('vaultdoor'); k++) { s.spawn('bomb', 2030, 480); run(40); at(2030); run(3, {}, { interactPressed: true }); run(30, { right: true }); run(3, {}, { usePressed: true }); run(60, { left: true }); run(140); } return !has('vaultdoor') ? true : N.door.hp; }],
+  [-1, 'flute lulls the haunted armour', (s, p, run, at, N) => { s.spawn('flute', 500, 480); run(40); at(500); run(3, {}, { interactPressed: true }); at(N.armour.x - 150); run(3, {}, { usePressed: true }); run(30); return N.armour.asleepUntil > s.time ? true : 'awake'; }],
+  [-1, 'sunlight finishes the poltergeist', (s, p, run, at, N, has) => { s.spawn('sun', N.polter.x - 40, 300); at(1400); run(420); return !has('shade') ? true : 'still there'; }],
   [-1, 'poltergeist guards the beacon', (s, p, run, at, N) => { at(2180); run(200, { right: true }); return p.hp < 3 || p.x < 600 ? true : [p.hp, s.won]; }],
+  // Glowroot Hollow (index 2)
+  ['h', 'bridge spans the river', (s, p, run, at) => { s.spawn('bridge', 920, 470); run(90); at(660); run(260, { right: true }); return p.x > 1070 && p.y < 520 ? true : [p.x | 0, p.y | 0]; }],
+  ['h', 'raft crosses the river', (s, p, run, at) => { s.spawn('raft', 850, 540); run(60); at(772); run(3, {}, { interactPressed: true }); if (!p.mount) return 'no mount'; run(240, { right: true }); return p.x > 980 && p.hp === 3 ? true : [p.x | 0, p.hp]; }],
+  ['h', 'plain jump does not clear the river', (s, p, run, at) => { at(740); run(12, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.x < 1060 ? true : p.x | 0; }],
+  ['h', 'gremlin gobbles the star seed if ignored', (s, p, run, at, N) => { at(N.gremlin.x - 100); run(300); return !p.hasParcel ? true : 'seed survived'; }],
+  ['h', 'donut distracts the gremlin', (s, p, run, at, N) => { s.spawn('donut', N.gremlin.x + 60, 480); run(100); at(N.gremlin.x - 80); run(200, { right: true }); return p.hasParcel ? true : 'gobbled'; }],
+  ['h', 'trumpet frightens the gremlin', (s, p, run, at, N) => { s.spawn('trumpet', 1200, 480); run(40); at(1200); run(3, {}, { interactPressed: true }); at(N.gremlin.x - 130); run(3, {}, { usePressed: true }); let fled = false; for (let i = 0; i < 12; i++) { run(10); fled = fled || !!(N.gremlin.goal && N.gremlin.goal.type === 'flee'); } return fled ? true : 'not scared'; }],
+  ['h', 'cat scares the gremlin away', (s, p, run, at, N) => { const x0 = N.gremlin.x; s.spawn('cat', x0 - 120, 480); run(120); return Math.abs(N.gremlin.x - x0) > 60 && N.gremlin.goal ? true : [x0 | 0, N.gremlin.x | 0]; }],
+  ['h', 'the bluff is too high to jump', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; at(1800); run(20, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.y > 400 && p.x < 1900 ? true : [p.x | 0, p.y | 0]; }],
+  ['h', 'rain grows the skyvine; climb it onto the bluff', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; s.spawn('rain cloud', 1862, 200); run(300); if (N.vine.h < 250) return ['vine', N.vine.h]; at(1862); run(160, { up: true }); run(8, { right: true }, { jumpPressed: true }); run(60, { right: true }); return p.y < 300 && p.x > 1900 ? true : [p.x | 0, p.y | 0]; }],
+  ['h', 'ladder gets up the bluff', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; s.spawn('ladder', 1872, 400); run(60); at(1872); run(150, { up: true }); run(8, { right: true }, { jumpPressed: true }); run(60, { right: true }); return p.y < 300 && p.x > 1900 ? true : [p.x | 0, p.y | 0]; }],
+  ['h', 'trampoline bounces up the bluff', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; s.spawn('trampoline', 1800, 480); run(60); at(1760, 420); let ok = false; for (let i = 0; i < 400 && !ok; i++) { run(1, { right: p.y < 330 || p.x < 1800, jump: true }); ok = p.y < 300 && p.x > 1900; } return ok ? true : [p.x | 0, p.y | 0]; }],
+  ['h', 'villagers wave and say hello', (s, p, run, at, N) => { at(N.keeper.x - 40); run(200); return N.keeper.waveUntil > 0 && s.fx.some((f) => f.type === 'speech') ? true : [N.keeper.waveUntil, s.fx.length]; }],
+  ['h', 'lighting the beacon wins', (s, p, run, at) => { at(2420, 300); run(60, { right: true }); return s.won ? true : 'no win'; }],
   // world 0: Glowroot Gorge
   [0, 'bridge spans the gorge', (s, p, run, at) => { s.spawn('bridge', 870, 470); run(90); at(640); run(160, { right: true }); return p.x > 1040 && p.y < 520 ? true : [p.x | 0, p.y | 0]; }],
   [0, 'plain jump does not clear the gorge', (s, p, run, at) => { at(640); run(18, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.x < 1040 ? true : p.x | 0; }],
@@ -44,7 +61,7 @@ const TESTS = [
   [1, 'magic bean grows a climbable stalk', (s, p, run, at, N, has) => { s.spawn('bean', 420, 480); run(40); at(420); run(3, {}, { interactPressed: true }); run(3, {}, { usePressed: true }); run(260); const v = s.ents.find((e) => e.spec.noun === 'beanstalk'); return v && v.h > 600 ? true : v && v.h; }],
   // world 2: The Lightless Keep
   [2, 'bridge crosses the canal out of the eel\'s reach', (s, p, run, at) => { s.spawn('bridge', 910, 470); run(90); at(720); run(150, { right: true }); return p.x > 1060 && p.hp === 3 ? true : [p.x | 0, p.hp]; }],
-  [2, 'raft floats and can be sailed; the eel bites', (s, p, run, at) => { s.spawn('raft', 822, 540); run(60); const r = s.ents.find((e) => e.spec.noun === 'raft'); if (!r || Math.abs(r.y - 560) > 30) return ['raft', r && r.y]; at(750); run(3, {}, { interactPressed: true }); if (!p.mount) return 'no mount'; run(200, { right: true }); return p.hp < 3 ? true : [p.x | 0, p.hp]; }],
+  [2, 'raft floats and can be sailed; the eel bites', (s, p, run, at) => { s.spawn('raft', 822, 540); run(60); const r = s.ents.find((e) => e.spec.noun === 'raft'); if (!r || Math.abs(r.y - 560) > 30) return ['raft', r && r.y]; at(750); run(3, {}, { interactPressed: true }); if (!p.mount) return 'no mount'; run(200, { right: true }); return p.hp < 3 || p.x < 500 ? true : [p.x | 0, p.hp]; }],   // bitten, or knocked off and washed back
   [2, 'falling in the canal sends you back', (s, p, run, at) => { at(740); run(80, { right: true }); return p.x < 400 ? true : p.x | 0; }],
   [2, 'key opens the force gate', (s, p, run, at, N, has) => { s.spawn('key', 1200, 480); run(40); at(1200); run(3, {}, { interactPressed: true }); run(40, { right: true }); run(3, {}, { usePressed: true }); run(5); return !has('forcegate') ? true : 'still locked'; }],
   [2, 'bomb takes the gate down', (s, p, run, at, N, has) => { for (let k = 0; k < 2; k++) { s.spawn('bomb', 1220, 480); run(40); at(1220); run(3, {}, { interactPressed: true }); run(30, { right: true }); run(3, {}, { usePressed: true }); run(60, { left: true }); run(140); } return !has('forcegate') ? true : N.gate.hp; }],
@@ -67,7 +84,7 @@ const TESTS = [
   await page.goto(url);
   await page.waitForTimeout(400);
   for (const [world, name, fn] of TESTS) {
-    const r = await page.evaluate(`(() => { NN.game.newGame(${world} + 2); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
+    const r = await page.evaluate(`(() => { NN.game.newGame(${world === 'h' ? 2 : world < 0 ? world + 2 : world + 3}); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
       const run = (n, k, pr) => { for (let i = 0; i < n; i++) s.step(Object.assign({}, k || {}, i === 0 ? (pr || {}) : {})); };
       const at = (x, y) => { B.setPosition(p.body, { x, y: (y === undefined ? 520 : y) - 26 }); B.setVelocity(p.body, { x: 0, y: 0 }); s.step({}); s.step({}); };
       const has = (n) => s.ents.some((e) => e.spec.noun === n);

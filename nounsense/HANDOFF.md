@@ -5,25 +5,30 @@
 The game was reworked after the notes below were written. What is true now:
 
 - **Story:** Nib, an apprentice star-wizard, carries star seeds to dead beacons. The goat/courier level is gone.
-- **Worlds** live in `src/levels.js` as data. The first, *Lamplight Row*, is the finished one: a street with a flooded
-  excavation, a thieving magpie and a wooden hoarding, plus townsfolk who wave and greet. *Gloamwick Manor* is an
-  interior art test with no puzzle. The four after that (gorge, skyvine, keep, port) are playable but still drawn in
-  an older, cruder style.
+- **Worlds** live in `src/levels.js` as data. Three are finished and offered to players: *Lamplight Row* (street),
+  *Gloamwick Manor* (interior) and *Glowroot Hollow* (forest). Four older ones (gorge, skyvine, keep, port) are
+  marked `hidden: true`: still tested, not shown in the picker, waiting for scene painters.
 - **Rendering:** `src/main.js` draws the scene unlit to a 2D canvas, and PixiJS (`vendor/pixi.min.js`) composites it
   with a light map, bloom, grading, a vignette and grain. It falls back to plain canvas compositing without WebGL.
   Scenery records its own lights while it is drawn; anything in the dictionary with `light` or `hot` is a moving light.
-- **Scene art:** `src/town.js` (streets) and `src/manor.js` (interiors) build scenes from architectural parts:
-  windows, awnings, signs, doors, columns. This is the style to extend. To restyle an old world, give it a painter
-  like these and set `zoom: 1` on the level.
+- **Scene art:** `src/town.js`, `src/manor.js` and `src/hollow.js` build scenes from small part functions and
+  return `{ front, over, lights }` (behind the characters, in front of them, and recorded lights). `hollow.js` also
+  returns `animate(ctx, t, layer, …)` for things that move (waterfall, fireflies, spores) and `liveLights(t)`.
+  To add a world: write a painter like these, add a `custom` theme in `THEMES` in `main.js`, branch in
+  `buildWorldArt()` and `drawBlock()`, and set `zoom: 1` on the level.
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
-- **Tests:** `node nounsense/test/playtest.js` runs about 38 scripted scenarios across the worlds and a fuzz pass over
-  every word. All pass. It takes a few minutes because the renderer runs in software there.
+- **Tests:** `node nounsense/test/playtest.js` runs about 65 scripted scenarios and a fuzz pass over every word.
+  World labels in the test list: `-2` town, `-1` manor, `'h'` hollow, `0..3` the hidden worlds. It takes several
+  minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).
+- **Music:** `TUNES` in `main.js` gives each world a key, tempo and four chords; `musicTick()` schedules a pad, a
+  bass and a seeded music-box line. No audio files.
+- **Camera:** follows the ground under the hero (`sim.groundBelow`), so high ground does not fill the frame with soil.
 - **Studies:** `test/study.html` is a measured redraw of a reference illustration (18.5 dB PSNR), with tools in
   `test/study-tools/`. `test/recreation.html` is an earlier freehand attempt. Neither is used by the game.
-- **Not done:** the README is partly out of date, the four older worlds need the new art, there is no music, and
-  nothing has been tuned by hand play.
+- **Not done:** the four hidden worlds need painters, frame rate has not been measured on real hardware, and
+  nothing has been tuned by long hand play.
 
 ---
 

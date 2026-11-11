@@ -1,48 +1,60 @@
 # Nounsense
 
-> **Note:** the game has moved on since most of this page was written. See the top of
-> [HANDOFF.md](./HANDOFF.md) for the current state: new story, six worlds, a WebGL lighting
-> pipeline, and scenes built from architectural parts. The dictionary-and-rules design described
-> below still holds.
-
 A write-a-word-and-it-appears puzzle game, built "the old way": every word the
 game knows is authored by hand in a dictionary, with a category tree for
 inherited defaults and per-object exceptions on top. No LLM anywhere.
 
 Open `index.html` in a browser (no build step, no server needed).
 
-It is an original game in the genre that Scribblenauts made famous. The level,
+It is an original game in the genre that Scribblenauts made famous. The worlds,
 characters and art are its own.
 
-## The level: one parcel, three problems
+## The game
 
-A courier has to carry a parcel from the post office to a mailbox. Par is three words.
+Nib, an apprentice star-wizard, has crashed the Tin Comet. Each world has a dead
+beacon; carry a star seed to it and it lights. Write any word the dictionary
+knows and the thing appears. Click something already on the page and write a
+describing word to change it (`sleepy`, `tiny`, `flying`).
 
-| Obstacle | What it tests | Some ways through |
-| --- | --- | --- |
-| A ravine with a broken bridge | traversal | bridge, log, wings, trampoline, cannon, motorcycle, balloon, portal, rainbow, a friendly dragon |
-| A goat that eats paper | creature behaviour | feed it (tin can, newspaper), scare it (dog, torch), charm it (shepherd), cage it, lull it (flute), turn it into a frog (wand) |
-| A wall of brambles up to the sky | materials and elements | cut (axe, lumberjack), burn (torch, dragon), mow (lawnmower), blow up (bomb), or get the goat to eat it |
+| World | Setting | Problems | Some ways through |
+| --- | --- | --- | --- |
+| Lamplight Row | A street at dusk: shops, a lab, a museum, an observatory, a monorail | A flooded excavation, a magpie that steals shiny things, a wooden hoarding | raft, bridge, wings; decoy ring, cat, scarecrow; axe, torch, ladder |
+| Gloamwick Manor | A haunted hall with a library gallery | Haunted armour, a collapsed gallery over a locked vault door, a poltergeist that hates light | rain, flute; bridge, key, bomb; lantern, sun |
+| Glowroot Hollow | A moonlit forest of giant trees and mushroom houses | A river with no bridge, a gremlin with a taste for star seeds, a bluff with a dried-up skyvine | bridge, raft; donut, cat, trumpet; rain cloud, ladder, trampoline |
 
-Design choices that keep it from being solved the same way every time:
+Design choices that keep a world from being solved the same way every time:
 
-- **The brambles reach the sky**, so flying solves the ravine and the goat but not the third problem.
-- **Three stars**: deliver; deliver in three words or fewer; do that without reusing a word from an earlier win. Every perfect run needs a new route.
-- **Solutions interfere.** Fire that clears the brambles also burns a wooden bridge. A wolf deals with the goat, then with you.
-- **Multi-purpose words exist** and are meant to be found: a torch scares the goat and burns the brambles.
-- **Failure is soft.** Lose the parcel and you fetch another from the post office; what you built stays.
+- **Three stars**: light the beacon; do it in par words or fewer; do that without reusing a word from an earlier win in the same world.
+- **Solutions interfere.** Fire that clears wood also burns your wooden bridge. A wolf deals with the thief, then with you.
+- **Multi-purpose words exist** and are meant to be found.
+- **Failure is soft.** Lose the star seed and you fetch another; what you built stays.
 
-## Tech strategy
+Four older worlds (a gorge, a sky island, a keep, a harbour) are still in
+`src/levels.js` and covered by the tests, but marked `hidden` until they are
+redrawn in the current style.
+
+## Tech
 
 One page, plain scripts, no build:
 
 | File | Job |
 | --- | --- |
-| `src/dictionary.js` | The hand-authored "spreadsheet": categories, 189 nouns, about 330 synonyms, about 110 describing words, materials. Art for each object lives here too. |
+| `src/dictionary.js` | The hand-authored "spreadsheet": categories, 247 nouns, 676 accepted words with synonyms, 112 describing words, materials. Art for each object lives here too. |
 | `src/lexicon.js` | Phrase → object spec. Finds the longest trailing noun, treats the words before it as adjectives, walks the category tree, applies overrides. Unknown words are refused with a nearest-match suggestion. |
-| `src/sim.js` | The level, physics (Matter.js) and the rules. No drawing, no DOM. |
-| `src/art.js` | Drawing: shapes merge into clean silhouettes with one bold ink outline, a cel-shaded edge and a highlight; three frames per sprite so the line shimmers. Shared rigs for four-legged animals, birds and people. |
-| `src/main.js` | Rendering, input, HUD, saved progress. |
+| `src/sim.js` | Physics (Matter.js) and the rules. No drawing, no DOM. |
+| `src/art.js` | Object and character drawing: shapes merge into clean silhouettes with one ink outline, a cel-shaded edge and a highlight; three frames per sprite so the line shimmers. Rigs for four-legged animals, birds and chibi people. |
+| `src/town.js`, `src/manor.js`, `src/hollow.js` | Scene painters. Each builds a world from small part functions (windows, doors, trunks, mushroom houses, lanterns) and records where its lights are. |
+| `src/levels.js` | Worlds as data: terrain boxes, water, natives, goal. |
+| `src/main.js` | Rendering, input, HUD, sound and music, saved progress. |
+
+Rendering: the scene is drawn unlit to a 2D canvas, then PixiJS composites it
+with a light map (ambient colour plus every light in view), bloom, a colour
+grade, a vignette and paper grain. Without WebGL it falls back to plain canvas
+compositing. Windows, lanterns, glowing mushrooms, fireflies and anything in the
+dictionary marked `light` or `hot` are real lights.
+
+Sound effects and the per-world music are synthesised with WebAudio; there are
+no audio files.
 
 ### What is a system and what is hand-authored
 
@@ -55,21 +67,16 @@ The interesting part of doing it this way is how quickly category rules stop
 being enough. Examples already in the dictionary:
 
 - Humans flee monsters, but a cop stands their ground and will always stop for a donut.
-- Predators hunt the courier, but a dog only chases cats, follows you around, and still scares the goat.
+- A dog only chases cats, follows you around, and still scares thieves.
 - A ghost is a monster that never hurts anyone.
 - An elephant is afraid of nothing except a mouse.
 - A shark out of water just flops.
-- Trolls go for goats first.
-
-That matches what the original developers said about their own object library:
-the hierarchy gave a starting point, and most of the work was exceptions, one
-object at a time.
 
 ## Controls
 
 A/D or arrows walk, Space or W jumps and climbs, Enter writes a word, the mouse
-drags things (right-click erases), E picks up, rides or launches, F uses what
-you hold, Q drops it.
+drags things (click selects, right-click erases), E picks up, rides or launches,
+F uses what you hold, Q drops it.
 
 ## Tests
 
@@ -82,16 +89,16 @@ node nounsense/test/playtest.js
 ```
 
 The first checks the dictionary and parser. The second needs Playwright; it
-plays 22 scripted solutions and interactions in a headless browser, then spawns
-every word with random adjectives and inputs to look for crashes.
-`test/sheet.html` draws every object on one page.
+plays about 65 scripted solutions and interactions in a headless browser, then
+spawns every word with random adjectives and inputs to look for crashes. It
+takes several minutes. `test/sheet.html` draws every object on one page.
 
 ## Not done yet
 
-- Sound.
-- More levels; the dictionary already knows many more things than this level needs.
+- The four hidden worlds need scene painters in the current style.
+- Nothing has been tuned by long hand play; difficulty and phone layout are untested by people.
 - The "new way" (an LLM filling in the same object spec) for a side-by-side comparison.
 
-Picking this up later? See [HANDOFF.md](./HANDOFF.md) for how to add words and levels, and what to watch out for.
+Picking this up later? See [HANDOFF.md](./HANDOFF.md).
 
-Matter.js is vendored in `vendor/` under its MIT licence.
+Matter.js and PixiJS are vendored in `vendor/` under their MIT licences.
