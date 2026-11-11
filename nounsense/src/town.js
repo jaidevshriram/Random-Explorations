@@ -199,13 +199,13 @@
     },
     tower(c, x, g, w, r) {
       const h = 430;
-      wall(c, x, g - h, w, h, C.slate); shade(c, x + w - 18, g - h, 18, h); cornice(c, x, g - h, w, C.stone2);
-      bricks(c, x, g - h, w, h, '#45587c', r, 26);
+      wall(c, x, g - h, w, h, '#4f629c'); shade(c, x + w - 18, g - h, 18, h); cornice(c, x, g - h, w, C.stone2);
+      bricks(c, x, g - h, w, h, '#3c4e86', r, 26);
       { const lg = c.createLinearGradient(x, 0, x + 70, 0); lg.addColorStop(0, 'rgba(214,226,255,0.28)'); lg.addColorStop(1, 'rgba(214,226,255,0)'); c.fillStyle = lg; c.fillRect(x + 2, g - h + 2, 70, h - 4);      // the moon on the near corner
         const rg = c.createLinearGradient(x + w - 90, 0, x + w, 0); rg.addColorStop(0, 'rgba(24,20,70,0)'); rg.addColorStop(1, 'rgba(24,20,70,0.3)'); c.fillStyle = rg; c.fillRect(x + w - 90, g - h + 2, 88, h - 4);        // the far side turning away
         const vg = c.createLinearGradient(0, g - h, 0, g - 128); vg.addColorStop(0, 'rgba(24,20,70,0)'); vg.addColorStop(1, 'rgba(24,20,70,0.24)'); c.fillStyle = vg; c.fillRect(x + 2, g - h + 2, w - 4, h - 130); }       // and the wall sinking into the street's shadow
       box(c, x - 3, g - h + 122, w + 6, 9, C.stone2, 2); c.fillStyle = 'rgba(20,16,60,0.24)'; c.fillRect(x + 2, g - h + 131, w - 4, 8);                                                                             // a string course under the hoarding
-      poster(c, x + 22, g - h + 22, w - 44, 96, 'planet', '#2f7f8c'); for (const lx of [x + 60, x + w - 60]) { line(c, [lx, g - h + 12, lx, g - h + 4, lx, g - h + 20], 2.2); box(c, lx - 6, g - h + 16, 12, 6, C.dark, 1.4); glow(c, lx, g - h + 60, 60, 0.42, '255,236,200'); }   // a hoarding lit from above windows(c, x + 8, g - h + 140, w - 16, 150, 3, 2, r, { frame: C.stone });
+      poster(c, x + 22, g - h + 22, w - 44, 96, 'planet', '#2f7f8c'); for (let k = 0; k < 14; k++) disc(c, x + 34 + ((k * 61) % (w - 68)), g - h + 32 + ((k * 37) % 50), k % 4 ? 1.2 : 2, '#fff6d8', 0); c.beginPath(); c.moveTo(x + 36, g - h + 78); c.quadraticCurveTo(x + 70, g - h + 44, x + 96, g - h + 40); c.lineWidth = 3; c.strokeStyle = '#ffd978'; c.stroke(); disc(c, x + 98, g - h + 40, 4.5, '#fff1b0', 1.2); box(c, x + 22, g - h + 96, w - 44, 22, '#f2e2c0', 1.6); c.font = '700 14px "Bangers", "Comic Neue", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = O; c.fillText('SEE  THE  RINGS', x + w / 2, g - h + 108); for (const lx of [x + 60, x + w - 60]) { line(c, [lx, g - h + 12, lx, g - h + 4, lx, g - h + 20], 2.2); box(c, lx - 6, g - h + 16, 12, 6, C.dark, 1.4); glow(c, lx, g - h + 60, 60, 0.42, '255,236,200'); }   // a hoarding lit from above windows(c, x + 8, g - h + 140, w - 16, 150, 3, 2, r, { frame: C.stone, lit: true }); glow(c, x + w / 2, g - h + 215, 120, 0.3);
       for (const fy of [g - h + 214, g - h + 290]) { box(c, x + 30, fy, w - 60, 5, C.dark, 1.6); for (let fx = x + 34; fx < x + w - 34; fx += 12) line(c, [fx, fy - 18, fx, fy], 1.4); line(c, [x + 30, fy - 18, x + w - 30, fy - 18], 2); } line(c, [x + w - 46, g - h + 214, x + w - 70, g - h + 290], 2); line(c, [x + w - 38, g - h + 214, x + w - 62, g - h + 290], 2);   // a fire escape
       line(c, [x + 12, g - h + 10, x + 12, g - 8], 5); line(c, [x + 12, g - h + 10, x + 12, g - 8], 2.4, C.stone2);
       dish(c, x + w * 0.3, g - h - 8); box(c, x + w * 0.62, g - h - 34, 40, 26, C.stone2, 2.2); line(c, [x + w * 0.62 + 20, g - h - 34, x + w * 0.62 + 20, g - h - 70], 2); disc(c, x + w * 0.62 + 20, g - h - 72, 3, C.red, 1.2);
@@ -281,7 +281,7 @@
         box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4);
         bx += w + 14; k++;
       }
-      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(150,160,205,0.5)'; bc.fillRect(0, 0, bcv.width, bcv.height);   // a clear step cooler and paler than the street row
+      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(104,116,178,0.52)'; bc.fillRect(0, 0, bcv.width, bcv.height);   // a clear step cooler and paler than the street row
       c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(bcv, 0, 0); c.restore();
       if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.45; }
       if (EMS) for (let i = e0; i < EMS.length; i++) EMS[i][1] -= lift;

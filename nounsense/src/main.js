@@ -483,6 +483,7 @@
     const pose = (live || e.mountedBy) && e.moving && !s.flies && !s.swims ? [1, 0, 2, 0][Math.floor(e.walkT * 11) % 4] : live && e.waveUntil > sim.time ? 5 : 0;   // four-step walk; pose 5 is a wave
     let y = e.y, angle = s.upright ? 0 : e.body.angle;
     if ((s.flies || s.swims) && (live || e.mountedBy) && !reduceMotion) y += Math.sin(sim.time * 5 + e.id) * 2.5;
+    if (s.swims && live && !e.heldBy && (L.water || []).some((w) => e.x > w.x0 && e.x < w.x1 && Math.abs(e.y - w.y) < e.h)) y += e.h * 0.3;   // swimmers ride low: back and fin above the surface, the rest under it
     if (!e.placing && !(e.native && e.h > 400) && !s.swims) { if (s.floating || (s.flies && s.alive)) shadow(e.x, sim.groundBelow(e.x, e.y), Math.min(40, e.w * 0.3), 0.1); else if (s.upright || Math.abs(angle) < 0.2) shadow(e.x, e.y + e.h / 2, Math.min(90, e.w * 0.46), 0.22); }
     const g = e.goal, vy = e.body.velocity.y;
     let sy = 0;
@@ -605,6 +606,7 @@
       if (e.burning > 0 || (s.hot && !e.doused) || s.aflame) add(x, y, 130 + Math.min(140, e.w) + Math.sin(sim.time * 17 + e.id) * 8, '255,170,90', 1);
       else if (s.light) add(x, y, s.warm ? 560 : 140 + Math.min(110, e.w), s.tags.includes('crystal') ? '150,220,255' : '255,228,170', 0.95);
       if (s.portal) add(x, y, 100, '120,240,220', 0.7);
+      if (s.tags.includes('ghost')) add(x, y, 78, '170,235,255', 0.6);            // ghosts glow faintly
       if (s.custom === 'thorns' && !(e.burning > 0)) for (let ly = e.y + e.h / 2 - 70; ly > cam.y - 60; ly -= 150) add(e.x, ly, 70, '246,150,220', 0.28);
       if (s.tags.includes('ghost')) add(x, y, 96, '205,225,255', 0.62);
       if (s.strike) add(x, y, 420, '255,255,220', 1);

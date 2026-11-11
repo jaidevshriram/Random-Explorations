@@ -211,13 +211,14 @@
     {
       const x0 = river.x0 + 6, x1 = river.x1 - 6;
       const sil = [x0 - 34, G + 24, x0 - 26, G - 60, x0 - 4, G - 84, x0 - 10, G - 170, x0 + 18, G - 196, x0 + 22, G - 268, x0 + 58, G - 300, x0 + 70, G - 346, RX - 30, G - 372, RX + 44, G - 364, x1 - 64, G - 330, x1 - 52, G - 282, x1 - 18, G - 262, x1 - 8, G - 190, x1 + 16, G - 164, x1 + 10, G - 84, x1 + 36, G - 56, x1 + 40, G + 24];
-      poly(c, sil, H.rock2, 0);
-      c.save(); poly(c, sil, null, 0); c.clip();
+      blob(c, sil, '#4c548e', 0);                            // rounded boulders in the forest's own blue-violet, not grey slabs
+      c.save(); blob(c, sil, null, 0); c.clip();
       const planes = [[[x0 - 34, G + 24, x0 - 26, G - 60, x0 - 4, G - 84, x0 + 44, G - 66, x0 + 60, G + 24], H.rock], [[x0 - 10, G - 170, x0 + 18, G - 196, x0 + 66, G - 178, x0 + 54, G - 92, x0 - 4, G - 84], H.rock], [[x0 + 22, G - 268, x0 + 58, G - 300, x0 + 98, G - 280, x0 + 66, G - 178, x0 + 18, G - 196], H.rockL],
         [[x0 + 70, G - 346, RX - 30, G - 372, RX - 36, G - 296, x0 + 98, G - 280, x0 + 58, G - 300], H.rock], [[x0 + 44, G - 66, x0 + 54, G - 92, RX - 36, G - 110, RX - 36, G + 24, x0 + 60, G + 24], '#6f7898'], [[x0 + 66, G - 178, x0 + 98, G - 280, RX - 36, G - 296, RX - 36, G - 110, x0 + 54, G - 92], '#737c9c'],
         [[RX + 36, G - 300, RX + 44, G - 364, x1 - 64, G - 330, x1 - 52, G - 282, x1 - 86, G - 250], '#6c7494'], [[RX + 36, G - 300, x1 - 86, G - 250, x1 - 70, G - 150, RX + 36, G - 130], '#5a6284'], [[x1 - 86, G - 250, x1 - 52, G - 282, x1 - 18, G - 262, x1 - 8, G - 190, x1 - 70, G - 150], '#636b8c'],
         [[RX + 36, G - 130, x1 - 70, G - 150, x1 - 8, G - 190, x1 + 16, G - 164, x1 + 10, G - 84, x1 - 50, G - 60, RX + 36, G - 50], '#565e80'], [[RX + 36, G - 50, x1 - 50, G - 60, x1 + 10, G - 84, x1 + 36, G - 56, x1 + 40, G + 24, RX + 36, G + 24], '#5f6788']];
-      for (const [pts, col] of planes) poly(c, pts, col, 1.6);
+      planes.forEach(([pts], k) => blob(c, pts, ['#5a64a0', '#646eac', '#7480bc', '#5e68a6', '#525c98', '#58629e', '#4e588f', '#444c84', '#4a528a', '#3f477c', '#454d84'][k % 11], 1.8));
+      { c.save(); blob(c, sil, null, 0); const rg = c.createLinearGradient(x0 - 30, 0, RX, 0); rg.addColorStop(0, 'rgba(210,230,255,0.75)'); rg.addColorStop(1, 'rgba(210,230,255,0)'); c.lineWidth = 12; c.strokeStyle = rg; c.stroke(); c.restore(); }   // the moon along its left shoulder
       for (let i = 0; i < 16; i++) { const lx = x0 + r() * (x1 - x0), ly = G - 330 + r() * 320; if (Math.abs(lx - RX) < 44) continue; line(c, [lx, ly, lx + 8 + r() * 14, ly + 5 + r() * 9, lx + 4 + r() * 10, ly + 16 + r() * 10], 1.2, 'rgba(43,48,68,0.5)'); }
       // the channel, the cave at its head, and the water (the moving streaks are drawn live)
       { const sg = c.createLinearGradient(x0, 0, x1, 0); sg.addColorStop(0, 'rgba(196,220,255,0.2)'); sg.addColorStop(0.4, 'rgba(196,220,255,0)'); sg.addColorStop(0.6, 'rgba(60,40,120,0)'); sg.addColorStop(1, 'rgba(60,40,120,0.4)'); c.fillStyle = sg; c.fillRect(x0 - 40, G - 380, x1 - x0 + 80, 410);
@@ -226,8 +227,8 @@
       const wg = c.createLinearGradient(0, G - 330, 0, G); wg.addColorStop(0, '#c9f6f8'); wg.addColorStop(1, '#7fd0e6'); fallShape(c, RX, G - 328, G + 26, G - 328, river.y); c.fillStyle = wg; c.fill();
       for (const dx of [-7, 2, 9]) { c.beginPath(); for (let y = G - 304; y < G + 26; y += 10) { const x = RX + dx * (1 + (y - G + 328) / 420) + Math.sin(y * 0.05 + dx) * 2; if (y === G - 304) c.moveTo(x, y); else c.lineTo(x, y); } c.lineWidth = 1.6; c.strokeStyle = 'rgba(40,120,180,0.4)'; c.stroke(); }   // the fall breaks into strands
       c.restore();
-      poly(c, sil, null, 3.4);
-      fallEdges(c, RX, G - 328, G + 24, G - 328, river.y); blob(c, [RX - 30, G - 326, RX - 22, G - 338, RX, G - 341, RX + 22, G - 337, RX + 30, G - 326, RX, G - 322], H.moss2, 2); line(c, [x0 - 8, G - 168, x0 + 20, G - 193, x0 + 25, G - 265, x0 + 60, G - 296, x0 + 73, G - 342, RX - 30, G - 368], 2.2, 'rgba(214,232,255,0.8)');   // foam where it leaves the cave
+      blob(c, sil, null, 3.4);
+      fallEdges(c, RX, G - 328, G + 24, G - 328, river.y); blob(c, [RX - 30, G - 326, RX - 22, G - 338, RX, G - 341, RX + 22, G - 337, RX + 30, G - 326, RX, G - 322], H.moss2, 2);   // foam where it leaves the cave
       // moss and plants on every ledge
       for (const [mx, my, mw] of [[x0 - 2, G - 86, 34], [x0 + 20, G - 198, 36], [x0 + 60, G - 302, 40], [RX + 6, G - 370, 86], [x1 - 34, G - 264, 40], [x1 + 4, G - 166, 30], [x1 + 24, G - 58, 30]]) { blob(c, [mx - mw, my + 5, mx - mw * 0.6, my - 9, mx, my - 12, mx + mw * 0.6, my - 8, mx + mw, my + 5, mx, my + 9], H.moss2, 2.2); blob(c, [mx - mw * 0.7, my, mx - mw * 0.3, my - 9, mx + mw * 0.2, my - 9, mx + mw * 0.4, my], H.moss, 0); }
       glow(c, RX, G - 200, 150, 0.3, CY); glow(c, RX, G - 20, 120, 0.42, CY);
@@ -310,7 +311,7 @@
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
         fallShape(ctx, RX, G + 1, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
         ctx.save(); fallShape(ctx, RX, G - 324, river.y + 4, G - 328, river.y); ctx.clip();
-        for (let i = 0; i < 20; i++) { const sx = RX - 28 + ((i * 37) % 56), len = 36 + (i * 53) % 80, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.75)' : 'rgba(210,250,255,0.5)'; ctx.fillRect(sx, y, [2, 3.4, 6][i % 3], len); }
+        for (let i = 0; i < 20; i++) { const sx = RX - 28 + ((i * 37) % 56), len = 36 + (i * 53) % 80, sp = 230 + (i * 29) % 120, span = river.y - G + 440, y = G - 390 + ((t * sp + i * 97) % span); ctx.lineCap = 'round'; ctx.strokeStyle = i % 3 ? 'rgba(255,255,255,0.7)' : 'rgba(210,250,255,0.45)'; ctx.lineWidth = [1.4, 2.2, 3.4][i % 3]; ctx.beginPath(); ctx.moveTo(sx, y); ctx.quadraticCurveTo(sx + ((i % 5) - 2) * 1.6, y + len / 2, sx + ((i % 3) - 1) * 1.5, y + len); ctx.stroke(); } ctx.lineCap = 'butt';
         for (const [ex, dx] of [[RX - 33, 1], [RX + 33, -1]]) { const eg = ctx.createLinearGradient(ex, 0, ex + dx * 18, 0); eg.addColorStop(0, 'rgba(30,90,150,0.55)'); eg.addColorStop(1, 'rgba(30,90,150,0)'); ctx.fillStyle = eg; ctx.fillRect(Math.min(ex, ex + dx * 18), G - 324, 18, river.y - G + 326); }   // the fall is round: darker at the edges
         ctx.restore();
         fallEdges(ctx, RX, G + 14, river.y + 2, G - 328, river.y);

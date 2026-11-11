@@ -19,6 +19,11 @@ The game was reworked after the notes below were written. What is true now:
   their `build()` returns `animate(ctx, t, layer, …)` for things that move and `liveLights(t)`. To add a world:
   write a painter with that interface named after the theme (`NN.<theme>`), add a `custom` theme in `THEMES` in
   `main.js`, and set `zoom: 1` on the level. `buildWorldArt()` and `drawBlock()` pick it up by name.
+  Two optional hooks: `midLights()` returns lights for the middle-distance layer as `[x, height above the horizon,
+  radius, colour, strength]` (they slide with that layer; the forest uses it for distant windows), and
+  `trench(ctx, terrainBlock, waterY)` paints the far wall of a pit (the town's canal). A theme may set `waterDeep`
+  for the colour water falls to with depth. Port Nebula is painted at golden hour so the four worlds do not share
+  one key; `sky2: 'violet'` on the level brings back the purple dusk.
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.

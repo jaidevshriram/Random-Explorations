@@ -35,7 +35,7 @@
     frame(c, x, y, w, h); box(c, x, y, w, h, kind === 'castle' ? '#4a3f7a' : '#3f5a5e', 2);
     c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
     if (kind === 'castle') {
-      disc(c, x + w * 0.74, y + h * 0.3, h * 0.16, M.moon, 0); c.fillStyle = '#2d2752'; c.beginPath(); c.ellipse(x + w * 0.5, y + h * 1.1, w * 0.8, h * 0.42, 0, 0, 7); c.fill();
+      for (const [sx, sy] of [[0.7, 0.2], [0.82, 0.34], [0.6, 0.36], [0.2, 0.22], [0.12, 0.4]]) disc(c, x + w * sx, y + h * sy, 1.3, '#e8e4ff', 0); c.fillStyle = '#2d2752'; c.beginPath(); c.ellipse(x + w * 0.5, y + h * 1.1, w * 0.8, h * 0.42, 0, 0, 7); c.fill();
       c.fillStyle = '#1f1b3d'; c.fillRect(x + w * 0.3, y + h * 0.42, w * 0.3, h * 0.4); for (const tx of [0.28, 0.42, 0.56]) { c.fillRect(x + w * tx, y + h * (tx === 0.42 ? 0.24 : 0.34), w * 0.08, h * 0.5); c.beginPath(); c.moveTo(x + w * (tx - 0.02), y + h * (tx === 0.42 ? 0.24 : 0.34)); c.lineTo(x + w * (tx + 0.04), y + h * (tx === 0.42 ? 0.1 : 0.22)); c.lineTo(x + w * (tx + 0.1), y + h * (tx === 0.42 ? 0.24 : 0.34)); c.fill(); }
       c.fillStyle = '#ffdc94'; c.fillRect(x + w * 0.44, y + h * 0.36, 3, 5); c.fillRect(x + w * 0.36, y + h * 0.56, 3, 5);
     } else {
@@ -92,7 +92,7 @@
     box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
     box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
     { const br = rng(4711);                                 // the ceiling is lived in: cobwebs in the coffers and bats asleep on the beams
-      for (let x = 20; x < W; x += 96) { if (br() < 0.45) cobweb(c, x + 16, top + 8, 1, 1, 22 + br() * 14); if (br() < 0.3) cobweb(c, x + 80, top + 8, -1, 1, 20 + br() * 12);
+      for (let x = 20; x < W; x += 96) { if (br() < 0.2) cobweb(c, x + 16, top + 8, 1, 1, 16 + br() * 26); if (br() < 0.12) cobweb(c, x + 80, top + 8, -1, 1, 14 + br() * 22);
         if (br() < 0.34) { const bx = x + 34 + br() * 30, by = CEIL - 12; line(c, [bx, by - 6, bx, by], 1.6); poly(c, [bx - 7, by, bx + 7, by, bx + 5, by + 16, bx, by + 22, bx - 5, by + 16], '#2a2238', 1.6); poly(c, [bx - 4, by + 20, bx - 6, by + 27, bx - 1, by + 23], '#2a2238', 1.2); poly(c, [bx + 4, by + 20, bx + 6, by + 27, bx + 1, by + 23], '#2a2238', 1.2); } } }
     for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 80, 60, 0.45); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
     box(c, -10, g - 112, W + 20, 112, M.wood, 2.6); box(c, -10, g - 120, W + 20, 10, M.woodL, 2.2); line(c, [0, g - 121, W, g - 121], 1.6, M.gold);
@@ -114,13 +114,13 @@
       if (drapes) { line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 7); line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 3.4, M.gold); disc(c, x - 62, y0 - 44, 7, M.gold, 2); disc(c, x + w + 62, y0 - 44, 7, M.gold, 2); }
       if (drapes) for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(x - 34 + (w + 68) * (i + 0.5) / 8, y0 - 38, (w + 68) / 16, 0, Math.PI); c.fillStyle = M.red2; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); }
       if (!drapes) {                                         // moonlight falls through it across the wall, and lands on the floor
-        c.save(); c.globalCompositeOperation = 'screen'; poly(c, [x + 8, y0 + w / 2, x + w - 8, y0 + w / 2, x + w + 190, g, x + 110, g], 'rgba(150,185,255,0.13)', 0); poly(c, [x + 30, y0 + w / 2, x + w - 30, y0 + w / 2, x + w + 150, g, x + 150, g], 'rgba(170,200,255,0.1)', 0); c.restore();
+        c.save(); c.globalCompositeOperation = 'screen'; poly(c, [x + 8, y0 + w / 2, x + w - 8, y0 + w / 2, x + w + 190, g, x + 110, g], 'rgba(150,185,255,0.22)', 0); poly(c, [x + 30, y0 + w / 2, x + w - 30, y0 + w / 2, x + w + 150, g, x + 150, g], 'rgba(170,200,255,0.16)', 0); c.restore();
         COOL.push([x + 110, x + w + 190]);
       }
     };
     moonWindow(70, 220, 140, g - 126, true);
     moonWindow(836, 152, 80, g - 150, false);
-    for (const [sx, sy] of [[950, 486], [1030, 436], [1110, 386], [1190, 336]]) glow(c, sx, sy, 46, 0.22, '176,204,255');   // the moon shaft lies along the staircase
+    for (const [sx, sy] of [[950, 486], [1030, 436], [1110, 386], [1190, 336]]) glow(c, sx, sy, 50, 0.34, '176,204,255');   // the moon shaft lies along the staircase
     // a suit of armour on a plinth
     { const x = 420; box(c, x - 34, g - 26, 68, 26, M.stone, 2.4); box(c, x - 28, g - 34, 56, 9, M.stone2, 2);
       line(c, [x + 34, g - 30, x + 34, g - 190], 4.4); line(c, [x + 34, g - 30, x + 34, g - 190], 2, M.woodL); poly(c, [x + 34, g - 178, x + 60, g - 190, x + 62, g - 160, x + 34, g - 150], M.iron, 2); poly(c, [x + 30, g - 190, x + 34, g - 212, x + 38, g - 190], M.iron, 1.8);
@@ -156,7 +156,7 @@
     { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 80, 0.45, '150,225,255'); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
       poly(c, [x - 8, g - 82, x - 16, g - 110, x - 4, g - 140, x + 8, g - 112], '#a9e0f2', 2); poly(c, [x + 6, g - 82, x + 4, g - 104, x + 18, g - 124, x + 24, g - 98, x + 18, g - 82], '#7fc6e6', 2); poly(c, [x - 26, g - 82, x - 28, g - 98, x - 18, g - 108, x - 12, g - 92], '#c9f0fb', 1.8);
       c.lineWidth = 2.4; c.strokeStyle = O; c.strokeRect(x - 40, g - 150, 80, 72); line(c, [x - 32, g - 142, x - 20, g - 142], 2, 'rgba(255,255,255,0.7)'); }
-    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#6a5646', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
+    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 58, g - 154, 116, 86, M.gold, 2.4); box(c, x - 50, g - 146, 100, 70, '#2c2a5c', 1.8); for (const [sx, sy] of [[-36, -134], [-20, -96], [34, -130], [40, -92], [-40, -112]]) disc(c, x + sx, g + sy, 1.3, '#e8e4ff', 0); icon(c, 'planet', x, g - 111, 24); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
     { const x = 1787, w = 96; c.beginPath(); c.moveTo(x - w / 2, g - 16); c.lineTo(x - w / 2, g - 128); c.arc(x, g - 128, w / 2, Math.PI, 0); c.lineTo(x + w / 2, g - 16); c.closePath(); c.fillStyle = '#2f2233'; c.fill(); c.lineWidth = 9; c.strokeStyle = O; c.stroke(); c.lineWidth = 5; c.strokeStyle = M.woodL; c.stroke(); line(c, [x, g - 176, x, g - 16], 2.4); disc(c, x - 9, g - 86, 3.6, M.gold, 1.4); disc(c, x + 9, g - 86, 3.6, M.gold, 1.4); for (const s of [-1, 1]) { c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,220,170,0.25)'; c.strokeRect(x + (s < 0 ? -38 : 8), g - 120, 30, 44); c.strokeRect(x + (s < 0 ? -38 : 8), g - 68, 30, 44); } cobweb(c, x - w / 2 + 4, g - 150, 1, 1, 44); }
     { const x = 1997; box(c, x - 26, g - 76, 52, 76, M.stone, 2.4); box(c, x - 32, g - 84, 64, 10, M.stone2, 2); box(c, x - 32, g - 10, 64, 10, M.stone2, 2); poly(c, [x - 24, g - 84, x - 16, g - 108, x + 16, g - 108, x + 24, g - 84], M.paper, 2.2); c.beginPath(); c.roundRect(x - 15, g - 142, 30, 36, 9); c.fillStyle = M.paper; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); c.beginPath(); c.arc(x, g - 132, 17, Math.PI, 0); c.fillStyle = '#d9cdb0'; c.fill(); c.stroke(); line(c, [x - 6, g - 124, x - 2, g - 124], 1.6); line(c, [x + 2, g - 124, x + 6, g - 124], 1.6); }
     for (const bx of bays) {
@@ -173,7 +173,7 @@
       c.fillStyle = 'rgba(240,248,255,0.5)'; c.beginPath(); c.arc(x + 6, y0 + 90, 18, Math.PI, 0); c.lineTo(x + 24, y0 + 130); c.lineTo(x + 15, y0 + 122); c.lineTo(x + 6, y0 + 130); c.lineTo(x - 3, y0 + 122); c.lineTo(x - 12, y0 + 130); c.closePath(); c.fill(); disc(c, x, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0); disc(c, x + 12, y0 + 88, 2.4, 'rgba(43,48,68,0.6)', 0);
       c.lineWidth = 2; c.strokeStyle = O; c.strokeRect(x - w / 2, y0, w, y1 - y0); poly(c, [x - 26, y0 - 9, x, y0 - 34, x + 26, y0 - 9], M.gold, 2.2); }
     sconce(c, 2112 + 14, 250); sconce(c, 2340, 250); candelabra(c, 2364, g);
-    chandelier(c, 480, 56); chandelier(c, 1130, 40); chandelier(c, 1660, 26);
+    chandelier(c, 480, 56); chandelier(c, 1212, 34); chandelier(c, 1660, 26);
     sconce(c, 1660, 170); sconce(c, 2010, 150);
     for (let i = 0; i < 4; i++) { const lx = (bays[i] + bays[i + 1]) / 2; if (inGap(lx)) continue; line(c, [lx, GAL + 22, lx, GAL + 52], 2); box(c, lx - 7, GAL + 52, 14, 18, '#ffdc94', 2); box(c, lx - 9, GAL + 48, 18, 5, M.gold2, 1.6); glow(c, lx, GAL + 62, 74, 0.42); }
     cobweb(c, 2, CEIL + 16, 1, 1, 80); cobweb(c, W - 2, CEIL + 16, -1, 1, 90); cobweb(c, 1264, GAL + 24, 1, 1, 50); cobweb(c, 2098, CEIL + 16, -1, 1, 60);
@@ -201,6 +201,7 @@
       const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.3)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
       box(c, t.x0, y + 5, 30, hh - 5, M.wood2, 1.8);                                                   // riser, in shade
       box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, '#d24a40', 1.4); line(c, [t.x0 + 2, y + 2.6, t.x0 + 28, y + 2.6], 1, M.gold); line(c, [t.x0 - 2, y - 1, t.x0 + 32, y - 1], 1.6, 'rgba(206,224,255,0.85)');   // tread, lit, with the runner
+      if (t.x0 >= 940 && t.x0 <= 1130 && Math.floor((t.x0 - 950) / 30 + 0.5) % 3 !== 2) { c.fillStyle = 'rgba(196,220,255,0.55)'; c.fillRect(t.x0 - 2, y - 1.5, 34, 6); c.fillStyle = 'rgba(160,195,255,0.3)'; c.fillRect(t.x0 + 1, y + 6, 28, hh - 7); }   // the moon through the window lands here, the glazing bars leaving dark steps between
       line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
       // Recessed panels and a cupboard door under the stairs. Every slab draws the whole design clipped to itself, so it lines up.
       c.save(); c.beginPath(); c.rect(t.x0 + 34, y, t.x1 - t.x0 - 34, hh); c.clip();
