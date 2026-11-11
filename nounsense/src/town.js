@@ -354,18 +354,24 @@
       else if (kind === 5) { for (const dx of [-0.26, 0.2]) { c.fillStyle = '#8a6a78'; c.fillRect(mx + dx * bw, ty - 22, 12, 22); c.strokeRect(mx + dx * bw, ty - 22, 12, 22); } c.fillStyle = '#b9c6e0'; c.beginPath(); c.moveTo(mx - 14, ty); c.lineTo(mx - 4, ty - 12); c.lineTo(mx + 14, ty - 12); c.lineTo(mx + 4, ty); c.closePath(); c.fill(); c.stroke(); }
       else { c.fillStyle = '#efe6d2'; c.beginPath(); c.arc(mx, ty - 26, 17, 0, 7); c.fill(); c.stroke(); c.fillStyle = col; c.fillRect(mx - 22, ty - 12, 44, 12); c.strokeRect(mx - 22, ty - 12, 44, 12); c.beginPath(); c.moveTo(mx, ty - 26); c.lineTo(mx, ty - 37); c.moveTo(mx, ty - 26); c.lineTo(mx + 8, ty - 22); c.stroke(); }   // a clock
     }
-    const vy = horizon - 300;                              // above the shop roofs, across the band of sky, so it reads as the middle distance
-    c.fillStyle = '#66739f'; c.strokeStyle = '#343c62'; c.lineWidth = 2.6;
-    for (let x = -60; x < w; x += 150) {                    // piers, and the spandrels over each arch; the openings show what is behind
-      c.fillRect(x, vy + 24, 26, horizon - vy - 24); c.strokeRect(x, vy + 24, 26, horizon - vy - 24);
-      c.beginPath(); c.moveTo(x + 26, vy + 24); c.lineTo(x + 150, vy + 24); c.lineTo(x + 150, vy + 112); c.arc(x + 88, vy + 112, 62, 0, Math.PI, true); c.closePath(); c.fill(); c.stroke();
-      c.fillStyle = 'rgba(20,24,60,0.22)'; c.fillRect(x + 17, vy + 24, 9, horizon - vy - 24); c.fillStyle = '#66739f';
+    const vy = horizon - 362, S = 200, PW = 30, R = (S - PW) / 2, SP = vy + 30 + R, VC = '#8b96c6', VL = '#343c62';   // high enough that the arches clear the shop roofs: the lit town shows through them
+    c.fillStyle = VC; c.strokeStyle = VL; c.lineWidth = 2.6;
+    for (let x = -60; x < w; x += S) {                      // piers, and the spandrels over each arch
+      c.fillRect(x, vy + 24, PW, horizon - vy - 24); c.strokeRect(x, vy + 24, PW, horizon - vy - 24);
+      c.beginPath(); c.moveTo(x + PW, vy + 24); c.lineTo(x + S, vy + 24); c.lineTo(x + S, SP); c.arc(x + PW + R, SP, R, 0, Math.PI, true); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(20,24,60,0.24)'; c.fillRect(x + PW - 10, vy + 24, 10, horizon - vy - 24); c.fillStyle = 'rgba(226,234,255,0.22)'; c.fillRect(x + 1, vy + 24, 5, horizon - vy - 24);
+      c.lineWidth = 1; c.strokeStyle = 'rgba(60,70,110,0.5)'; for (let yy = SP + 20; yy < horizon; yy += 26) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x + PW, yy); c.stroke(); }
+      c.fillStyle = VC; c.strokeStyle = VL; c.lineWidth = 2.6;
     }
     c.fillRect(-60, vy, w + 120, 26); c.strokeRect(-60, vy, w + 120, 26);
-    c.fillStyle = '#8c98c0'; c.fillRect(-60, vy - 7, w + 120, 8); c.strokeRect(-60, vy - 7, w + 120, 8);                                   // parapet
+    c.fillStyle = '#b4bee4'; c.fillRect(-60, vy - 7, w + 120, 8); c.strokeRect(-60, vy - 7, w + 120, 8); c.fillStyle = 'rgba(240,244,255,0.8)'; c.fillRect(-60, vy - 6, w + 120, 2.5);   // the parapet catches the moon
+    c.fillStyle = 'rgba(20,24,60,0.22)'; c.fillRect(-60, vy + 26, w + 120, 7);                                                             // and throws a shadow on the arches
     for (let x = -60; x < w; x += 30) { c.beginPath(); c.moveTo(x, vy + 9); c.lineTo(x + 15, vy + 9); c.moveTo(x + 15, vy + 17); c.lineTo(x + 30, vy + 17); c.lineWidth = 1; c.strokeStyle = 'rgba(60,70,110,0.5)'; c.stroke(); }   // stone courses
-    for (let x = 28; x < w; x += 150) { c.lineWidth = 2; c.strokeStyle = LO; c.beginPath(); c.arc(x, vy + 112, 62, Math.PI, 0); c.stroke(); c.fillStyle = '#8c98c0'; c.fillRect(x - 6, vy + 44, 12, 12); c.strokeRect(x - 6, vy + 44, 12, 12);   // keystones
-      c.beginPath(); c.moveTo(x - 75, vy - 7); c.lineTo(x - 75, vy - 30); c.stroke(); c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x - 75, vy - 33, 4.5, 0, 7); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,233,160,0.28)'; c.beginPath(); c.arc(x - 75, vy - 33, 13, 0, 7); c.fill(); }   // lamps along the line
+    for (let x = -60 + PW + R; x < w; x += S) {
+      c.beginPath(); c.arc(x, SP, R - 5, Math.PI, 0); c.lineWidth = 10; c.strokeStyle = '#59639a'; c.stroke();                           // the underside of the arch, in shadow
+      c.lineWidth = 2; c.strokeStyle = VL; c.beginPath(); c.arc(x, SP, R, Math.PI, 0); c.stroke(); c.lineWidth = 1.2; c.beginPath(); c.arc(x, SP, R - 10, Math.PI, 0); c.stroke();
+      c.lineWidth = 2; c.fillStyle = '#b4bee4'; c.fillRect(x - 7, vy + 27, 14, 14); c.strokeRect(x - 7, vy + 27, 14, 14);                  // keystones
+      const lx = x - R - PW / 2; c.beginPath(); c.moveTo(lx, vy - 7); c.lineTo(lx, vy - 30); c.stroke(); c.fillStyle = 'rgba(255,233,160,0.3)'; c.beginPath(); c.arc(lx, vy - 33, 13, 0, 7); c.fill(); c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(lx, vy - 33, 4.5, 0, 7); c.fill(); c.stroke(); }   // lamps along the line
     c.lineWidth = 2; c.strokeStyle = LO;
     for (let x = 30; x < w; x += 130 + r() * 110) { const s = 1.4 + r() * 1.1, dark = r() < 0.5; c.fillStyle = '#6a5a52'; c.fillRect(x - 4 * s, horizon - 40 * s, 8 * s, 40 * s); for (const [dx, dy, rr] of [[-20, -30, 26], [20, -34, 26], [0, -56, 30], [-8, -44, 20]]) { c.beginPath(); c.arc(x + dx * s, horizon + dy * s, rr * s, 0, 7); c.fillStyle = dark ? '#5f8468' : '#7d9a7a'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke(); } c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.arc(x - 8 * s, horizon - 62 * s, 14 * s, 0, 7); c.fill(); }
     // a sky-barge
@@ -374,6 +380,21 @@
     for (const dx of [-30, 0, 30]) { c.beginPath(); c.moveTo(ax + dx, ay - 25); c.quadraticCurveTo(ax + dx + 8, ay, ax + dx, ay + 25); c.stroke(); }
     c.fillStyle = '#c9574a'; c.beginPath(); c.moveTo(ax - 62, ay - 8); c.lineTo(ax - 92, ay - 24); c.lineTo(ax - 86, ay + 2); c.lineTo(ax - 92, ay + 24); c.lineTo(ax - 62, ay + 8); c.fill(); c.stroke();
     c.fillStyle = '#efe6d2'; c.fillRect(ax - 24, ay + 28, 48, 14); c.strokeRect(ax - 24, ay + 28, 48, 14); c.beginPath(); c.moveTo(ax - 16, ay + 24); c.lineTo(ax - 16, ay + 28); c.moveTo(ax + 16, ay + 24); c.lineTo(ax + 16, ay + 28); c.stroke();
+  }
+  // the far wall of the canal, where the street has fallen in: dressed stone, a coping, a culvert and mooring rings
+  function trench(c, t, wy) {
+    const x0 = t.x0, x1 = t.x1, y0 = t.trench + 4, y1 = t.y0, mx = (x0 + x1) / 2, sy = (wy || y1) + 4;
+    const g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, '#5d6894'); g.addColorStop(1, '#2c3258'); c.fillStyle = g; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+    c.strokeStyle = 'rgba(22,24,54,0.5)'; c.lineWidth = 1.2; c.beginPath();
+    for (let y = y0 + 22, row = 0; y < y1; y += 20, row++) { c.moveTo(x0, y); c.lineTo(x1, y); for (let x = x0 + (row % 2 ? 24 : 0); x < x1; x += 48) { c.moveTo(x, y); c.lineTo(x, Math.min(y + 20, y1)); } } c.stroke();
+    c.fillStyle = 'rgba(96,150,120,0.5)'; for (let i = 0; i < 9; i++) { const sx = x0 + 14 + ((i * 67) % (x1 - x0 - 28)); c.fillRect(sx, y0 + 14, 5 + (i % 3) * 3, 6 + ((i * 13) % 14)); }   // moss under the coping
+    c.fillStyle = '#8a94c0'; c.fillRect(x0, y0, x1 - x0, 10); c.fillStyle = 'rgba(236,240,255,0.55)'; c.fillRect(x0, y0, x1 - x0, 2.5); c.fillStyle = 'rgba(16,16,48,0.3)'; c.fillRect(x0, y0 + 10, x1 - x0, 5);
+    c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y0 + 10); c.lineTo(x1, y0 + 10); c.stroke();
+    c.beginPath(); c.ellipse(mx, sy, 52, 28, 0, Math.PI, 0); c.lineTo(mx + 52, y1); c.lineTo(mx - 52, y1); c.closePath(); c.fillStyle = '#7c86b2'; c.fill(); c.stroke();          // the culvert's stone ring
+    for (let k = 1; k < 8; k++) { const a = Math.PI + k * Math.PI / 8; c.beginPath(); c.moveTo(mx + Math.cos(a) * 44, sy + Math.sin(a) * 20); c.lineTo(mx + Math.cos(a) * 52, sy + Math.sin(a) * 28); c.lineWidth = 1.2; c.stroke(); }
+    c.lineWidth = 2; c.beginPath(); c.ellipse(mx, sy, 44, 20, 0, Math.PI, 0); c.lineTo(mx + 44, y1); c.lineTo(mx - 44, y1); c.closePath(); c.fillStyle = '#12152c'; c.fill(); c.stroke();
+    c.fillStyle = 'rgba(255,214,150,0.55)'; c.fillRect(mx - 14, sy - 5, 24, 2); c.fillRect(mx - 4, sy - 11, 14, 1.6);                                                              // a lamp somewhere down the tunnel
+    for (const rx of [x0 + 40, x1 - 40]) { c.fillStyle = '#9aa3c0'; c.fillRect(rx - 3.5, y0 + 22, 7, 8); c.strokeRect(rx - 3.5, y0 + 22, 7, 8); c.beginPath(); c.arc(rx, y0 + 37, 7, 0, 7); c.lineWidth = 4.4; c.strokeStyle = O; c.stroke(); c.lineWidth = 2; c.strokeStyle = '#9aa3c0'; c.stroke(); c.strokeStyle = O; }
   }
   // the monorail, drawn once; the game slides it along the viaduct
   function train() {
@@ -421,5 +442,5 @@
     line(c, [x0, y, x1, y], 3); line(c, [x0, y + 15, x1, y + 15], 2);
   }
 
-  NN.town = { front, far, mid, sky, street, train, parts: { ICON, awning, poster, tree, lamp, cornice, wall, bricks, cast, hangSign, vine, tank, dish, flag, vent, capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
+  NN.town = { front, far, mid, sky, street, train, trench, parts: { ICON, awning, poster, tree, lamp, cornice, wall, bricks, cast, hangSign, vine, tank, dish, flag, vent, capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
 })(window.NN);

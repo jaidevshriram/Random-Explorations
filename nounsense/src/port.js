@@ -51,7 +51,7 @@
         continue;
       }
       const p = () => { c.beginPath(); c.moveTo(x - hw, y + 4); c.lineTo(x + hw, y + 4); c.quadraticCurveTo(x + hw + 12, y + sh * 0.5, x + hw - 4, y + sh); c.quadraticCurveTo(x, y + sh - 18, x - hw + 4, y + sh); c.quadraticCurveTo(x - hw - 12, y + sh * 0.5, x - hw, y + 4); c.closePath(); };
-      p(); const g = c.createLinearGradient(x - hw, 0, x + hw, 0); g.addColorStop(0, '#c08a9e'); g.addColorStop(0.5, '#ecd0ba'); g.addColorStop(1, '#fdeccc'); c.fillStyle = g; c.fill();   // dusty rose on the side away from the sun, cream towards it
+      p(); const g = c.createLinearGradient(x - hw, 0, x + hw, 0); g.addColorStop(0, '#cf9aa6'); g.addColorStop(0.45, '#f6e0c6'); g.addColorStop(1, '#fff6dc'); c.fillStyle = g; c.fill();   // dusty rose on the side away from the sun, cream towards it
       c.save(); c.clip();
       for (let i = -2; i <= 2; i++) { const fx = x + i * hw * 0.36; const fg = c.createLinearGradient(fx - 24, 0, fx + 24, 0); fg.addColorStop(0, 'rgba(120,64,110,0)'); fg.addColorStop(0.5, 'rgba(120,64,110,0.14)'); fg.addColorStop(0.52, 'rgba(255,255,255,0.14)'); fg.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = fg; c.fillRect(fx - 24, y, 48, sh + 4); line(c, [fx, y + 6, fx + i * 1.5, y + sh], 1.1, 'rgba(120,90,80,0.45)'); }   // five seams, with the cloth bellying between them
       { const cs = c.createLinearGradient(0, y, 0, y + 26); cs.addColorStop(0, 'rgba(70,30,90,0.36)'); cs.addColorStop(1, 'rgba(70,30,90,0)'); c.fillStyle = cs; c.fillRect(x - hw - 12, y, hw * 2 + 24, 26);                        // shadow under the yard
@@ -60,8 +60,11 @@
       if (o.patch) for (const [px, py, pw, ph] of [[-hw * 0.56, sh * 0.62, 26, 20], [hw * 0.3, sh * 0.7, 20, 24]]) { c.fillStyle = 'rgba(150,96,96,0.5)'; c.fillRect(x + px, y + py, pw, ph); for (let q = 3; q < pw; q += 6) { line(c, [x + px + q, y + py - 2, x + px + q, y + py + 2], 1.2, 'rgba(90,60,54,0.8)'); line(c, [x + px + q, y + py + ph - 2, x + px + q, y + py + ph + 2], 1.2, 'rgba(90,60,54,0.8)'); } }   // patches, stitched on
       if (o.mark) icon(c, o.mark, x, y + sh * 0.48, Math.min(26, sh * 0.3));
       c.beginPath(); c.moveTo(x + hw, y + 4); c.quadraticCurveTo(x + hw + 12, y + sh * 0.5, x + hw - 4, y + sh); c.quadraticCurveTo(x, y + sh - 18, x - hw + 4, y + sh); c.lineWidth = 11; c.strokeStyle = 'rgba(255,196,120,0.75)'; c.stroke(); c.lineWidth = 5; c.strokeStyle = '#fff0c4'; c.stroke();   // the sunward edge and the foot catch the low sun
+      { const bl = c.createRadialGradient(x + hw * 0.25, y + sh * 0.52, 4, x + hw * 0.25, y + sh * 0.52, hw * 0.8); bl.addColorStop(0, 'rgba(255,252,236,0.55)'); bl.addColorStop(1, 'rgba(255,252,236,0)'); c.fillStyle = bl; c.fillRect(x - hw - 12, y, hw * 2 + 24, sh + 6);
+        const up = c.createLinearGradient(x - hw, y, x - hw * 0.2, y + sh * 0.7); up.addColorStop(0, 'rgba(92,60,140,0.4)'); up.addColorStop(1, 'rgba(92,60,140,0)'); c.fillStyle = up; c.fillRect(x - hw - 12, y, hw * 1.2, sh + 6); }   // a bright belly, and violet shade in the upper folds away from the sun
       c.restore();
       p(); c.lineWidth = 2.8; c.strokeStyle = O; c.stroke();
+      for (const k of [-0.5, 0, 0.5]) glow(c, x + k * hw + hw * 0.1, y + sh * 0.5, Math.min(hw * 0.46, sh * 0.52), 0.23, '255,238,208');   // the canvas is lit: three lights kept inside its outline, so the sky round it stays dark
       line(c, [x - hw + 4, y + sh, x - hw - 6, y + sh + 26], 1.4); line(c, [x + hw - 4, y + sh, x + hw + 6, y + sh + 26], 1.4);
     }
     if (o.nest) { const y = top + o.nest; poly(c, [x - 26, y, x + 26, y, x + 20, y + 22, x - 20, y + 22], K.plank2, 2.4); box(c, x - 28, y - 4, 56, 6, K.plankL, 2); shipLantern(c, x + 30, y + 2, 0.8); }
@@ -185,7 +188,7 @@
           ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 20); ctx.lineWidth = 2.4; ctx.stroke();
         }
         for (const g of gulls) { const x = ((g.off + t * g.sp) % (L.W + 200)) - 100, y = g.y + Math.sin(t * 0.7 + g.a) * 14, f = Math.sin(t * 6 + g.a) * 5; if (!vis(x)) continue; ctx.beginPath(); ctx.moveTo(x - 10, y - 3 + f); ctx.quadraticCurveTo(x - 4, y - 8, x, y); ctx.quadraticCurveTo(x + 4, y - 8, x + 10, y - 3 + f); ctx.lineWidth = 2.2; ctx.strokeStyle = '#4b3f66'; ctx.lineCap = 'round'; ctx.stroke(); }
-        if (vis(RX, 200)) { const a = Math.sin(t * 1.2) * 0.5; ctx.save(); ctx.translate(RX - 2, G - 219); ctx.rotate(a); ctx.globalAlpha = 0.16; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-240, -30); ctx.lineTo(-240, 30); ctx.closePath(); ctx.fillStyle = '#fff3c0'; ctx.fill(); ctx.restore(); }   // the light on the rock sweeps
+        if (vis(RX, 200)) { const a = Math.sin(t * 1.2) * 0.5; ctx.save(); ctx.translate(RX - 2, G - 219); ctx.rotate(a); { const bg = ctx.createLinearGradient(0, 0, -260, 0); bg.addColorStop(0, 'rgba(255,243,192,0.34)'); bg.addColorStop(1, 'rgba(255,243,192,0)'); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-260, -34); ctx.lineTo(-260, 34); ctx.closePath(); ctx.fillStyle = bg; ctx.fill(); } ctx.restore(); }   // the light on the rock sweeps
         return;
       }
       if (layer !== 'top') for (const [x, ph] of buoys) if (vis(x)) {
@@ -211,7 +214,7 @@
   // ---- sky and distance ----------------------------------------------------------
   function sky(c, VW, VH, L) {
     const gold = !(L && L.sky2 === 'violet');              // golden hour by default: teal above, amber at the horizon; 'violet' keeps the purple dusk
-    const g = c.createLinearGradient(0, 0, 0, VH * 0.86); if (gold) { g.addColorStop(0, '#1c4a78'); g.addColorStop(0.36, '#4f6f9e'); g.addColorStop(0.58, '#8f7aa4'); g.addColorStop(0.76, '#e8947c'); g.addColorStop(0.9, '#ffb866'); g.addColorStop(1, '#ffe2a0'); } else { g.addColorStop(0, '#4a3aa0'); g.addColorStop(0.4, '#a060b8'); g.addColorStop(0.72, '#ff9a86'); g.addColorStop(1, '#ffe2b0'); } c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+    const g = c.createLinearGradient(0, 0, 0, VH * 0.86); if (gold) { g.addColorStop(0, '#1c4a78'); g.addColorStop(0.36, '#4f6f9e'); g.addColorStop(0.58, '#70699c'); g.addColorStop(0.76, '#e8947c'); g.addColorStop(0.9, '#ffb866'); g.addColorStop(1, '#ffe2a0'); } else { g.addColorStop(0, '#4a3aa0'); g.addColorStop(0.4, '#a060b8'); g.addColorStop(0.72, '#ff9a86'); g.addColorStop(1, '#ffe2b0'); } c.fillStyle = g; c.fillRect(0, 0, VW, VH);
     const r = rng(21); c.fillStyle = '#fff6e0'; for (let i = 0; i < 70; i++) { const y = r() * VH * 0.4; c.globalAlpha = 1 - y / (VH * 0.42); c.beginPath(); c.arc(r() * VW, y, 0.6 + r() * 1.3, 0, 7); c.fill(); } c.globalAlpha = 1;
     // a ringed giant hanging over the bay
     const px = VW * 0.24, py = 150, pr = 104;
@@ -266,7 +269,7 @@
       for (let wx = x + 9; wx < x + bw - 16; wx += 20) { if (r() < 0.35 || row > horizon - 18) continue; const lit = r() < 0.7; c.fillStyle = lit ? '#ffd08a' : '#523a66'; c.fillRect(wx, row, 10, 13); c.lineWidth = 1; c.strokeRect(wx, row, 10, 13); if (lit) { halo(c, wx + 5, row + 6, 22, '255,208,138', 0.29); c.fillStyle = 'rgba(255,208,138,0.3)'; c.fillRect(wx, horizon + 8 + (row % 20), 10, 2); } }
       if (r() < 0.22) { const mx = x + bw * 0.5, mt = horizon - bh - 130; c.lineWidth = 2.6; c.beginPath(); c.moveTo(mx, horizon - bh - 20); c.lineTo(mx, mt); c.moveTo(mx - 26, mt + 34); c.lineTo(mx + 26, mt + 34); c.stroke(); c.beginPath(); c.moveTo(mx - 24, mt + 35); for (let bx = mx - 24; bx < mx + 20; bx += 16) c.quadraticCurveTo(bx + 8, mt + 47, bx + 16, mt + 36); c.closePath(); c.fillStyle = '#d8b49c'; c.fill(); c.lineWidth = 1.2; c.stroke(); c.fillStyle = '#c85a50'; c.beginPath(); c.moveTo(mx, mt); c.lineTo(mx + 14, mt + 5); c.lineTo(mx, mt + 10); c.fill(); c.lineWidth = 1.8; }   // a ship's mast behind the roofs: yard, furled sail, pennant
     }
-    for (const [fx, s] of [[0.4, 0.62], [0.78, 0.74]]) {                          // two airships riding high over the town
+    for (const [fx, s] of [[0.4, 0.62]]) {                          // two airships riding high over the town
       const x = w * fx, y = horizon - 330 - ((fx * 97) % 50);
       c.save(); c.beginPath(); c.ellipse(x, y, 92 * s, 34 * s, 0, 0, 7); c.fillStyle = '#f2dcb0'; c.fill(); c.clip(); c.fillStyle = '#d9604a'; c.fillRect(x - 100 * s, y - 6 * s, 200 * s, 12 * s); c.fillStyle = 'rgba(216,120,84,0.45)'; c.fillRect(x - 100 * s, y + 12 * s, 200 * s, 30 * s); c.restore();
       c.beginPath(); c.ellipse(x, y, 92 * s, 34 * s, 0, 0, 7); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
@@ -274,6 +277,10 @@
       c.fillStyle = '#6e4670'; c.fillRect(x - 26 * s, y + 38 * s, 52 * s, 14 * s); c.strokeRect(x - 26 * s, y + 38 * s, 52 * s, 14 * s); c.lineWidth = 1.2; for (const k of [-20, 0, 20]) { c.beginPath(); c.moveTo(x + k * s, y + 33 * s); c.lineTo(x + k * s * 0.9, y + 38 * s); c.stroke(); }
       c.fillStyle = '#ffe09a'; for (const k of [-16, -3, 10]) c.fillRect(x + k * s, y + 41 * s, 6 * s, 6 * s);
     }
+    { const x = w * 0.8, y = horizon - 330;                                         // and a balloon
+      c.save(); c.beginPath(); c.arc(x, y, 30, 0, 7); c.clip(); for (let k = -3; k <= 3; k++) { c.fillStyle = k % 2 ? '#f2dcb0' : '#3f8f93'; c.fillRect(x + k * 9 - 4.5, y - 32, 9, 64); } c.fillStyle = 'rgba(216,120,84,0.35)'; c.fillRect(x - 32, y + 8, 64, 24); c.restore();
+      c.beginPath(); c.arc(x, y, 30, 0, 7); c.lineWidth = 2; c.strokeStyle = LO; c.stroke(); c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 20, y + 22); c.lineTo(x - 8, y + 44); c.moveTo(x + 20, y + 22); c.lineTo(x + 8, y + 44); c.stroke();
+      c.fillStyle = '#6e4670'; c.fillRect(x - 9, y + 44, 18, 12); c.lineWidth = 1.8; c.strokeRect(x - 9, y + 44, 18, 12); c.fillStyle = '#ffb060'; c.beginPath(); c.arc(x, y + 38, 2.6, 0, 7); c.fill(); }
     for (let x = 90; x < w; x += 210 + r() * 190) {                              // boats tied up along the far shore
       const bw = 50 + r() * 34, by = horizon + 4;
       c.beginPath(); c.moveTo(x - bw / 2, by - 12); c.lineTo(x + bw / 2, by - 12); c.lineTo(x + bw / 2 - 9, by + 2); c.lineTo(x - bw / 2 + 7, by + 2); c.closePath(); c.fillStyle = ['#8a4a62', '#5a6a9c', '#9a7a52'][Math.floor(r() * 3)]; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke();

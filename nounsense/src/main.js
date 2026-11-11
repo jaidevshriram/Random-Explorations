@@ -329,7 +329,7 @@
   function drawBackdrop() {
     ctx.drawImage(layers.sky, 0, 0, VW, VH);
     for (const l of [layers.far, layers.mid]) if (l) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
-    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, tx = ((t * 70) % (l.w + 520)) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 334, 396, 36); }   // the monorail crosses the viaduct
+    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, tx = ((t * 70) % (l.w + 520)) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 396, 396, 36); }   // the monorail crosses the viaduct
   }
   function drawBlock(t) {
     const T = THEMES[L.theme], st = T.ground[t.kind] || Object.values(T.ground)[0];
@@ -391,7 +391,8 @@
     for (const pf of smoke) { const k = pf.age / 2.6; ctx.globalAlpha = Math.max(0, 0.85 - k); ctx.beginPath(); ctx.arc(pf.x + pf.age * 7, pf.y - pf.age * 20, 5 + pf.age * 5, 0, 7); ctx.fillStyle = '#f6f1e6'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke(); ctx.globalAlpha = 1; }
     for (const t of L.terrain) if (t.trench) {   // the far wall of a trench, in shadow
       const st = THEMES[L.theme].ground.pit;
-      if (THEMES[L.theme].custom) { const tg = ctx.createLinearGradient(0, t.trench, 0, t.y0); tg.addColorStop(0, st.body); tg.addColorStop(1, st.line); ctx.fillStyle = tg; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); for (let yy = t.trench + 26; yy < t.y0; yy += 24) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(t.x0, yy, t.x1 - t.x0, 2); } }   // a plain shaded far wall
+      if (NN[L.theme] && NN[L.theme].trench) NN[L.theme].trench(ctx, t, ((L.water || []).find((w) => w.x0 >= t.x0 - 4 && w.x1 <= t.x1 + 4) || {}).y);
+      else if (THEMES[L.theme].custom) { const tg = ctx.createLinearGradient(0, t.trench, 0, t.y0); tg.addColorStop(0, st.body); tg.addColorStop(1, st.line); ctx.fillStyle = tg; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); for (let yy = t.trench + 26; yy < t.y0; yy += 24) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(t.x0, yy, t.x1 - t.x0, 2); } }   // a plain shaded far wall
       else { ctx.fillStyle = st.line; ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); ctx.fillStyle = dots('rgba(10,8,20,0.35)', 2.2, 7); ctx.fillRect(t.x0, t.trench + 4, t.x1 - t.x0, t.y0 - t.trench); }
     }
     for (const t of L.terrain) if (t.kind === 'pit') drawBlock(t);

@@ -22,8 +22,8 @@
   const M = { wall: '#3f5e62', wall2: '#324b50', pat: '#52787c', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 
-  function flame(c, x, y, s) { glow(c, x, y - 4 * s, 34 * s, 0.5); poly(c, [x - 3.2 * s, y, x, y - 11 * s, x + 3.2 * s, y], '#ffb347', 1.4); poly(c, [x - 1.4 * s, y, x, y - 6 * s, x + 1.4 * s, y], '#fff1b0', 0); }
-  function candle(c, x, y, h) { box(c, x - 2.6, y - h, 5.2, h, M.paper, 1.4); flame(c, x, y - h, 1); }
+  function flame(c, x, y, s, quiet) { if (!quiet) glow(c, x, y - 4 * s, 34 * s, 0.44); poly(c, [x - 3.2 * s, y, x, y - 11 * s, x + 3.2 * s, y], '#ffb347', 1.4); poly(c, [x - 1.4 * s, y, x, y - 6 * s, x + 1.4 * s, y], '#fff1b0', 0); }
+  function candle(c, x, y, h, quiet) { box(c, x - 2.6, y - h, 5.2, h, M.paper, 1.4); flame(c, x, y - h, 1, quiet); }
   function candelabra(c, x, g) {
     box(c, x - 14, g - 8, 28, 8, M.gold2, 2); line(c, [x, g - 8, x, g - 104], 4.6); line(c, [x, g - 8, x, g - 104], 2.4, M.gold);
     for (const s of [-1, 1]) { c.beginPath(); c.moveTo(x, g - 78); c.quadraticCurveTo(x + s * 22, g - 70, x + s * 22, g - 98); c.lineWidth = 4.4; c.strokeStyle = O; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = M.gold; c.stroke(); box(c, x + s * 22 - 6, g - 102, 12, 5, M.gold2, 1.6); candle(c, x + s * 22, g - 102, 16); }
@@ -75,7 +75,7 @@
   function chandelier(c, x, drop) {
     line(c, [x, CEIL + 10, x, CEIL + drop], 3.4); line(c, [x, CEIL + 10, x, CEIL + drop], 1.4, M.gold);
     c.beginPath(); c.ellipse(x, CEIL + drop + 10, 46, 9, 0, 0, 7); c.lineWidth = 5; c.strokeStyle = O; c.stroke(); c.lineWidth = 2.6; c.strokeStyle = M.gold; c.stroke();
-    for (const dx of [-46, -24, 0, 24, 46]) candle(c, x + dx, CEIL + drop + 6 - (dx ? 0 : 4), 13);
+    for (const dx of [-46, -24, 0, 24, 46]) candle(c, x + dx, CEIL + drop + 6 - (dx ? 0 : 4), 13, true); glow(c, x, CEIL + drop - 10, 50, 0.4);   // one soft light for the whole ring: five stacked ones burned out to white
     disc(c, x, CEIL + drop + 24, 5, M.gold, 1.8);
   }
 
@@ -155,7 +155,7 @@
     { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 80, 0.45, '150,225,255'); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
       poly(c, [x - 8, g - 82, x - 16, g - 110, x - 4, g - 140, x + 8, g - 112], '#a9e0f2', 2); poly(c, [x + 6, g - 82, x + 4, g - 104, x + 18, g - 124, x + 24, g - 98, x + 18, g - 82], '#7fc6e6', 2); poly(c, [x - 26, g - 82, x - 28, g - 98, x - 18, g - 108, x - 12, g - 92], '#c9f0fb', 1.8);
       c.lineWidth = 2.4; c.strokeStyle = O; c.strokeRect(x - 40, g - 150, 80, 72); line(c, [x - 32, g - 142, x - 20, g - 142], 2, 'rgba(255,255,255,0.7)'); }
-    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#b0946c', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
+    { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#6a5646', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
     { const x = 1787, w = 96; c.beginPath(); c.moveTo(x - w / 2, g - 16); c.lineTo(x - w / 2, g - 128); c.arc(x, g - 128, w / 2, Math.PI, 0); c.lineTo(x + w / 2, g - 16); c.closePath(); c.fillStyle = '#2f2233'; c.fill(); c.lineWidth = 9; c.strokeStyle = O; c.stroke(); c.lineWidth = 5; c.strokeStyle = M.woodL; c.stroke(); line(c, [x, g - 176, x, g - 16], 2.4); disc(c, x - 9, g - 86, 3.6, M.gold, 1.4); disc(c, x + 9, g - 86, 3.6, M.gold, 1.4); for (const s of [-1, 1]) { c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,220,170,0.25)'; c.strokeRect(x + (s < 0 ? -38 : 8), g - 120, 30, 44); c.strokeRect(x + (s < 0 ? -38 : 8), g - 68, 30, 44); } cobweb(c, x - w / 2 + 4, g - 150, 1, 1, 44); }
     { const x = 1997; box(c, x - 26, g - 76, 52, 76, M.stone, 2.4); box(c, x - 32, g - 84, 64, 10, M.stone2, 2); box(c, x - 32, g - 10, 64, 10, M.stone2, 2); poly(c, [x - 24, g - 84, x - 16, g - 108, x + 16, g - 108, x + 24, g - 84], M.paper, 2.2); c.beginPath(); c.roundRect(x - 15, g - 142, 30, 36, 9); c.fillStyle = M.paper; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); c.beginPath(); c.arc(x, g - 132, 17, Math.PI, 0); c.fillStyle = '#d9cdb0'; c.fill(); c.stroke(); line(c, [x - 6, g - 124, x - 2, g - 124], 1.6); line(c, [x + 2, g - 124, x + 6, g - 124], 1.6); }
     for (const bx of bays) {

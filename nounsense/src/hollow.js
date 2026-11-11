@@ -220,12 +220,14 @@
       for (const [pts, col] of planes) poly(c, pts, col, 1.6);
       for (let i = 0; i < 16; i++) { const lx = x0 + r() * (x1 - x0), ly = G - 330 + r() * 320; if (Math.abs(lx - RX) < 44) continue; line(c, [lx, ly, lx + 8 + r() * 14, ly + 5 + r() * 9, lx + 4 + r() * 10, ly + 16 + r() * 10], 1.2, 'rgba(43,48,68,0.5)'); }
       // the channel, the cave at its head, and the water (the moving streaks are drawn live)
-      poly(c, [RX - 36, G - 310, RX - 30, G - 352, RX, G - 366, RX + 32, G - 350, RX + 36, G - 310, RX + 36, G + 24, RX - 36, G + 24], '#333856', 2.2);
+      { const sg = c.createLinearGradient(x0, 0, x1, 0); sg.addColorStop(0, 'rgba(196,220,255,0.2)'); sg.addColorStop(0.4, 'rgba(196,220,255,0)'); sg.addColorStop(0.6, 'rgba(60,40,120,0)'); sg.addColorStop(1, 'rgba(60,40,120,0.4)'); c.fillStyle = sg; c.fillRect(x0 - 40, G - 380, x1 - x0 + 80, 410);
+        const vg = c.createLinearGradient(0, G - 170, 0, G + 24); vg.addColorStop(0, 'rgba(40,30,100,0)'); vg.addColorStop(1, 'rgba(40,30,100,0.42)'); c.fillStyle = vg; c.fillRect(x0 - 40, G - 170, x1 - x0 + 80, 200); }   // moonlit on the left, violet shadow on the right and at the foot
+      poly(c, [RX - 22, G - 318, RX - 16, G - 340, RX, G - 348, RX + 18, G - 338, RX + 22, G - 316, RX + 30, G - 236, RX + 26, G - 150, RX + 38, G - 70, RX + 42, G + 24, RX - 42, G + 24, RX - 36, G - 84, RX - 28, G - 160, RX - 32, G - 240], '#3e4670', 1.8);   // a worn cleft, wider towards the pool
       const wg = c.createLinearGradient(0, G - 330, 0, G); wg.addColorStop(0, '#c9f6f8'); wg.addColorStop(1, '#7fd0e6'); fallShape(c, RX, G - 328, G + 26, G - 328, river.y); c.fillStyle = wg; c.fill();
       for (const dx of [-7, 2, 9]) { c.beginPath(); for (let y = G - 304; y < G + 26; y += 10) { const x = RX + dx * (1 + (y - G + 328) / 420) + Math.sin(y * 0.05 + dx) * 2; if (y === G - 304) c.moveTo(x, y); else c.lineTo(x, y); } c.lineWidth = 1.6; c.strokeStyle = 'rgba(40,120,180,0.4)'; c.stroke(); }   // the fall breaks into strands
       c.restore();
       poly(c, sil, null, 3.4);
-      fallEdges(c, RX, G - 328, G + 24, G - 328, river.y); for (const [dx, rr] of [[-11, 7], [1, 8.5], [12, 6.5]]) disc(c, RX + dx, G - 328, rr, '#f2fdff', 1.8);   // foam where it leaves the cave
+      fallEdges(c, RX, G - 328, G + 24, G - 328, river.y); blob(c, [RX - 30, G - 326, RX - 22, G - 338, RX, G - 341, RX + 22, G - 337, RX + 30, G - 326, RX, G - 322], H.moss2, 2); line(c, [x0 - 8, G - 168, x0 + 20, G - 193, x0 + 25, G - 265, x0 + 60, G - 296, x0 + 73, G - 342, RX - 30, G - 368], 2.2, 'rgba(214,232,255,0.8)');   // foam where it leaves the cave
       // moss and plants on every ledge
       for (const [mx, my, mw] of [[x0 - 2, G - 86, 34], [x0 + 20, G - 198, 36], [x0 + 60, G - 302, 40], [RX + 6, G - 370, 86], [x1 - 34, G - 264, 40], [x1 + 4, G - 166, 30], [x1 + 24, G - 58, 30]]) { blob(c, [mx - mw, my + 5, mx - mw * 0.6, my - 9, mx, my - 12, mx + mw * 0.6, my - 8, mx + mw, my + 5, mx, my + 9], H.moss2, 2.2); blob(c, [mx - mw * 0.7, my, mx - mw * 0.3, my - 9, mx + mw * 0.2, my - 9, mx + mw * 0.4, my], H.moss, 0); }
       glow(c, RX, G - 200, 150, 0.3, CY); glow(c, RX, G - 20, 120, 0.42, CY);
@@ -371,10 +373,17 @@
     for (const x of xs) {
       const tw = 60 + r() * 50, col = ['#5c6cc0', '#6a62b8', '#5578b8'][Math.floor(r() * 3)];
       if (r() < 0.34) {                                                       // a mushroom tower
-        const sh = 190 + r() * 120, cw2 = tw * 3.2; c.fillStyle = '#b9c4ec'; c.beginPath(); c.moveTo(x - tw * 0.36, horizon); c.lineTo(x - tw * 0.26, horizon - sh); c.lineTo(x + tw * 0.26, horizon - sh); c.lineTo(x + tw * 0.36, horizon); c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
-        c.beginPath(); c.moveTo(x - cw2 / 2, horizon - sh + 8); c.bezierCurveTo(x - cw2 / 2, horizon - sh - cw2 * 0.44, x + cw2 / 2, horizon - sh - cw2 * 0.44, x + cw2 / 2, horizon - sh + 8); c.quadraticCurveTo(x, horizon - sh - 12, x - cw2 / 2, horizon - sh + 8); c.fillStyle = ['#c06fa8', '#6fa8c8', '#b88a5f'][Math.floor(r() * 3)]; c.fill(); c.stroke();
-        c.fillStyle = 'rgba(255,255,255,0.5)'; for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(x - cw2 * 0.32 + i * cw2 * 0.16, horizon - sh - cw2 * 0.14 - (i % 2) * 9, 9, 6, 0, 0, 7); c.fill(); }
-        for (let i = 0; i < 3; i++) { const wy = horizon - 50 - i * 52; c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x, wy, 6.5, 0, 7); c.fill(); c.lineWidth = 1.6; c.stroke(); halo(c, x, wy, 33, '255,236,160', 0.40); }
+        const sh = 190 + r() * 120, cw2 = tw * 3.2, capY = horizon - sh, cc = [['#c06fa8', '#8a4a86'], ['#6fa8c8', '#4a7aa4'], ['#c89a6a', '#96684a']][Math.floor(r() * 3)];
+        c.beginPath(); c.moveTo(x - tw * 0.36, horizon); c.quadraticCurveTo(x - tw * 0.2, horizon - sh * 0.5, x - tw * 0.26, capY); c.lineTo(x + tw * 0.26, capY); c.quadraticCurveTo(x + tw * 0.2, horizon - sh * 0.5, x + tw * 0.36, horizon); c.closePath();
+        { const g = c.createLinearGradient(x - tw * 0.36, 0, x + tw * 0.36, 0); g.addColorStop(0, '#dfe6ff'); g.addColorStop(0.5, '#b9c4ec'); g.addColorStop(1, '#8c98cc'); c.fillStyle = g; } c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
+        halo(c, x, capY + 16, cw2 * 0.42, '255,226,170', 0.5);                                                                           // lamplight under the cap
+        c.beginPath(); c.ellipse(x, capY + 6, cw2 * 0.46, 13, 0, 0, 7); c.fillStyle = '#ffe2b0'; c.fill(); c.stroke(); c.lineWidth = 1; for (let k = -6; k <= 6; k++) { c.beginPath(); c.moveTo(x + k * 5, capY + 4); c.lineTo(x + k * cw2 * 0.07, capY + 17); c.stroke(); } c.lineWidth = 2;   // gills
+        c.beginPath(); c.moveTo(x - cw2 / 2, capY + 8); c.bezierCurveTo(x - cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY + 8); c.quadraticCurveTo(x, capY - 12, x - cw2 / 2, capY + 8);
+        { const g = c.createLinearGradient(0, capY - cw2 * 0.34, 0, capY + 8); g.addColorStop(0, cc[0]); g.addColorStop(1, cc[1]); c.fillStyle = g; } c.fill(); c.stroke();
+        c.fillStyle = 'rgba(255,255,255,0.55)'; for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(x - cw2 * 0.32 + i * cw2 * 0.16, capY - cw2 * 0.14 - (i % 2) * 9, 10, 6.5, -0.2, 0, 7); c.fill(); }
+        c.beginPath(); c.moveTo(x - cw2 * 0.46, capY - 6); c.bezierCurveTo(x - cw2 * 0.42, capY - cw2 * 0.3, x - cw2 * 0.12, capY - cw2 * 0.34, x, capY - cw2 * 0.335); c.lineWidth = 2.6; c.strokeStyle = 'rgba(224,236,255,0.8)'; c.stroke(); c.lineWidth = 2; c.strokeStyle = LO;   // the moon along its shoulder
+        for (let i = 0; i < 3; i++) { const wy = horizon - 54 - i * 52; halo(c, x, wy, 36, '255,236,160', 0.55); c.fillStyle = '#fff0b0'; c.beginPath(); c.arc(x, wy, 8, 0, 7); c.fill(); c.lineWidth = 1.8; c.stroke(); c.lineWidth = 1; c.beginPath(); c.moveTo(x - 8, wy); c.lineTo(x + 8, wy); c.moveTo(x, wy - 8); c.lineTo(x, wy + 8); c.stroke(); c.lineWidth = 2; }
+        c.beginPath(); c.moveTo(x - 9, horizon); c.lineTo(x - 9, horizon - 18); c.arc(x, horizon - 18, 9, Math.PI, 0); c.lineTo(x + 9, horizon); c.fillStyle = '#7a4a66'; c.fill(); c.stroke();
         continue;
       }
       c.fillStyle = col; c.beginPath(); c.moveTo(x - tw / 2, -10); c.lineTo(x - tw / 2, horizon - 80); c.quadraticCurveTo(x - tw / 2, horizon - 14, x - tw, horizon); c.lineTo(x + tw, horizon); c.quadraticCurveTo(x + tw / 2, horizon - 14, x + tw / 2, horizon - 80); c.lineTo(x + tw / 2, -10); c.closePath(); c.fill();
