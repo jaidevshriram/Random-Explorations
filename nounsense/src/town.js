@@ -277,13 +277,13 @@
         if (hit) { bx = hit[1] + 4; continue; }
         BUILD[kind](bc, bx, ground, w, rb);
         // each stands on a plain stone storey, so no shopfront shows at upper-storey height over the street row
-        box(bc, bx + 3, ground - 126, w - 12, 130, C.stone2, 2.4); box(bc, bx - 2, ground - 132, w - 2, 8, C.stone, 2.2); for (let wx = bx + 22; wx < bx + w - 48; wx += 52) win(bc, wx, ground - 104, 26, 40, { lit: ((wx * 3) | 0) % 4 === 0, frame: C.stone });
+        box(bc, bx + 3, ground - 126, w - 12, 130, C.stone2, 2.4); box(bc, bx - 2, ground - 132, w - 2, 8, C.stone, 2.2); for (let wx = bx + 22; wx < bx + w - 48; wx += 52) win(bc, wx, ground - 104, 26, 40, { lit: ((wx * 3) | 0) % 2 === 0, frame: C.stone });
         box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4);
         bx += w + 14; k++;
       }
-      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(72,82,150,0.58)'; bc.fillRect(0, 0, bcv.width, bcv.height);   // a clear step cooler and paler than the street row
+      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(44,48,104,0.44)'; bc.fillRect(0, 0, bcv.width, bcv.height);   // a clear step cooler and paler than the street row
       c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(bcv, 0, 0); c.restore();
-      if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.45; }
+      if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.75; }
       if (EMS) for (let i = e0; i < EMS.length; i++) EMS[i][1] -= lift;
     }
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }

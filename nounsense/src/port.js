@@ -103,14 +103,16 @@
 
     // --- a ketch moored in the bay, and the piles she is tied to ---
     { const x = sea.x0 + 270, wy = sea.y - 6;
-      for (const px of [x - 150, x - 118, x + 150]) { box(c, px - 5, wy - 44, 10, 70, K.plank2, 2.2); box(c, px - 7, wy - 49, 14, 7, K.plankL, 1.8); }
-      line(c, [x - 118, wy - 30, x - 86, wy - 12], 1.8); line(c, [x + 150, wy - 30, x + 96, wy - 14], 1.8);
+      for (const px of [x - 186, x - 156, x + 186]) { box(c, px - 5, wy - 44, 10, 70, K.plank2, 2.2); box(c, px - 7, wy - 49, 14, 7, K.plankL, 1.8); }
+      line(c, [x - 156, wy - 30, x - 124, wy - 12], 1.8); line(c, [x + 186, wy - 30, x + 136, wy - 14], 1.8);
+      c.save(); c.translate(x, wy + 22); c.scale(1.3, 1.3); c.translate(-x, -(wy + 22));          // a proper ship: a third bigger, in the Star Gull's red and teal
       for (const [mx, mh] of [[x - 28, 230], [x + 46, 176]]) { line(c, [mx, wy - 16, mx, wy - mh], 6); line(c, [mx, wy - 16, mx, wy - mh], 3, K.plankL); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 4); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 2, K.plank);
         c.beginPath(); c.moveTo(mx - 40, wy - mh * 0.62 + 2); for (let bx = mx - 40; bx < mx + 40; bx += 20) c.quadraticCurveTo(bx + 10, wy - mh * 0.62 + 18, bx + 20, wy - mh * 0.62 + 3); c.closePath(); c.fillStyle = K.sail; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke();
         line(c, [mx, wy - mh, mx - 70, wy - 18], 1.4); line(c, [mx, wy - mh, mx + 70, wy - 18], 1.4); poly(c, [mx, wy - mh - 2, mx + 22, wy - mh + 5, mx, wy - mh + 12], K.red, 1.6); }
-      poly(c, [x - 104, wy - 20, x + 112, wy - 20, x + 92, wy + 22, x - 84, wy + 22], '#4e2640', 3.2); box(c, x - 104, wy - 26, 216, 8, K.gold2, 2); c.fillStyle = 'rgba(30,18,58,0.28)'; c.fillRect(x - 84, wy + 2, 176, 20);
+      { const mx = x - 28, sy = wy - 230 * 0.62 + 5; poly(c, [mx - 40, sy, mx + 40, sy, mx + 44, sy + 62, mx, sy + 55, mx - 44, sy + 62], '#f4e2cc', 2); c.fillStyle = 'rgba(92,60,140,0.26)'; c.fillRect(mx - 42, sy + 1, 30, 58); icon(c, 'star', mx, sy + 29, 13); } poly(c, [x - 104, wy - 20, x + 112, wy - 20, x + 92, wy + 22, x - 84, wy + 22], K.hull, 3); box(c, x - 90, wy + 4, 190, 6, K.teal, 1.2); box(c, x - 104, wy - 26, 216, 8, K.gold2, 2); c.fillStyle = 'rgba(30,18,58,0.28)'; c.fillRect(x - 84, wy + 2, 176, 20);
       box(c, x - 6, wy - 46, 44, 22, '#8a4a5c', 2.2); for (const lx of [x + 2, x + 18]) { box(c, lx, wy - 41, 10, 10, C.lit, 1.4); glow(c, lx + 5, wy - 36, 26, 0.4); }
       for (const lx of [x - 60, x + 76]) disc(c, lx, wy - 6, 5, '#bff6ee', 1.6);
+      c.restore();
       shipLantern(c, x - 96, wy - 62, 0.9); line(c, [x - 96, wy - 62, x - 96, wy - 24], 2.4);
     }
     // --- out in the bay: a rock with a light on it ---
@@ -126,7 +128,7 @@
     poly(c, [HX + 6, DECK + 4, HX - 44, DECK + 10, HX - 78, DECK - 18, HX - 60, DECK - 46, HX - 24, DECK - 40, HX + 6, DECK - 24], K.gold, 2.6); disc(c, HX - 50, DECK - 22, 5, K.cyan, 1.6); glow(c, HX - 50, DECK - 22, 36, 0.4, CY);
     poly(c, [HX - 78, DECK - 18, HX - 104, DECK - 30, HX - 84, DECK - 34, HX - 100, DECK - 52, HX - 60, DECK - 46], K.gold2, 2.2);
     // other ships moored beyond her, flat in the evening haze: their masts and yards show between the rail and the sky
-    for (const [fx, s] of [[1578, 0.9], [2376, 1]]) {
+    for (const [fx, s] of [[1590, 0.58], [2372, 0.64]]) {
       c.fillStyle = '#8e5c84'; c.fillRect(fx - 120 * s, DECK - 58, 240 * s, 44); c.fillStyle = '#a06a8c'; c.fillRect(fx - 126 * s, DECK - 63, 252 * s, 6);
       c.fillStyle = 'rgba(255,214,150,0.85)'; for (let i = -2; i <= 2; i++) c.fillRect(fx + i * 42 * s - 3, DECK - 48, 6, 6);
       c.fillStyle = '#8e5c84';
@@ -150,7 +152,7 @@
     // an engine amidships: this ship flies when it wants to
     { const x = 1930, y = DECK;
       box(c, x - 46, y - 58, 92, 58, K.iron, 2.6); box(c, x - 52, y - 66, 104, 10, K.gold2, 2.2); for (let i = 0; i < 4; i++) { box(c, x - 36 + i * 20, y - 46, 12, 30, '#1f2a44', 1.6); c.fillStyle = K.cyan; c.fillRect(x - 34 + i * 20, y - 44 + (i % 2) * 8, 8, 14); } glow(c, x, y - 30, 90, 0.5, CY);
-      box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 2.4, K.gold); box(c, x + 69, y - 6, 14, 6, K.gold2, 1.6); for (const by of [y - 138, y - 84]) box(c, x - 16, by, 32, 6, K.gold2, 1.6); for (const [dx, dy, rr] of [[4, -172, 9], [14, -190, 12], [30, -206, 15]]) { c.beginPath(); c.arc(x + dx, y + dy, rr, 0, 7); c.fillStyle = 'rgba(255,236,220,0.4)'; c.fill(); }
+      box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 2.4, K.gold); box(c, x + 69, y - 6, 14, 6, K.gold2, 1.6); for (const by of [y - 138, y - 84]) box(c, x - 16, by, 32, 6, K.gold2, 1.6);
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
     const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship
@@ -203,9 +205,9 @@
         const kx = sea.x0 + 270, wob = (i, k) => Math.sin(t * (1.3 + (i % 3) * 0.3) + i * 1.9 + k) * 2.6;
         { const sx = cam.x + WW * 0.74; if (sx > sea.x0 && sx < sea.x1) { const og = ctx.createLinearGradient(sx - 150, 0, sx + 150, 0); og.addColorStop(0, 'rgba(255,160,84,0)'); og.addColorStop(0.5, 'rgba(255,160,84,0.3)'); og.addColorStop(1, 'rgba(255,160,84,0)'); ctx.fillStyle = og; ctx.fillRect(Math.max(sea.x0, sx - 150), sea.y + 3, Math.min(300, sea.x1 - sx + 150), 76); } }
         if (vis(kx, 220)) {
-          for (let i = 0; i < 7; i++) { const w = 184 - i * 20; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; el(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
-          for (const mx of [kx - 28, kx + 46]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; el(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
-          for (const px of [kx - 62, kx + 64, kx - 118]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; el(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
+          for (let i = 0; i < 7; i++) { const w = 240 - i * 26; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; el(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
+          for (const mx of [kx - 36, kx + 60]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; el(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
+          for (const px of [kx - 78, kx + 99, kx - 96]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; el(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
         }
         for (let i = 0; i < 16; i++) { const x = sea.x0 + 26 + ((i * 131) % (sea.x1 - sea.x0 - 52)); if (!vis(x) || Math.abs(x - kx) < 130) continue; for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgba(255,200,140,${0.4 - k * 0.08})`; el(x - 2.5 + wob(i, k), sea.y + 9 + k * 9 + (i % 3) * 4, 5, 4); } }   // the lit windows of the far shore
       }
@@ -273,7 +275,7 @@
       c.fillStyle = 'rgba(255,232,170,0.85)'; for (let wy = top + 12; wy < horizon - 44; wy += 18) for (let wx = x + 7; wx < x + bw - 11; wx += 13) if (r() < 0.26) c.fillRect(wx, wy, 5, 7);
     }
     for (const fx of [0.22, 0.58, 0.9]) {                                        // dockside cranes
-      const x = w * fx, top = horizon - 176 - ((fx * 53) % 50), dir = fx > 0.5 ? -1 : 1; c.strokeStyle = '#5a3a66'; c.fillStyle = '#5a3a66'; c.lineWidth = 3;
+      const x = w * fx, top = horizon - 176 - ((fx * 53) % 50), dir = fx > 0.5 ? -1 : 1; c.strokeStyle = '#8a5a7c'; c.fillStyle = '#8a5a7c'; c.lineWidth = 2.6;
       c.beginPath(); c.moveTo(x - 12, horizon); c.lineTo(x - 5, top); c.moveTo(x + 12, horizon); c.lineTo(x + 5, top); for (let yy = horizon; yy > top + 30; yy -= 34) { c.moveTo(x - 12 + (horizon - yy) * 0.028, yy); c.lineTo(x + 11 - (horizon - yy - 34) * 0.028, yy - 34); } c.stroke();
       c.fillRect(x - 14, top - 22, 28, 24); c.beginPath(); c.moveTo(x, top - 16); c.lineTo(x + dir * 150, top - 46); c.lineTo(x + dir * 150, top - 40); c.lineTo(x, top - 4); c.closePath(); c.fill(); c.lineWidth = 1.6; c.beginPath(); c.moveTo(x + dir * 144, top - 42); c.lineTo(x + dir * 144, top + 40); c.moveTo(x, top - 22); c.lineTo(x, top - 44); c.lineTo(x + dir * 150, top - 46); c.moveTo(x, top - 44); c.lineTo(x - dir * 40, top - 8); c.stroke(); c.fillRect(x + dir * 144 - 9, top + 40, 18, 14);
       c.fillStyle = '#ffb060'; c.beginPath(); c.arc(x, top - 46, 3, 0, 7); c.fill();
