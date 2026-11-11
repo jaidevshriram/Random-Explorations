@@ -54,16 +54,27 @@
   }
   // one shape: wash first (offset, as if the paint missed the line), then ink twice
   function shape(ctx, pts, closed, o) {
-    const r = o.r, amp = o.amp === undefined ? 0.9 : o.amp;
+    const r = o.r, amp = o.amp === undefined ? 0.45 : o.amp;
     if (o.fill) {
-      ctx.save(); ctx.translate(1.3, 1.1); ctx.fillStyle = o.fill; trace(ctx, pts, true, r, amp * 0.6); ctx.fill(); ctx.restore();
+      ctx.fillStyle = o.fill; trace(ctx, pts, true, r, amp * 0.5); ctx.fill();
+      if (o.shade) {
+        // cel shading: a darker band along the lower-right inside edge
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+        for (let i = 0; i < pts.length; i += 2) { x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]); }
+        const size = Math.min(x1 - x0, y1 - y0);
+        if (size > 11) {
+          const d = Math.max(1.2, Math.min(5, size * 0.1));
+          ctx.save(); ctx.clip(); ctx.translate(-d * 0.75, -d);
+          ctx.strokeStyle = 'rgba(42,37,32,0.17)'; ctx.lineWidth = d * 2; ctx.lineJoin = 'round'; trace(ctx, pts, true, r, 0); ctx.stroke();
+          ctx.restore();
+        }
+      }
     }
     if (o.lw === 0) return;
-    const lw = o.lw || 1.9;
+    const lw = o.lw || 2.3;
     ctx.strokeStyle = o.ink || P.ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (o.color) { ctx.lineWidth = lw + 2.6; trace(ctx, pts, closed, r, amp); ctx.stroke(); ctx.strokeStyle = o.color; ctx.lineWidth = lw; trace(ctx, pts, closed, r, amp * 0.5); ctx.stroke(); return; }
+    if (o.color) { ctx.lineWidth = lw + 2.8; trace(ctx, pts, closed, r, amp); ctx.stroke(); ctx.strokeStyle = o.color; ctx.lineWidth = lw; trace(ctx, pts, closed, r, amp * 0.5); ctx.stroke(); return; }
     ctx.lineWidth = lw; trace(ctx, pts, closed, r, amp); ctx.stroke();
-    ctx.globalAlpha *= 0.5; ctx.lineWidth = lw * 0.55; trace(ctx, pts, closed, r, amp * 1.5); ctx.stroke(); ctx.globalAlpha /= 0.5;
   }
   const rough = {
     poly(ctx, pts, o) { shape(ctx, densify(pts, true, o.step || 14), true, o); },
@@ -78,10 +89,10 @@
     const map = (a) => a.map((v, i) => v * (i % 2 ? sy : sx));
     for (const op of ops) {
       switch (op[0]) {
-        case 'e': rough.ellipse(ctx, op[1] * sx, op[2] * sy, Math.max(1, op[3] * sx), Math.max(1, op[4] * sy), { r, fill: col(op[5]), rot: (op[6] || 0) * Math.PI / 180 }); break;
-        case 'r': { const x = op[1] * sx, y = op[2] * sy, ww = op[3] * sx, hh = op[4] * sy; rough.poly(ctx, [x, y, x + ww, y, x + ww, y + hh, x, y + hh], { r, fill: col(op[5]) }); break; }
-        case 'p': rough.poly(ctx, map(op[1]), { r, fill: col(op[2]) }); break;
-        case 'l': rough.line(ctx, map(op[1]), { r, lw: op[2] || 1.9, color: col(op[3]), step: 9 }); break;
+        case 'e': rough.ellipse(ctx, op[1] * sx, op[2] * sy, Math.max(1, op[3] * sx), Math.max(1, op[4] * sy), { r, shade: true, fill: col(op[5]), rot: (op[6] || 0) * Math.PI / 180 }); break;
+        case 'r': { const x = op[1] * sx, y = op[2] * sy, ww = op[3] * sx, hh = op[4] * sy; rough.poly(ctx, [x, y, x + ww, y, x + ww, y + hh, x, y + hh], { r, shade: true, fill: col(op[5]) }); break; }
+        case 'p': rough.poly(ctx, map(op[1]), { r, shade: true, fill: col(op[2]) }); break;
+        case 'l': rough.line(ctx, map(op[1]), { r, lw: op[2] || 2.1, color: col(op[3]), step: 9 }); break;
         case 'd': ctx.fillStyle = col(op[4]) || P.ink; ctx.beginPath(); ctx.arc(op[1] * sx, op[2] * sy, op[3] || 2, 0, 7); ctx.fill(); break;
         case 'a': { const pts = []; const n = 10; for (let i = 0; i <= n; i++) { const a = (20 + op[5] * i / n) * Math.PI / 180; pts.push((op[1] + Math.cos(a) * op[3]) * sx, (op[2] + Math.sin(a) * op[4]) * sy); } rough.line(ctx, pts, { r, step: 99 }); break; }
       }
@@ -95,7 +106,7 @@
     const top = o.legs === 'short' ? 55 : 28 + (neck ? 12 : 0);
     const t = o.legs === 'thick' ? 12 : 8;
     const sw = pose === 1 ? 7 : pose === 2 ? -7 : 0;
-    const hx = neck ? 66 : 62, hy = neck ? -72 : -42, hrx = neck ? 27 : 30, hry = neck ? 21 : 34;
+    const hx = neck ? 66 : 60, hy = neck ? -72 : -44, hrx = neck ? 30 : 35, hry = neck ? 24 : 40;
     if (o.wings) ops.push(['p', [-28, by - 20, -62, -104, 2, -74, 26, -100, 18, by - 22], o.wings]);
     // tail
     if (o.tail === 'short') ops.push(['p', [-66, by - 14, -86, by - 34, -72, by - 2], c]);
@@ -133,7 +144,7 @@
     if (o.trunk) ops.push(['l', [hx + 22, hy + 6, hx + 40, hy + 46, hx + 34, hy + 100], 7, c], ['p', [hx + 10, hy + 22, hx + 34, hy + 44, hx + 14, hy + 32], 'white']);
     if (o.beard) ops.push(['p', [hx + 6, hy + hry - 6, hx + 12, hy + hry + 26, hx + 20, hy + hry - 8], hc]);
     if (o.fangs) ops.push(['p', [hx + 20, hy + 20, hx + 24, hy + 36, hx + 29, hy + 20], 'white']);
-    ops.push(['d', hx + 8, hy - 8, 2]);
+    ops.eyes = [[hx + 9, hy - 8]];
     return ops;
   }
 
@@ -141,8 +152,9 @@
     const c = o.c, ops = [];
     if (o.owl) {
       ops.push(['l', [-14, 78, -14, 100]], ['l', [14, 78, 14, 100]], ['e', 0, 8, 70, 80, c], ['e', -44, 16, 20, 46, o.wing, 8], ['e', 44, 16, 20, 46, o.wing, -8],
-        ['e', -26, -34, 22, 20, 'white'], ['e', 26, -34, 22, 20, 'white'], ['d', -26, -34, 2.2], ['d', 26, -34, 2.2], ['p', [-10, -18, 10, -18, 0, 4], o.beak],
+        ['e', -26, -34, 22, 20, 'white'], ['e', 26, -34, 22, 20, 'white'], ['p', [-10, -18, 10, -18, 0, 4], o.beak],
         ['p', [-58, -58, -48, -98, -26, -68], c], ['p', [58, -58, 48, -98, 26, -68], c]);
+      ops.eyes = [[-26, -34], [26, -34]];
       return ops;
     }
     ops.push(['l', [-14, 58, -14, 100]], ['l', [8, 58, 8, 100]]);
@@ -153,7 +165,7 @@
     if (o.crest) ops.push(['p', [34, -64, 42, -102, 58, -66], o.crest]);
     if (o.flat) ops.push(['p', [70, -44, 104, -40, 104, -24, 70, -22], o.beak || 'orange']);
     else ops.push(['p', [70, -46, 102, -32, 70, -20], o.beak || 'orange']);
-    ops.push(['d', 52, -42, 1.9]);
+    ops.eyes = [[52, -42]];
     return ops;
   }
 
@@ -199,20 +211,20 @@
     else ops.push(['l', [-48, -38, -72 - sw / 2, 12], 3.6, top], ['l', [48, -38, 72 + sw / 2, 12], 3.6, top]);
     if (o.club) ops.push(['p', [66, 20, 78, -64, 104, -58, 84, 24], 'brown']);
     if (o.prop && PROPS[o.prop]) ops.push(...PROPS[o.prop]);
-    ops.push(['e', 0, -70, 46, 22, skin]);
+    ops.push(['e', 0, -68, 54, 26, skin]);
     if (o.hair) ops.push(['p', [-46, -72, -40, -92, 0, -96, 40, -92, 46, -72, 20, -84, -20, -84], o.hair]);
     switch (o.face) {
-      case 'grr': ops.push(['d', -14, -72, 1.6], ['d', 16, -72, 1.6], ['l', [-28, -82, -6, -76]], ['l', [30, -82, 8, -76]], ['l', [-14, -58, 16, -58]]); break;
+      case 'grr': ops.eyes = [[-21, -70, 0.72], [23, -70, 0.72]]; ops.push(['l', [-34, -84, -8, -78], 2.4], ['l', [36, -84, 10, -78], 2.4], ['l', [-14, -54, 16, -54]]); break;
       case 'fangs': ops.push(['d', -14, -72, 1.6, 'red'], ['d', 16, -72, 1.6, 'red'], ['p', [-10, -62, -6, -52, -2, -62], 'white'], ['p', [6, -62, 10, -52, 14, -62], 'white']); break;
       case 'dead': ops.push(['l', [-22, -76, -8, -68]], ['l', [-22, -68, -8, -76]], ['d', 16, -72, 1.6], ['l', [-10, -58, 14, -60]]); break;
       case 'skull': ops.push(['e', -16, -72, 11, 6, 'ink'], ['e', 18, -72, 11, 6, 'ink'], ['l', [-12, -58, 14, -58]]); break;
       case 'robot': ops.push(['r', -32, -80, 64, 14, 'sky'], ['d', -14, -73, 1.4], ['d', 16, -73, 1.4]); break;
       case 'alien': ops.push(['e', -18, -72, 14, 8, 'ink', 20], ['e', 20, -72, 14, 8, 'ink', -20]); break;
       case 'ninja': ops.push(['r', -38, -79, 76, 12, 'skin'], ['d', -14, -73, 1.4], ['d', 16, -73, 1.4]); break;
-      case 'clown': ops.push(['d', -14, -74, 1.6], ['d', 16, -74, 1.6], ['e', 2, -67, 11, 5, 'red'], ['l', [-16, -60, 2, -55, 20, -60]]); break;
+      case 'clown': ops.eyes = [[-21, -70, 0.72], [23, -70, 0.72]]; ops.push(['e', 2, -62, 12, 6, 'red'], ['l', [-18, -56, 2, -50, 22, -56]]); break;
       case 'cry': ops.push(['l', [-22, -74, -8, -72]], ['l', [10, -72, 24, -74]], ['e', 2, -62, 12, 6, 'ink']); break;
       case 'mask': ops.push(['r', -42, -78, 84, 11, 'ink'], ['d', -14, -73, 1.3, 'white'], ['d', 16, -73, 1.3, 'white']); break;
-      default: ops.push(['d', -14, -72, 1.6], ['d', 16, -72, 1.6], ['l', [-12, -62, 2, -58, 16, -62]]);
+      default: ops.eyes = [[-21, -70, 0.72], [23, -70, 0.72]]; ops.push(['l', [-14, -58, 2, -53, 18, -58]]);
     }
     if (o.beard) ops.push(['p', [-34, -62, 0, -26, 34, -62], o.beard]);
     if (o.hat && HATS[o.hat]) ops.push(...HATS[o.hat](o.hatColor));
@@ -220,7 +232,7 @@
   }
 
   function opsFor(art, pose) {
-    if (Array.isArray(art)) return art;
+    if (Array.isArray(art)) return art;   // hand-drawn objects keep their painted eyes
     if (art.a === 'quad') return quad(art, pose);
     if (art.a === 'bird') return bird(art);
     if (art.a === 'person') return person(art, pose);
@@ -254,7 +266,7 @@
       if (spec.frozen) { ctx.globalCompositeOperation = 'source-atop'; ctx.globalAlpha = 0.55; ctx.fillStyle = P.sky; ctx.fillRect(-spec.w, -spec.h, spec.w * 2, spec.h * 2); }
       frames.push(cv);
     }
-    s = { frames, w: spec.w + PAD * 2, h: spec.h + PAD * 2 };
+    s = { frames, w: spec.w + PAD * 2, h: spec.h + PAD * 2, eyes: ops.eyes || [] };
     cache.set(key, s);
     return s;
   }

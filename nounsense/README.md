@@ -36,7 +36,7 @@ One page, plain scripts, no build:
 | `src/dictionary.js` | The hand-authored "spreadsheet": categories, 189 nouns, about 330 synonyms, about 110 describing words, materials. Art for each object lives here too. |
 | `src/lexicon.js` | Phrase → object spec. Finds the longest trailing noun, treats the words before it as adjectives, walks the category tree, applies overrides. Unknown words are refused with a nearest-match suggestion. |
 | `src/sim.js` | The level, physics (Matter.js) and the rules. No drawing, no DOM. |
-| `src/art.js` | Drawing: wobbly ink over offset flat washes, three wobble frames per sprite so the line "boils". Shared rigs for four-legged animals, birds and people. |
+| `src/art.js` | Drawing: bold wobbly ink over flat washes with a cel-shaded edge, three wobble frames per sprite so the line "boils". Shared rigs for four-legged animals, birds and people. |
 | `src/main.js` | Rendering, input, HUD, saved progress. |
 
 ### What is a system and what is hand-authored

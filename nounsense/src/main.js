@@ -2,7 +2,7 @@
 (function (NN) {
   'use strict';
   const { P, rough, rng, sprite } = NN.art;
-  const L = NN.level, VW = 1100, VH = 620, Z = 1.3, WW = VW / Z, WH = VH / Z, CAMY = 238;
+  const L = NN.level, VW = 1100, VH = 620, Z = 1.6, WW = VW / Z, WH = VH / Z, CAMY = 290;
   const $ = (id) => document.getElementById(id);
   const cv = $('game'), ctx = cv.getContext('2d');
   const FONT = '"Patrick Hand", "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive';
@@ -50,11 +50,31 @@
     ctx.save();
     ctx.translate(x, y);
     if (o.angle) ctx.rotate(o.angle);
-    ctx.scale((o.flip ? -1 : 1) * (o.sx || 1), o.flipY ? -1 : 1);
+    if (o.sy) { ctx.translate(0, spec.h / 2); ctx.scale(2 - o.sy, o.sy); ctx.translate(0, -spec.h / 2); }   // squash and stretch from the feet
+    ctx.scale(o.flip ? -1 : 1, o.flipY ? -1 : 1);
     if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
     ctx.drawImage(f, -s.w / 2, -s.h / 2, s.w, s.h);
     ctx.restore();
   }
+  // eyes are drawn live so creatures can look around, blink and react
+  function drawEyes(spec, x, y, facing, st) {
+    const eyes = sprite(spec, 0).eyes;
+    if (!eyes.length) return;
+    const r0 = Math.max(1.9, Math.min(4.4, Math.min(spec.w, spec.h) * 0.09));
+    for (const [nx, ny, k] of eyes) {
+      const ex = x + facing * nx / 100 * spec.w / 2, ey = y + (st.flipY ? -1 : 1) * ny / 100 * spec.h / 2, r = r0 * (k || 1) * (st.wide ? 1.3 : 1);
+      ctx.strokeStyle = P.ink; ctx.lineCap = 'round';
+      if (st.closed || st.happy) {
+        ctx.lineWidth = 1.7; ctx.beginPath();
+        if (st.happy) ctx.arc(ex, ey + r * 0.5, r, Math.PI * 1.12, Math.PI * 1.88); else { ctx.moveTo(ex - r, ey); ctx.lineTo(ex + r, ey); }
+        ctx.stroke(); continue;
+      }
+      ctx.fillStyle = P.white; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(ex, ey, r, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(ex + st.lx * r * 0.4, ey + st.ly * r * 0.4, r * (st.wide ? 0.34 : 0.55), 0, 7); ctx.fill();
+      if (st.angry) { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex - facing * r * 1.4, ey - r * 1.9); ctx.lineTo(ex + facing * r * 1.2, ey - r * 0.9); ctx.stroke(); }
+    }
+  }
+  const blinking = (id) => ((sim.time + id * 0.61) % 3.4) < 0.13;
   function label(text, x, y, size, color) {
     ctx.font = `${size || 18}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 4; ctx.strokeStyle = P.paper; ctx.lineJoin = 'round'; ctx.strokeText(text, x, y);
@@ -138,7 +158,22 @@
     if (s.flies && (live || e.mountedBy) && !reduceMotion) y += Math.sin(sim.time * 5 + e.id) * 2.5;
     if (s.alive && e.asleepUntil > sim.time && !s.frozen) angle = 0;
     if (!e.placing && e !== sim.natives.brambles) { if (s.floating || (s.flies && s.alive)) shadow(e.x, sim.groundAt(e.x), Math.min(40, e.w * 0.3), 0.07); else if (s.upright || Math.abs(angle) < 0.2) shadow(e.x, e.y + e.h / 2, Math.min(90, e.w * 0.46), 0.15); }
-    blit(s, e.x, y, { pose, id: e.id, angle, flip: e.facing < 0, flipY: !!s.wasAlive, alpha: e.placing ? 0.62 : s.stealth ? 0.3 : e.flash > 0 ? 0.5 : 1 });
+    const g = e.goal, vy = e.body.velocity.y;
+    let sy = 0;
+    if (s.alive && !reduceMotion) {
+      sy = 1 + Math.max(-0.1, Math.min(0.12, -vy * 0.02));
+      if (live && !e.moving) sy += Math.sin(sim.time * 2.6 + e.id) * 0.018;                 // breathing
+      if (live && e.moving && !s.flies) { y -= Math.abs(Math.sin(e.walkT * 14)) * 2.2; angle += e.facing * 0.045; }
+      if (e.eatP > 0) sy += Math.sin(sim.time * 22) * 0.04;                                   // chewing
+    }
+    blit(s, e.x, y, { pose, id: e.id, angle, sy, flip: e.facing < 0, flipY: !!s.wasAlive, alpha: e.placing ? 0.62 : s.stealth ? 0.3 : e.flash > 0 ? 0.5 : 1 });
+    if (s.alive || s.wasAlive) {
+      const t = (live && g && g.t) || sim.player, dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy) || 1;
+      drawEyes(s, e.x, y, e.facing, { flipY: !!s.wasAlive, lx: dx / d, ly: dy / d, closed: !live || blinking(e.id), happy: live && e.eatP > 0,
+        wide: live && ((g && g.type === 'flee') || e.burning > 0 || e.flash > 0), angry: live && g && g.type === 'attack' });
+      if (live && g && g.type === 'flee') label('!', e.x + e.facing * e.w * 0.3, e.y - e.h / 2 - 12 - Math.abs(Math.sin(sim.time * 9)) * 3, 20, P.red);
+      else if (live && g && g.type === 'follow' && Math.floor(sim.time * 0.5 + e.id) % 3 === 0) label('\u2665', e.x, e.y - e.h / 2 - 12, 13, P.red);
+    }
     if (e.burning > 0) flames(e); else if (s.aflame && !e.doused) flames(e, true);
     if (e.fuse > 0) label(Math.ceil(e.fuse) + '', e.x, e.y - e.h / 2 - 14, 20, P.red);
     if (s.alive && !s.frozen && e.asleepUntil > sim.time) label('z z', e.x + 10, e.y - e.h / 2 - 8 + Math.sin(sim.time * 2) * 3, 17);
@@ -163,7 +198,11 @@
     drawHeld(p, true);
     const pose = p.moving ? (Math.floor(p.walkT * 10) % 2 ? 1 : 2) : 0;
     shadow(p.x, p.y + p.h / 2, 15, p.grounded || p.mount ? 0.16 : 0.07);
-    blit(courierSpec, p.x, p.y - 5, { pose, flip: p.facing < 0, id: 1 });
+    const vy = p.mount ? 0 : p.body.velocity.y, hurt = p.invuln > 0 && !sim.won;
+    const sy = reduceMotion ? 0 : 1 + Math.max(-0.12, Math.min(0.14, -vy * 0.022)) + (p.moving ? 0 : Math.sin(sim.time * 2.6) * 0.015);
+    const bob = p.moving && !reduceMotion ? Math.abs(Math.sin(p.walkT * 15)) * 2.4 : 0;
+    blit(courierSpec, p.x, p.y - 5 - bob, { pose, sy, flip: p.facing < 0, id: 1, angle: p.moving ? p.facing * 0.05 : 0 });
+    drawEyes(courierSpec, p.x, p.y - 5 - bob, p.facing, { lx: p.facing * 0.8, ly: Math.max(-0.6, Math.min(0.8, vy * 0.12)), closed: !hurt && blinking(1), happy: sim.won, wide: hurt || vy > 6 });
     if (p.hasParcel) blit(parcelSpec, p.x + p.facing * 7, p.y + 3, { id: 2 });
     drawHeld(p, false);
   }
@@ -213,7 +252,7 @@
     if (!grain) {
       const g = document.createElement('canvas'); g.width = g.height = 180;
       const c = g.getContext('2d'), r = rng(99);
-      for (let i = 0; i < 2600; i++) { c.fillStyle = r() > 0.5 ? 'rgba(42,37,32,0.05)' : 'rgba(255,255,255,0.09)'; c.fillRect(r() * 180, r() * 180, 1 + r() * 1.6, 1 + r() * 1.6); }
+      for (let i = 0; i < 2600; i++) { c.fillStyle = r() > 0.5 ? 'rgba(42,37,32,0.028)' : 'rgba(255,255,255,0.05)'; c.fillRect(r() * 180, r() * 180, 1 + r() * 1.6, 1 + r() * 1.6); }
       grain = ctx.createPattern(g, 'repeat');
     }
     ctx.fillStyle = grain; ctx.fillRect(0, 0, VW, VH);

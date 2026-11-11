@@ -84,8 +84,12 @@ done. Do it before adding level two, not after.
 
 ## Art
 
-The look is the game's own: wobbly ink over offset flat washes on sketchbook
-paper, three wobble frames per sprite. It is not modelled on any existing game
+The look is the game's own: a bold, slightly wobbly ink line over flat washes
+with a cel-shaded edge, three wobble frames per sprite. Rigged creatures and the
+courier get their eyes drawn live in `main.js` (`drawEyes`), so they look at
+things, blink, widen when scared and frown when attacking; squash, stretch and
+walk bob are applied at draw time too. Hand-drawn creatures (dragon, ghost…)
+still have painted eyes and are the obvious next ones to convert. It is not modelled on any existing game
 and should stay that way; this is an original game in a genre, not a remake.
 Changes of direction (cleaner lines, jointed limbs, a different medium) are all
 fair game and mostly live in `shape()` and the rigs in `src/art.js`.
