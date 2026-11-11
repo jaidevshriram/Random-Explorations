@@ -46,18 +46,21 @@ Main runs: 3 seeds per head, 8,000 steps, batch 16. Full tables: `results_faithf
    - Precision is the same.
 2. **Bins do not stabilise the matching.** Their flip rate is, if anything, slightly higher.
 3. **Ambiguous labels: L1 commits to a stroke; it does not average.** 82% of its open-curve predictions are closer to a stroke than to the midline. The toy experiment's argument (L1 lands between the modes) does not hold in this model.
-4. **Ambiguous labels: the bin head learns both answers but decodes them into ghost points.** Measured on the 3 bin models:
-   - 93% of points have two-peaked histograms.
-   - About 60% of the points that are two-peaked on both axes are decoded more than 1 px from both strokes.
-   - For about 71% of those, a different pairing of the same x and y peaks lands on a stroke.
-   - About 96% have nearly equal peaks.
-   So the miss comes from x and y choosing their peaks independently (`check_pairing.py`).
+4. **Ambiguous labels: the bin head does *not* represent the two answers as two peaks. It predicts one broad bump spanning both strokes.**
+   - Probability within ±1 px of the peak: 0.36 on double lines, 0.76 on closed loops, 0.99 for the training labels.
+   - A strict two-peak test (two separate maxima with a dip between them) fires on about 0% of histograms (`check_sharpness.py`).
+   - Decoding a broad bump lands near its middle, i.e. between the strokes. See `plots/bin_labels.png`.
+   - *Correction:* an earlier version of this README said 93% of histograms were two-peaked and that the misses came from x and y pairing different peaks (`check_ghosts.py`, `check_pairing.py`). That two-peak test was broken: it fires on 86% of closed-loop histograms too, where there is only one answer. Those numbers are retracted.
 5. **On unambiguous closed loops in the double-line data,** the bin head is more precise (AP@1px 0.730 vs 0.663). In the clean-label runs the closed-loop errors are equal.
 
 ### What this means for the real model (evidence so far, not a general claim)
 
-- Nothing here supports switching MapTR's coordinate head to independent per-coordinate bins. With clean labels the head makes no reliable difference; with ambiguous labels it is worse, for a specific and measured reason.
-- If bins are pursued, the thing to test is a decoder that keeps x and y, and the points of a shape, consistent: a joint (x, y) distribution, or y conditioned on x. This only matters if real map labels contain this kind of ambiguity, which is still untested.
+- Nothing here supports switching MapTR's coordinate head to per-coordinate bins. With clean labels the head makes no reliable difference; with ambiguous labels it is worse.
+- **The hypothesis, part by part:**
+  - *"Bins stabilise the matching"*: not seen.
+  - *"L1 averages two answers"*: not seen. L1 commits to a stroke, plausibly because at an exact 50/50 split L1's loss is flat between the two answers and the image evidence (the ink) decides. Averaging is what L2 does.
+  - *"Bins keep both answers"*: not seen. This head produced one broad bump instead. Why is open; candidates are the small cross-entropy weight chosen by mAP (0.03), which leaves even single-answer histograms broad, and the decoded reference feeding back into the next layer.
+- This only matters for the real model if real map labels contain this kind of ambiguity, which is still untested.
 - Limitations:
   - synthetic data;
   - small width;

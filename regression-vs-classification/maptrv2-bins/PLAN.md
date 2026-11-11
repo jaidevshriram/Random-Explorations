@@ -7,12 +7,12 @@ All code references are to `hustvl/MapTR`, branch `maptrv2`, commit `e03f097`. T
 
 > **Update (MapTR-faithful CPU experiment, see `../maptr-mini/README.md`):**
 > - With clean labels, the per-coordinate bin head (runs B/C below) made no reliable difference.
-> - With ambiguous labels it was worse than L1. It learned both answers, but decoding x and y independently produced off-stroke "ghost" points, while L1 committed to one answer.
+> - With ambiguous labels it was worse than L1. L1 committed to one of the two answers, while the bin head predicted one broad bump spanning both, which decodes to a point between them.
 > - The matching was not more stable with bins.
 >
 > Before spending GPU money on runs B/C:
 > 1. Check whether real map labels contain this kind of ambiguity.
-> 2. If they do, the variant worth testing is the joint or conditional (x, y) decoder (run D), not independent per-coordinate bins.
+> 2. Understand why the bin head does not form two peaks.
 
 ---
 

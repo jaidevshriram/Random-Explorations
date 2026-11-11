@@ -1,4 +1,7 @@
-"""Direct test of the x/y pairing explanation for the bin head's off-stroke points on double lines.
+"""SUPERSEDED: the two-peak test here also fires on single-answer closed loops (see check_sharpness.py), so its
+conclusions are retracted. Kept for the record.
+
+Direct test of the x/y pairing explanation for the bin head's off-stroke points on double lines.
 
 For every point with a two-peaked histogram on both axes, take each axis's two peaks (peak position =
 probability-weighted mean within +-2 bins of the peak). The decoder pairs the higher x peak with the

@@ -1,0 +1,45 @@
+{
+ "label_mass_within_1px": 0.9923391342163086,
+ "runs_f_amb_bins_s0.pt": {
+  "open (double lines)": {
+   "histograms": 76160,
+   "mass_within_1px_of_peak": 0.36611082693865177,
+   "old_two_peak_test_fires": 0.8928046218487395,
+   "strict_two_peak_test_fires": 2.6260504201680674e-05
+  },
+  "closed (one answer)": {
+   "histograms": 45840,
+   "mass_within_1px_of_peak": 0.7683626511766466,
+   "old_two_peak_test_fires": 0.8582897033158813,
+   "strict_two_peak_test_fires": 0.0
+  }
+ },
+ "runs_f_amb_bins_s1.pt": {
+  "open (double lines)": {
+   "histograms": 78400,
+   "mass_within_1px_of_peak": 0.3655907228848498,
+   "old_two_peak_test_fires": 0.8921173469387755,
+   "strict_two_peak_test_fires": 6.377551020408164e-05
+  },
+  "closed (one answer)": {
+   "histograms": 45840,
+   "mass_within_1px_of_peak": 0.757823485555046,
+   "old_two_peak_test_fires": 0.8769851657940663,
+   "strict_two_peak_test_fires": 0.0
+  }
+ },
+ "runs_f_amb_bins_s2.pt": {
+  "open (double lines)": {
+   "histograms": 80200,
+   "mass_within_1px_of_peak": 0.36106936895806446,
+   "old_two_peak_test_fires": 0.8905486284289277,
+   "strict_two_peak_test_fires": 4.987531172069826e-05
+  },
+  "closed (one answer)": {
+   "histograms": 46880,
+   "mass_within_1px_of_peak": 0.7616786021319673,
+   "old_two_peak_test_fires": 0.8669155290102389,
+   "strict_two_peak_test_fires": 0.0
+  }
+ }
+}

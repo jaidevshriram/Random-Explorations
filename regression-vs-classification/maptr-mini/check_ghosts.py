@@ -1,4 +1,7 @@
-"""Is the bin head's in-between behaviour on double lines caused by x and y choosing peaks independently?
+"""SUPERSEDED: the two-peak test here also fires on single-answer closed loops (see check_sharpness.py), so its
+conclusions are retracted. Kept for the record.
+
+Is the bin head's in-between behaviour on double lines caused by x and y choosing peaks independently?
 
 For each point of each matched double-line prediction (saved MapTR-faithful bin models, 3 seeds):
   * bimodal: the x or y histogram has two separated peaks (>= 4 bins apart), each holding >= 20% of the mass
