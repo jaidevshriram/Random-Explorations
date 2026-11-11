@@ -32,7 +32,7 @@
       id: 'town', name: 'Lamplight Row', theme: 'town', par: 3, zoom: 1,
       caption: 'Evening on Lamplight Row. The beacon outside the observatory has gone dark.',
       story: 'A burst main has flooded the roadworks, a magpie with a taste for shiny things is working the street, and somebody has boarded the far end off. The neighbours are friendly, at least.',
-      hints: ['The flooded hole: float something across, bridge it, or go over the top.', 'Magpies snatch anything shiny, so give it something else to snatch. They also hate cats and scarecrows.', 'The hoarding is only wood. Wood burns, breaks and can be chopped. It is not very tall either.',
+      hints: ['The flooded hole: float something across, bridge it, or go over the top.', 'Magpies snatch anything shiny, so give it something else to snatch. They will not steal while a cat or a scarecrow is in sight.', 'The hoarding is only wood. Wood burns, breaks and can be chopped. It is not very tall either.',
         'Click a creature and write a describing word to change it: sleepy, tiny, friendly…', 'The neighbours react to what you summon. Try something alarming.'],
       W: 2640, sky: -300, deathY: 1000, start: { x: 300, y: 520 }, depot: { x: 130, y: 520 }, goal: { x: 2500, y: 520 }, holes: [[980, 1240]],
       terrain: [{ x0: -300, y0: 520, x1: 980, y1: 1100, kind: 'street' }, { x0: 978, y0: 640, x1: 1242, y1: 1100, kind: 'pit', trench: 520 }, { x0: 1240, y0: 520, x1: 2940, y1: 1100, kind: 'street' }],

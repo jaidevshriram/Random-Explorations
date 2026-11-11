@@ -11,10 +11,11 @@ const TESTS = [
   [-2, 'falling in the hole sends you back', (s, p, run, at) => { at(960); run(80, { right: true }); return p.x < 500 ? true : p.x | 0; }],
   [-2, 'magpie snatches the star seed if ignored', (s, p, run, at, N) => { at(N.magpie.x - 60); run(420); return !p.hasParcel ? true : 'seed survived'; }],
   [-2, 'a shiny decoy keeps the magpie busy', (s, p, run, at, N) => { s.spawn('ring', N.magpie.x, 480); run(200); return N.magpie.fullUntil > s.time ? true : 'not distracted'; }],
+  [-2, 'a scarecrow in sight keeps the magpie from stealing', (s, p, run, at, N) => { s.spawn('scarecrow', 1390, 470); run(60); at(1975); run(600); return p.hasParcel ? true : 'seed stolen at the hoarding'; }],
   [-2, 'cat scares the magpie', (s, p, run, at, N) => { const x0 = N.magpie.x; s.spawn('cat', x0 - 40, 480); let fled = false; for (let i = 0; i < 12; i++) { run(10); fled = fled || !!(N.magpie.goal && N.magpie.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.magpie.x | 0]; }],
   [-2, 'axe chops the hoarding down', (s, p, run, at, N, has) => { N.magpie.asleepUntil = Infinity; s.spawn('axe', 1960, 480); run(40); at(1960); run(3, {}, { interactPressed: true }); run(40, { right: true }); for (let i = 0; i < 4; i++) run(25, {}, { usePressed: true }); return !has('hoarding') ? true : N.wall.hp; }],
   [-2, 'torch burns the hoarding', (s, p, run, at, N, has) => { N.magpie.asleepUntil = Infinity; s.spawn('torch', 1960, 480); run(40); at(1960); run(3, {}, { interactPressed: true }); run(40, { right: true }); run(5, {}, { usePressed: true }); run(420, { left: true }); return !has('hoarding') ? true : 'still standing'; }],
-  [-2, 'neighbours wave and say hello', (s, p, run, at, N) => { at(N.kid.x - 40); run(200); return N.kid.waveUntil > 0 && s.fx.some((f) => f.type === 'speech') ? true : [N.kid.waveUntil, s.fx.length]; }],
+  [-2, 'neighbours wave and say hello', (s, p, run, at, N) => { let spoke = false; for (let i = 0; i < 12 && !(N.kid.waveUntil > 0 && spoke); i++) { at(N.kid.x - 40); run(20); spoke = spoke || s.fx.some((f) => f.type === 'speech'); } return N.kid.waveUntil > 0 && spoke ? true : [N.kid.waveUntil, s.fx.length]; }],   // keeps up with the kid: it wanders
   [-2, 'lighting the beacon wins', (s, p, run, at) => { at(2420); run(60, { right: true }); return s.won ? true : 'no win'; }],
   // Gloamwick Manor (index 1)
   [-1, 'stairs lead up to the gallery', (s, p, run, at, N) => { N.armour.asleepUntil = Infinity; at(880); run(200, { right: true }); return p.y < 320 && p.x > 1250 ? true : [p.x | 0, p.y | 0]; }],
