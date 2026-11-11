@@ -534,6 +534,10 @@
       p.mount = null; m.mountedBy = null; m.home = m.x;
       Composite.add(world, p.body);
       Body.setPosition(p.body, { x: m.x, y: m.y - m.h / 2 - p.h / 2 - 2 }); Body.setVelocity(p.body, { x: 0, y: -3 });
+      // Stepping off beside something climbable grabs hold of it. Without this, leaving a boat at a cargo net
+      // dropped the hero into the sea unless "up" was pressed within a fraction of a second.
+      p.x = p.body.position.x; p.y = p.body.position.y;
+      if (ents.some((e) => e.spec.climbable && !e.placing && !e.removed && gap(p, e) < -4)) { p.climbing = true; p.launched = false; Body.setVelocity(p.body, { x: 0, y: 0 }); }
     }
     function findInteract() {
       const p = player;
