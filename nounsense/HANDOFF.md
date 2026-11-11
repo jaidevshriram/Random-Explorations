@@ -22,12 +22,12 @@ The game was reworked after the notes below were written. What is true now:
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
-- **Tests:** `node nounsense/test/playtest.js` runs 66 scripted scenarios and a fuzz pass over every word.
+- **Tests:** `node nounsense/test/playtest.js` runs 69 scripted scenarios and a fuzz pass over every word.
   World labels in the test list: `-2` town, `-1` manor, `'h'` hollow, `3` port, `0..2` the fixtures. A few scenarios depend on
   creature AI that uses `Math.random`, so an occasional single failure on a re-run is a flake, not a regression. It takes several
   minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).
-- **Whole-level playthroughs:** `test/ui-playthrough.js` (manor) and `test/ui-playthrough-town.js` finish a level with
-  real mouse, typing and keys only. Run them after any change to creature rules: the scripted scenarios each test
+- **Whole-level playthroughs:** `test/ui-playthrough.js` (manor), `-town.js`, `-hollow.js` and `-port.js` finish a
+  level with real mouse, typing and keys only (the last two use `test/ui-kit.js`). They take 4 to 10 minutes each. Run them after any change to creature rules: the scripted scenarios each test
   one interaction and missed that a scarecrow did not stop the magpie along the whole street. When scripting with
   the mouse, wait for the camera to settle before aiming, and do not aim within 70 px of a screen edge while holding
   an item (that scrolls the camera, by design).
@@ -44,8 +44,8 @@ The game was reworked after the notes below were written. What is true now:
 - **Camera:** follows the ground under the hero (`sim.groundBelow`), so high ground does not fill the frame with soil.
 - **Studies:** `test/study.html` is a measured redraw of a reference illustration (18.5 dB PSNR), with tools in
   `test/study-tools/`. `test/recreation.html` is an earlier freehand attempt. Neither is used by the game.
-- **Placement lesson:** keep small wandering natives away from gaps players will bridge. A frog under the end of a
-  bridge props it up and can tip it into the river.
+- **Structures and animals:** a wide summoned structure that lands on something alive lifts it on top (`sim.step`),
+  so animals no longer prop up bridges.
 - **Not done:** frame rate has not been measured on real hardware, nothing has been tuned by long hand play, and
   the older themed render path could be deleted if the fixtures were given a simpler way to draw.
 
