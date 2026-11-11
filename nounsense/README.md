@@ -126,6 +126,11 @@ six problems that the single-interaction scenarios could not:
   was pressed at once. Leaving a mount beside something climbable now grabs it.
 - The captain's blow could still knock a climber off the bow and back to the quay. A
   hero knocked flying by a blow now catches anything climbable on the way down.
+- About one run in eight, the captain's patrol still carried him close enough to see a
+  climber at the bow, and he charged. Repeat runs of the scenario suite found it (a
+  single pass had not). A guard can now be given a `post`, a stretch it defends, and
+  only goes for what is inside it; the captain's runs from the mainmast aft. 40 of 40
+  in repeat runs.
 
 ## Not done yet
 

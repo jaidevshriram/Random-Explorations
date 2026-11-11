@@ -112,7 +112,7 @@
         { key: 'net', x: 1452, y: 548, fixed: true, resists: 'all',
           spec: { noun: 'cargonet', name: 'cargo net', w: 90, h: 188, climbable: true, anchored: true, upright: true, material: 'cloth', tags: [], hp: Infinity, art: cargonet() } },
         { key: 'captain', word: 'pirate', x: 1900, y: 380, range: 190, facing: -1, name: 'Captain Cogbeard',
-          spec: { noun: 'cogbeard', hunts: ['human'], fears: ['ghost', 'eldritch'], hp: 8, dmg: 1, bribable: true, sparesSeed: true, sight: 250,   // he guards the middle of the deck and does not charge the bow, where a blow would knock a climber overboard
+          spec: { noun: 'cogbeard', hunts: ['human'], fears: ['ghost', 'eldritch'], hp: 8, dmg: 1, bribable: true, sparesSeed: true, sight: 250, post: [1560, 2700],   // he guards the deck from the mainmast aft and leaves the bow alone, where a blow would knock a climber overboard
             speed: 2.2, sound: 'arr', art: { a: 'person', skin: 'grey', top: 'red', legs: 'dgrey', hat: 'tricorn', face: 'robot', beard: 'dgrey', prop: 'sword' } } },
       ],
       signs: [{ x: 500, text: 'NO SWIMMING' }],

@@ -300,7 +300,7 @@
       else if ((t = nearest(c, fears, 215))) goal = { type: 'flee', t };
       else if ((t = charmer(c))) goal = { type: 'follow', t };
       else if (hungry && !(c.wary = !!nearest(c, fears, 600)) && (t = nearest(c, s.diet, s.hungry ? 800 : 330, (x) => (x.isParcel ? !s.sparesSeed : x.spec.edible)))) goal = { type: 'eat', t };   // too nervous to eat or steal while something it fears is in sight
-      else if (hungry && (t = nearest(c, hunts, s.sight || 420))) goal = { type: 'attack', t };
+      else if (hungry && (t = nearest(c, hunts, s.sight || 420, s.post && ((x) => x.x >= s.post[0] && x.x <= s.post[1])))) goal = { type: 'attack', t };   // a guard with a post only goes for what is inside it
       else if (s.douses && (t = nearest(c, ['fire'], 520))) goal = { type: 'douse', t };
       else if (s.follows && Math.abs(player.x - c.x) > 90 && !player.mods.stealth) goal = { type: 'follow', t: player };
       else if (c.goal && c.goal.type === 'wander' && c.goal.until > now) goal = c.goal;
