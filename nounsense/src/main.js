@@ -223,7 +223,7 @@
         layers = { sky, far: bake(0.14, P.far, 0, T, true, T.farLine), mid: bake(0.4, P.mid, T.midHaze || 0.1, T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
         return;
       }
-      const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow });
+      const f = NN.town.front(L.W, L.start.y, 2, L.holes, { backRow: L.backRow, spills: L.spills !== false });
       layers = { sky, far: bake(0.14, NN.town.far, 0, T, true, T.farLine), mid: bake(0.4, NN.town.mid, 0.07, T, true), front: f, over: f.over, lights: f.lights, emitters: f.emitters, train: NN.town.train() };
       return;
     }

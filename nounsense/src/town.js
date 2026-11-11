@@ -233,11 +233,12 @@
       tank(c, x + w - 46, g - h - 8);
     },
   };
-  let OPTS = {};
+  let OPTS = {}, SPILLS = [];
   const ROW = [['teashop', 250], [null, 70], ['lab', 320], [null, 60], ['museum', 420], [null, 80], ['tower', 250], [null, 60], ['potions', 300], [null, 50], ['observatory', 330], [null, 70], ['workshop', 340], [null, 60], ['teashop', 250]];
 
   // the street front, baked once into a canvas in world coordinates
-  function front(W, ground, scale, holes, opts) { OPTS = opts || {}; const r = capture(() => paintFront(W, ground, scale, holes || [])); r.out.lights = r.lights; r.out.emitters = r.emitters; return r.out; }
+  function front(W, ground, scale, holes, opts) { OPTS = opts || {}; const r = capture(() => paintFront(W, ground, scale, holes || []));
+    SPILLS = OPTS.spills ? r.lights.filter((l) => l.y > ground - 150 && l.y < ground - 30 && l.r > 60 && /^255,2/.test(l.color)).map((l) => l.x) : []; r.out.lights = r.lights; r.out.emitters = r.emitters; return r.out; }
   function paintFront(W, ground, scale, holes) {
     const inHole = (x, pad) => holes.some(([a, b]) => x > a - (pad || 0) && x < b + (pad || 0));
     const top = ground - 560, cv = document.createElement('canvas');
@@ -250,21 +251,30 @@
     const gaps = [];
     // A second row of buildings behind the street row: the same detailed fronts, standing on higher ground and
     // paled by distance. Their roofs, signs and upper windows fill the sky above the shopfronts.
-    if (OPTS.backRow) {                                    // off by default: side by side, the street read better against open sky
-      const lift = 150, bcv = document.createElement('canvas'); bcv.width = cv.width; bcv.height = cv.height;
+    // Buildings behind the street row. Two reviewers ranking variants disagreed: one wanted the hero roofs (the lab's
+    // dome, the museum's gable, the observatory) against open sky, the other wanted a lived-in city behind the street.
+    // 'between' does both: back buildings stand only in the spaces between those heroes. 'full' is one unbroken row;
+    // 'none' leaves the sky.
+    const mode = OPTS.backRow || 'between';
+    if (mode !== 'none') {
+      const lift = 120, bcv = document.createElement('canvas'); bcv.width = cv.width; bcv.height = cv.height;
       const bc = bcv.getContext('2d'); bc.scale(scale, scale); bc.translate(0, -top - lift);
       const n0 = SINK ? SINK.length : 0, e0 = EMS ? EMS.length : 0, rb = rng(909);
-      let bx = -170;
-      for (const [kind, w] of [['tower', 250], ['potions', 300], ['workshop', 340], ['teashop', 250], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340]]) {
-        box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4); for (let wy = ground + 16; wy < ground + lift - 20; wy += 44) for (let wx = bx + 24; wx < bx + w - 50; wx += 46) win(bc, wx, wy, 24, 28, { lit: ((wx + wy) | 0) % 3 === 0 });   // the storeys below, for where a gap shows them
+      const keep = []; { let hx = -30; for (const [kind, w] of ROW) { if (mode === 'between' && (kind === 'lab' || kind === 'museum' || kind === 'observatory')) keep.push([hx - 26, hx + w + 26]); hx += w; } }
+      const kinds = [['workshop', 340], ['potions', 300], ['teashop', 250]];
+      let bx = -170, k = 0;
+      while (bx < W + 60) {
+        const [kind, w] = kinds[k % 3], hit = keep.find(([a, b]) => bx < b && bx + w > a);
+        if (hit) { bx = hit[1] + 4; continue; }
         BUILD[kind](bc, bx, ground, w, rb);
-        // Their shopfronts would show at upper-storey height over the street row, so each stands on a plain stone storey instead.
+        // each stands on a plain stone storey, so no shopfront shows at upper-storey height over the street row
         box(bc, bx + 3, ground - 126, w - 12, 130, C.stone2, 2.4); box(bc, bx - 2, ground - 132, w - 2, 8, C.stone, 2.2); for (let wx = bx + 22; wx < bx + w - 48; wx += 52) win(bc, wx, ground - 104, 26, 40, { lit: ((wx * 3) | 0) % 4 === 0, frame: C.stone });
-        bx += w - 6; if (bx > W + 60) break;
+        box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4);
+        bx += w + 14; k++;
       }
-      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(178,188,222,0.44)'; bc.fillRect(0, 0, bcv.width, bcv.height);
+      bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(150,160,205,0.5)'; bc.fillRect(0, 0, bcv.width, bcv.height);   // a clear step cooler and paler than the street row
       c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(bcv, 0, 0); c.restore();
-      if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.55; }      // their lights sit where they were drawn, and are fainter
+      if (SINK) for (let i = n0; i < SINK.length; i++) { SINK[i].y -= lift; SINK[i].a *= 0.45; }
       if (EMS) for (let i = e0; i < EMS.length; i++) EMS[i][1] -= lift;
     }
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }
@@ -369,6 +379,7 @@
     // kerb and paving
     box(c, x0 - 4, y + 14, x1 - x0 + 8, 14, '#a8a49b', 2.4); for (const ex of [t.x0, t.x1]) if (ex > x0 - 2 && ex < x1 + 2) line(c, [ex, y, ex, y1], 3.4);
     c.fillStyle = '#cfcabf'; c.fillRect(x0, y, x1 - x0, 15); for (let x = Math.floor(x0 / 58) * 58; x < x1; x += 58) line(c, [x, y + 1, x - 5, y + 14], 1.3, 'rgba(43,48,68,0.4)');
+    for (const sx of SPILLS) if (sx > x0 - 50 && sx < x1 + 50 && sx > t.x0 + 30 && sx < t.x1 - 30) { c.beginPath(); c.moveTo(sx - 30, y + 1); c.lineTo(sx + 30, y + 1); c.lineTo(sx + 46, y + 15); c.lineTo(sx - 46, y + 15); c.closePath(); c.fillStyle = 'rgba(255,206,130,0.5)'; c.fill(); c.beginPath(); c.moveTo(sx - 46, y + 15); c.lineTo(sx + 46, y + 15); c.lineTo(sx + 52, y + 28); c.lineTo(sx - 52, y + 28); c.closePath(); c.fillStyle = 'rgba(255,206,130,0.28)'; c.fill(); }   // light spilling from windows and doors
     line(c, [x0, y, x1, y], 3); line(c, [x0, y + 15, x1, y + 15], 2);
   }
 
