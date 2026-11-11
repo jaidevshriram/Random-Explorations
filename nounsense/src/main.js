@@ -60,17 +60,17 @@
   function drawEyes(spec, x, y, facing, st) {
     const eyes = sprite(spec, 0).eyes;
     if (!eyes.length) return;
-    const r0 = Math.max(1.9, Math.min(4.4, Math.min(spec.w, spec.h) * 0.09));
+    const r0 = Math.max(1.8, Math.min(3.6, Math.min(spec.w, spec.h) * 0.075));
     for (const [nx, ny, k] of eyes) {
-      const ex = x + facing * nx / 100 * spec.w / 2, ey = y + (st.flipY ? -1 : 1) * ny / 100 * spec.h / 2, r = r0 * (k || 1) * (st.wide ? 1.3 : 1);
+      const ex = x + facing * nx / 100 * spec.w / 2, ey = y + (st.flipY ? -1 : 1) * ny / 100 * spec.h / 2, r = r0 * (k ? 0.95 : 1) * (st.wide ? 1.35 : 1);
       ctx.strokeStyle = P.ink; ctx.lineCap = 'round';
       if (st.closed || st.happy) {
         ctx.lineWidth = 1.7; ctx.beginPath();
         if (st.happy) ctx.arc(ex, ey + r * 0.5, r, Math.PI * 1.12, Math.PI * 1.88); else { ctx.moveTo(ex - r, ey); ctx.lineTo(ex + r, ey); }
         ctx.stroke(); continue;
       }
-      ctx.fillStyle = P.white; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(ex, ey, r, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(ex + st.lx * r * 0.4, ey + st.ly * r * 0.4, r * (st.wide ? 0.34 : 0.55), 0, 7); ctx.fill();
+      // plain ink dots: they shift a little toward what the creature is looking at
+      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(ex + st.lx * r * 0.3, ey + st.ly * r * 0.25, r * 0.62, 0, 7); ctx.fill();
       if (st.angry) { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex - facing * r * 1.4, ey - r * 1.9); ctx.lineTo(ex + facing * r * 1.2, ey - r * 0.9); ctx.stroke(); }
     }
   }

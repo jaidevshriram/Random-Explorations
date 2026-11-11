@@ -86,7 +86,7 @@ done. Do it before adding level two, not after.
 
 The look is the game's own: a bold, slightly wobbly ink line over flat washes
 with a cel-shaded edge, three wobble frames per sprite. Rigged creatures and the
-courier get their eyes drawn live in `main.js` (`drawEyes`), so they look at
+courier get plain ink-dot eyes drawn live in `main.js` (`drawEyes`), so they look at
 things, blink, widen when scared and frown when attacking; squash, stretch and
 walk bob are applied at draw time too. Hand-drawn creatures (dragon, ghost…)
 still have painted eyes and are the obvious next ones to convert. It is not modelled on any existing game
