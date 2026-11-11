@@ -197,6 +197,7 @@
     const [cv, c] = mk(), [ocv, d] = mk(), r = rng(31337);
     const river = L.water[0], RX = (river.x0 + river.x1) / 2;
 
+    lantern(c, 1802, top - 4, 176);
     // beyond the low ground before the bluff: two old trunks, tapering, and a mushroom village small in the mist
     { for (const [x, w] of [[1748, 70], [1850, 50]]) { const tg = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0); tg.addColorStop(0, '#3e4084'); tg.addColorStop(0.35, '#2f306c'); tg.addColorStop(1, '#232454'); c.fillStyle = tg;
         c.beginPath(); c.moveTo(x - w * 0.3, top - 4); c.lineTo(x - w * 0.42, G - 90); c.quadraticCurveTo(x - w * 0.5, G - 22, x - w * 1.05, G + 4); c.lineTo(x + w * 1.05, G + 4); c.quadraticCurveTo(x + w * 0.5, G - 22, x + w * 0.42, G - 90); c.lineTo(x + w * 0.3, top - 4); c.closePath(); c.fill(); c.lineWidth = 2.6; c.strokeStyle = '#1a1b40'; c.stroke();
@@ -212,7 +213,7 @@
       }
     }
     // thin trees standing further back, already half lost in the dark
-    for (const [x, w, g] of [[330, 46, G], [610, 60, G], [1340, 52, G], [1690, 44, G], [2470, 50, TOPY], [2600, 58, TOPY]]) {
+    for (const [x, w, g] of [[330, 46, G], [610, 60, G], [1340, 52, G], [2470, 50, TOPY], [2600, 58, TOPY]]) {
       const tg = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0); tg.addColorStop(0, '#6c68a4'); tg.addColorStop(0.3, '#55528c'); tg.addColorStop(1, '#3f3d70'); c.fillStyle = tg;
       c.beginPath(); c.moveTo(x - w / 2, top - 4); c.lineTo(x - w / 2, g - 50); c.quadraticCurveTo(x - w / 2, g - 10, x - w * 0.9, g + 4); c.lineTo(x + w * 0.9, g + 4); c.quadraticCurveTo(x + w / 2, g - 10, x + w / 2, g - 50); c.lineTo(x + w / 2, top - 4); c.closePath(); c.fill(); c.lineWidth = 2.4; c.strokeStyle = '#33345c'; c.stroke();
       c.fillStyle = 'rgba(190,205,255,0.28)'; c.fillRect(x - w / 2 + 2, top, 4, g - top - 54);                       // moonlight down one edge
@@ -231,12 +232,14 @@
         [[x0 + 70, G - 346, RX - 30, G - 372, RX - 36, G - 296, x0 + 98, G - 280, x0 + 58, G - 300], H.rock], [[x0 + 44, G - 66, x0 + 54, G - 92, RX - 36, G - 110, RX - 36, G + 24, x0 + 60, G + 24], '#6f7898'], [[x0 + 66, G - 178, x0 + 98, G - 280, RX - 36, G - 296, RX - 36, G - 110, x0 + 54, G - 92], '#737c9c'],
         [[RX + 36, G - 300, RX + 44, G - 364, x1 - 64, G - 330, x1 - 52, G - 282, x1 - 86, G - 250], '#6c7494'], [[RX + 36, G - 300, x1 - 86, G - 250, x1 - 70, G - 150, RX + 36, G - 130], '#5a6284'], [[x1 - 86, G - 250, x1 - 52, G - 282, x1 - 18, G - 262, x1 - 8, G - 190, x1 - 70, G - 150], '#636b8c'],
         [[RX + 36, G - 130, x1 - 70, G - 150, x1 - 8, G - 190, x1 + 16, G - 164, x1 + 10, G - 84, x1 - 50, G - 60, RX + 36, G - 50], '#565e80'], [[RX + 36, G - 50, x1 - 50, G - 60, x1 + 10, G - 84, x1 + 36, G - 56, x1 + 40, G + 24, RX + 36, G + 24], '#5f6788']];
-      planes.forEach(([pts], k) => { blob(c, pts, ['#5a64a0', '#646eac', '#7480bc', '#5e68a6', '#525c98', '#58629e', '#4e588f', '#444c84', '#4a528a', '#3f477c', '#454d84'][k % 11], 0); c.save(); blob(c, pts, null, 0); c.clip(); const ty = Math.min(...pts.filter((_, q) => q % 2)), hg = c.createLinearGradient(0, ty, 0, ty + 38); hg.addColorStop(0, 'rgba(210,228,255,0.42)'); hg.addColorStop(1, 'rgba(210,228,255,0)'); c.fillStyle = hg; c.fillRect(x0 - 40, ty, x1 - x0 + 80, 38); const by2 = Math.max(...pts.filter((_, q) => q % 2)); c.lineWidth = 1.3; c.strokeStyle = 'rgba(28,32,92,0.4)'; for (const f of [0.38, 0.66]) { const sy = ty + (by2 - ty) * f; c.beginPath(); c.moveTo(x0 - 40, sy - 5 + (k % 3) * 3); c.lineTo(x0 + (x1 - x0) * 0.5, sy + 4 - (k % 2) * 6); c.lineTo(x1 + 40, sy - 3 + (k % 4) * 2); c.stroke(); } c.restore(); blob(c, pts, null, 2.6); });   // each boulder: a moonlit top, a firm outline
+      planes.forEach(([pts], k) => { blob(c, pts, ['#5a64a0', '#646eac', '#7480bc', '#5e68a6', '#525c98', '#58629e', '#4e588f', '#444c84', '#4a528a', '#3f477c', '#454d84'][k % 11], 0); c.save(); blob(c, pts, null, 0); c.clip(); const ty = Math.min(...pts.filter((_, q) => q % 2)), hg = c.createLinearGradient(0, ty, 0, ty + 38); hg.addColorStop(0, 'rgba(214,232,255,0.62)'); hg.addColorStop(1, 'rgba(210,228,255,0)'); c.fillStyle = hg; c.fillRect(x0 - 40, ty, x1 - x0 + 80, 38); const by2 = Math.max(...pts.filter((_, q) => q % 2)); c.lineWidth = 1.3; c.strokeStyle = 'rgba(28,32,92,0.4)'; for (const f of [0.38, 0.66]) { const sy = ty + (by2 - ty) * f; c.beginPath(); c.moveTo(x0 - 40, sy - 5 + (k % 3) * 3); c.lineTo(x0 + (x1 - x0) * 0.5, sy + 4 - (k % 2) * 6); c.lineTo(x1 + 40, sy - 3 + (k % 4) * 2); c.stroke(); } c.restore(); blob(c, pts, null, 2.6); });   // each boulder: a moonlit top, a firm outline
       { c.save(); blob(c, sil, null, 0); const rg = c.createLinearGradient(x0 - 30, 0, RX, 0); rg.addColorStop(0, 'rgba(210,230,255,0.75)'); rg.addColorStop(1, 'rgba(210,230,255,0)'); c.lineWidth = 12; c.strokeStyle = rg; c.stroke(); c.restore(); }   // the moon along its left shoulder
       for (let i = 0; i < 16; i++) { const lx = x0 + r() * (x1 - x0), ly = G - 330 + r() * 320; if (Math.abs(lx - RX) < 44) continue; line(c, [lx, ly, lx + 8 + r() * 14, ly + 5 + r() * 9, lx + 4 + r() * 10, ly + 16 + r() * 10], 1.2, 'rgba(43,48,68,0.5)'); }
       // the channel, the cave at its head, and the water (the moving streaks are drawn live)
       { const sg = c.createLinearGradient(x0, 0, x1, 0); sg.addColorStop(0, 'rgba(196,220,255,0.2)'); sg.addColorStop(0.4, 'rgba(196,220,255,0)'); sg.addColorStop(0.6, 'rgba(60,40,120,0)'); sg.addColorStop(1, 'rgba(60,40,120,0.4)'); c.fillStyle = sg; c.fillRect(x0 - 40, G - 380, x1 - x0 + 80, 410);
         const vg = c.createLinearGradient(0, G - 170, 0, G + 24); vg.addColorStop(0, 'rgba(40,30,100,0)'); vg.addColorStop(1, 'rgba(40,30,100,0.42)'); c.fillStyle = vg; c.fillRect(x0 - 40, G - 170, x1 - x0 + 80, 200); }   // moonlit on the left, violet shadow on the right and at the foot
+      { const wl = c.createLinearGradient(RX - 110, 0, RX - 30, 0); wl.addColorStop(0, 'rgba(18,22,70,0)'); wl.addColorStop(1, 'rgba(18,22,70,0.5)'); c.fillStyle = wl; c.fillRect(RX - 110, G - 340, 80, 370); const wr = c.createLinearGradient(RX + 30, 0, RX + 110, 0); wr.addColorStop(0, 'rgba(18,22,70,0.5)'); wr.addColorStop(1, 'rgba(18,22,70,0)'); c.fillStyle = wr; c.fillRect(RX + 30, G - 340, 80, 370);
+        const cb = c.createRadialGradient(RX, G + 10, 10, RX, G + 10, 170); cb.addColorStop(0, 'rgba(140,240,255,0.42)'); cb.addColorStop(1, 'rgba(140,240,255,0)'); c.fillStyle = cb; c.fillRect(RX - 170, G - 160, 340, 190); }   // wet and dark beside the fall; the water's own light on the stone at its foot
       poly(c, [RX - 22, G - 318, RX - 16, G - 340, RX, G - 348, RX + 18, G - 338, RX + 22, G - 316, RX + 30, G - 236, RX + 26, G - 150, RX + 38, G - 70, RX + 42, G + 24, RX - 42, G + 24, RX - 36, G - 84, RX - 28, G - 160, RX - 32, G - 240], '#252b52', 2.2); line(c, [RX - 25, G - 318, RX - 35, G - 240, RX - 31, G - 160, RX - 39, G - 84, RX - 45, G + 24], 2.6, 'rgba(140,236,255,0.6)'); line(c, [RX + 25, G - 316, RX + 33, G - 236, RX + 29, G - 150, RX + 41, G - 70, RX + 45, G + 24], 2.6, 'rgba(140,236,255,0.6)');   // a worn cleft, wider towards the pool
       const wg = c.createLinearGradient(0, G - 330, 0, G); wg.addColorStop(0, '#c9f6f8'); wg.addColorStop(1, '#7fd0e6'); fallShape(c, RX, G - 328, G + 26, G - 328, river.y); c.fillStyle = wg; c.fill();
       for (const dx of [-7, 2, 9]) { c.beginPath(); for (let y = G - 304; y < G + 26; y += 10) { const x = RX + dx * (1 + (y - G + 328) / 420) + Math.sin(y * 0.05 + dx) * 2; if (y === G - 304) c.moveTo(x, y); else c.lineTo(x, y); } c.lineWidth = 1.6; c.strokeStyle = 'rgba(40,120,180,0.4)'; c.stroke(); }   // the fall breaks into strands
@@ -360,7 +363,7 @@
     // aurora: curtains of light hanging from wavy lines
     for (const [y0, amp, hh, col, ph] of [[70, 34, 190, '150,255,200', 0], [130, 26, 150, '200,160,255', 2], [40, 20, 120, '130,230,255', 4]]) for (let x = 0; x < VW; x += 2) { const y = y0 + Math.sin(x * 0.006 + ph) * amp + Math.sin(x * 0.021 + ph) * amp * 0.3, k = 0.5 + 0.5 * Math.sin(x * 0.05 + ph * 3); const ag = c.createLinearGradient(0, y, 0, y + hh); ag.addColorStop(0, `rgba(${col},${0.3 + k * 0.2})`); ag.addColorStop(1, `rgba(${col},0)`); c.fillStyle = ag; c.fillRect(x, y, 2, hh); }
     c.fillStyle = '#fffbe6'; for (let i = 0; i < 110; i++) { const x = r() * VW, y = r() * VH * 0.6, s = 0.6 + r() * 1.5; c.beginPath(); if (r() < 0.2) { c.moveTo(x, y - s * 3); c.lineTo(x + s * 0.7, y - s * 0.7); c.lineTo(x + s * 3, y); c.lineTo(x + s * 0.7, y + s * 0.7); c.lineTo(x, y + s * 3); c.lineTo(x - s * 0.7, y + s * 0.7); c.lineTo(x - s * 3, y); c.lineTo(x - s * 0.7, y - s * 0.7); } else c.arc(x, y, s, 0, 7); c.fill(); }
-    const mx = VW * 0.63, my = 150;
+    const mx = VW * 0.63, my = 104;
     for (const [rad, a] of [[150, 0.07], [112, 0.1], [84, 0.14]]) { c.fillStyle = `rgba(255,250,220,${a})`; c.beginPath(); c.arc(mx, my, rad, 0, 7); c.fill(); }
     c.fillStyle = '#fffbe8'; c.beginPath(); c.arc(mx, my, 62, 0, 7); c.fill(); c.lineWidth = 3; c.strokeStyle = '#c9c4e8'; c.stroke();
     c.fillStyle = '#ebe6cf'; for (const [dx, dy, cr] of [[-22, -18, 13], [18, 8, 17], [-10, 26, 8], [28, -28, 7], [-36, 12, 6]]) { c.beginPath(); c.arc(mx + dx, my + dy, cr, 0, 7); c.fill(); }
@@ -456,6 +459,6 @@
     for (const ex of [t.x0, t.x1]) if (ex > x0 - 2 && ex < x1 + 2) { line(c, [ex, y, ex, t.face || y1], 3.4); const s = ex === t.x0 ? -1 : 1; blob(c, [ex - s * 16, y - 2, ex - s * 4, y - 9, ex + s * 9, y - 2, ex + s * 10, y + 16, ex + s * 3, y + 26, ex - s * 3, y + 12], H.leaf, 2.2); }   // turf curling over an edge
   }
 
-  const skyLights = (VW) => [{ x: VW * 0.63, y: 150, r: 260, color: '255,250,225', a: 0.7 }];       // the moon
+  const skyLights = (VW) => [{ x: VW * 0.63, y: 104, r: 260, color: '255,250,225', a: 0.7 }];       // the moon
   NN.hollow = { build, sky, far, mid, ground, skyLights, midLights: () => MIDL.slice() };
 })(window.NN = window.NN || {});
