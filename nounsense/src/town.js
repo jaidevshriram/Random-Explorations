@@ -14,15 +14,21 @@
   const rng = (seed) => { let s = (seed >>> 0) || 1; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); };
 
   // ---- parts -------------------------------------------------------------------
-  function box(c, x, y, w, h, fill, lw) { c.fillStyle = fill; c.fillRect(x, y, w, h); c.lineWidth = lw || 2.4; c.strokeStyle = O; c.lineJoin = 'round'; c.strokeRect(x, y, w, h); }
+  // Depth: while a scene is being baked, every filled part casts a soft shadow on whatever is already behind it,
+  // and anything large is a little lighter at its top than its bottom. It is off for per-frame drawing (too slow there).
+  let DEPTH = false;
+  function castOn(c) { if (!DEPTH) return; c.shadowColor = 'rgba(22,18,52,0.3)'; c.shadowBlur = 9; c.shadowOffsetX = 4; c.shadowOffsetY = 7; }
+  function castOff(c) { if (!DEPTH) return; c.shadowColor = 'rgba(0,0,0,0)'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0; }
+  function tone(c, y, h) { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(255,250,235,0.11)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(20,16,60,0.13)'); return g; }
+  function box(c, x, y, w, h, fill, lw) { c.fillStyle = fill; castOn(c); c.fillRect(x, y, w, h); castOff(c); if (DEPTH && w * h > 700 && h > 12) { c.fillStyle = tone(c, y, h); c.fillRect(x, y, w, h); } c.lineWidth = lw || 2.4; c.strokeStyle = O; c.lineJoin = 'round'; c.strokeRect(x, y, w, h); }
   function shade(c, x, y, w, h, a) { c.fillStyle = `rgba(28,32,58,${a || 0.16})`; c.fillRect(x, y, w, h); }
   function line(c, pts, lw, col) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.lineWidth = lw || 1.6; c.strokeStyle = col || O; c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke(); }
-  function poly(c, pts, fill, lw) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.lineJoin = 'round'; c.stroke(); } }
-  function disc(c, x, y, r, fill, lw) { c.beginPath(); c.arc(x, y, r, 0, 7); if (fill) { c.fillStyle = fill; c.fill(); } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.stroke(); } }
+  function poly(c, pts, fill, lw) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); if (fill) { c.fillStyle = fill; castOn(c); c.fill(); castOff(c); } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.lineJoin = 'round'; c.stroke(); } }
+  function disc(c, x, y, r, fill, lw) { c.beginPath(); c.arc(x, y, r, 0, 7); if (fill) { c.fillStyle = fill; castOn(c); c.fill(); castOff(c); if (DEPTH && r > 9) { c.fillStyle = tone(c, y - r, r * 2); c.fill(); } } if (lw !== 0) { c.lineWidth = lw || 2.4; c.strokeStyle = O; c.stroke(); } }
   // Lights are not painted here. They are recorded, and the renderer adds them as real light.
   let SINK = null, EMS = null;
   function glow(c, x, y, r, a, color) { if (SINK) SINK.push({ x, y, r: r * 1.7, a: Math.min(1, (a || 0.5) * 2), color: color || '255,214,150' }); }
-  function capture(fn) { SINK = []; EMS = []; const out = fn(); const lights = SINK, emitters = EMS; SINK = null; EMS = null; return { out, lights, emitters }; }
+  function capture(fn) { SINK = []; EMS = []; DEPTH = true; let out; try { out = fn(); } finally { DEPTH = false; } const lights = SINK, emitters = EMS; SINK = null; EMS = null; return { out, lights, emitters }; }
   // a big wall surface: top-lit gradient, faint siding, a bright left edge and a heavy contour
   function wall(c, x, y, w, h, fill) {
     c.fillStyle = fill; c.fillRect(x, y, w, h);
