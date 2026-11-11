@@ -6,7 +6,7 @@
  */
 (function (NN) {
   'use strict';
-  const { O, C, box, shade, line, poly, disc, glow, icon } = NN.town.parts;
+  const { O, C, box, shade, line, poly, disc, glow, icon, rng } = NN.town.parts;
   const M = { wall: '#5d4263', wall2: '#4c3552', pat: '#6f5176', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#8c8794', stone2: '#75707e', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
 
@@ -115,14 +115,25 @@
     // the arcade below the gallery: columns, arches and what is kept behind them
     box(c, 1250, GAL + 22, 850, g - GAL - 22 - 112, M.wall2, 0);
     const bays = [1250, 1465, 1680, 1895, 2100];
+    const gal = L.gallery || [[1250, 2100]], gaps = []; for (let i = 0; i + 1 < gal.length; i++) gaps.push([gal[i][1], gal[i + 1][0]]);
+    const inGap = (x) => gaps.some(([a, b]) => x > a && x < b);
+    c.save(); c.beginPath(); c.rect(0, 0, W, 2000); for (const [a, b] of gaps) c.rect(a, 0, b - a, 2000); c.clip('evenodd');   // where the gallery has fallen in, the arches went with it
     for (let i = 0; i < 4; i++) { const x0 = bays[i] + 16, x1 = bays[i + 1] - 16, cx = (x0 + x1) / 2, r = (x1 - x0) / 2; c.beginPath(); c.moveTo(x0, GAL + 22); c.lineTo(x1, GAL + 22); c.lineTo(x1, GAL + 22 + r * 0.55); c.arc(cx, GAL + 22 + r * 0.55 + 0, r, 0, Math.PI, true); c.closePath(); c.fillStyle = M.wood; c.fill(); c.beginPath(); c.arc(cx, GAL + 22 + r * 0.55, r, Math.PI, 0); c.lineWidth = 6; c.strokeStyle = O; c.stroke(); c.lineWidth = 3; c.strokeStyle = M.gold2; c.stroke(); }
+    c.restore();
     { const x = 1357; box(c, x - 46, g - 70, 92, 70, M.wood2, 2.4); box(c, x - 52, g - 78, 104, 10, M.woodL, 2.2); glow(c, x, g - 116, 80, 0.45, '150,225,255'); c.fillStyle = 'rgba(160,215,235,0.28)'; c.fillRect(x - 40, g - 150, 80, 72);
       poly(c, [x - 8, g - 82, x - 16, g - 110, x - 4, g - 140, x + 8, g - 112], '#a9e0f2', 2); poly(c, [x + 6, g - 82, x + 4, g - 104, x + 18, g - 124, x + 24, g - 98, x + 18, g - 82], '#7fc6e6', 2); poly(c, [x - 26, g - 82, x - 28, g - 98, x - 18, g - 108, x - 12, g - 92], '#c9f0fb', 1.8);
       c.lineWidth = 2.4; c.strokeStyle = O; c.strokeRect(x - 40, g - 150, 80, 72); line(c, [x - 32, g - 142, x - 20, g - 142], 2, 'rgba(255,255,255,0.7)'); }
     { const x = 1572; box(c, x - 60, g - 64, 120, 64, M.wood2, 2.4); box(c, x - 66, g - 72, 132, 10, M.woodL, 2.2); box(c, x - 54, g - 150, 108, 78, '#d9c7a0', 2.4); icon(c, 'spiral', x, g - 111, 30); box(c, x - 26, g - 50, 52, 14, M.gold, 1.8); line(c, [x - 18, g - 43, x + 18, g - 43], 1.2); }
     { const x = 1787, w = 96; c.beginPath(); c.moveTo(x - w / 2, g - 16); c.lineTo(x - w / 2, g - 128); c.arc(x, g - 128, w / 2, Math.PI, 0); c.lineTo(x + w / 2, g - 16); c.closePath(); c.fillStyle = '#2f2233'; c.fill(); c.lineWidth = 9; c.strokeStyle = O; c.stroke(); c.lineWidth = 5; c.strokeStyle = M.woodL; c.stroke(); line(c, [x, g - 176, x, g - 16], 2.4); disc(c, x - 9, g - 86, 3.6, M.gold, 1.4); disc(c, x + 9, g - 86, 3.6, M.gold, 1.4); for (const s of [-1, 1]) { c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,220,170,0.25)'; c.strokeRect(x + (s < 0 ? -38 : 8), g - 120, 30, 44); c.strokeRect(x + (s < 0 ? -38 : 8), g - 68, 30, 44); } cobweb(c, x - w / 2 + 4, g - 150, 1, 1, 44); }
     { const x = 1997; box(c, x - 26, g - 76, 52, 76, M.stone, 2.4); box(c, x - 32, g - 84, 64, 10, M.stone2, 2); box(c, x - 32, g - 10, 64, 10, M.stone2, 2); poly(c, [x - 24, g - 84, x - 16, g - 108, x + 16, g - 108, x + 24, g - 84], M.paper, 2.2); c.beginPath(); c.roundRect(x - 15, g - 142, 30, 36, 9); c.fillStyle = M.paper; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); c.beginPath(); c.arc(x, g - 132, 17, Math.PI, 0); c.fillStyle = '#d9cdb0'; c.fill(); c.stroke(); line(c, [x - 6, g - 124, x - 2, g - 124], 1.6); line(c, [x + 2, g - 124, x + 6, g - 124], 1.6); }
-    for (const bx of bays) column(c, bx, GAL + 22, g - 2, 26);
+    for (const bx of bays) {
+      if (!inGap(bx)) { column(c, bx, GAL + 22, g - 2, 26); continue; }
+      column(c, bx, g - 96, g - 2, 26);                                   // a broken stump, and what came down around it
+      poly(c, [bx - 13, g - 92, bx - 13, g - 112, bx - 5, g - 104, bx + 2, g - 120, bx + 8, g - 106, bx + 13, g - 114, bx + 13, g - 92], M.stone, 2.2);
+      const rr = rng(bx);
+      for (let k = 0; k < 9; k++) { const rx = bx - 96 + rr() * 190, rw = 10 + rr() * 22, rh = 7 + rr() * 12; poly(c, [rx, g - 2, rx + rw * 0.15, g - 2 - rh, rx + rw * 0.7, g - 2 - rh * (0.7 + rr() * 0.5), rx + rw, g - 2], k % 3 ? M.stone : M.stone2, 2); }
+      for (const [px, a, len] of [[bx - 70, -0.5, 74], [bx + 34, 0.32, 88], [bx - 20, -0.16, 60]]) { c.save(); c.translate(px, g - 8); c.rotate(a); box(c, 0, -6, len, 9, M.woodL, 2.2); line(c, [6, -1.5, len - 8, -1.5], 1.2, M.wood2); c.restore(); }
+    }
     // the far hall: a tall mirror with something in it
     { const x = 2180, w = 86, y0 = 170, y1 = g - 130; frame(c, x - w / 2, y0, w, y1 - y0); const gr = c.createLinearGradient(x - w / 2, y0, x + w / 2, y1); gr.addColorStop(0, '#9fc3d6'); gr.addColorStop(1, '#5f86a6'); c.fillStyle = gr; c.fillRect(x - w / 2, y0, w, y1 - y0);
       c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.moveTo(x - w / 2, y0 + 70); c.lineTo(x - w / 2 + 44, y0); c.lineTo(x - w / 2 + 64, y0); c.lineTo(x - w / 2, y0 + 110); c.fill();
@@ -131,7 +142,7 @@
     sconce(c, 2112 + 14, 250); sconce(c, 2340, 250); candelabra(c, 2364, g);
     chandelier(c, 480, 56); chandelier(c, 1130, 40); chandelier(c, 1660, 26);
     sconce(c, 1660, 170); sconce(c, 2010, 150);
-    for (let i = 0; i < 4; i++) { const lx = (bays[i] + bays[i + 1]) / 2; line(c, [lx, GAL + 22, lx, GAL + 52], 2); box(c, lx - 7, GAL + 52, 14, 18, '#ffdc94', 2); box(c, lx - 9, GAL + 48, 18, 5, M.gold2, 1.6); glow(c, lx, GAL + 62, 74, 0.42); }
+    for (let i = 0; i < 4; i++) { const lx = (bays[i] + bays[i + 1]) / 2; if (inGap(lx)) continue; line(c, [lx, GAL + 22, lx, GAL + 52], 2); box(c, lx - 7, GAL + 52, 14, 18, '#ffdc94', 2); box(c, lx - 9, GAL + 48, 18, 5, M.gold2, 1.6); glow(c, lx, GAL + 62, 74, 0.42); }
     cobweb(c, 2, CEIL + 16, 1, 1, 80); cobweb(c, W - 2, CEIL + 16, -1, 1, 90); cobweb(c, 1264, GAL + 24, 1, 1, 50); cobweb(c, 2098, CEIL + 16, -1, 1, 60);
 
     // in front of the characters: stair rail and gallery balustrade
@@ -141,8 +152,10 @@
     for (let i = 0; i < 11; i++) baluster(935 + i * 30, 520 - (i + 1) * 20 - 44, 520 - (i + 1) * 20);
     line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL);
     newel(908, g - 74, g); newel(1250, GAL - 60, GAL);
-    for (let x = 1274; x < 2090; x += 22) baluster(x, GAL - 40, GAL);
-    box(d, 1250, GAL - 46, 850, 8, M.woodL, 2.4); newel(2096, GAL - 60, GAL);
+    for (const [ga, gb] of L.gallery || [[1250, 2100]]) {          // one balustrade per surviving stretch of gallery
+      for (let x = ga + 24; x < gb - 10; x += 22) baluster(x, GAL - 40, GAL);
+      box(d, ga, GAL - 46, gb - ga, 8, M.woodL, 2.4); newel(gb - 4, GAL - 60, GAL); if (ga > 1250) newel(ga + 4, GAL - 60, GAL);
+    }
     return { front: { cv: a.cv, top, h: H }, over: { cv: b.cv, top, h: H } };
   }
 
@@ -154,7 +167,9 @@
     }
     if (t.kind === 'balcony') {
       box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.woodL, 2.6); line(c, [t.x0, y + 7, t.x1, y + 7], 1.6, M.gold); for (let x = t.x0 + 8; x < t.x1; x += 34) poly(c, [x, t.y1, x + 14, t.y1, x, t.y1 + 12], M.wood, 1.8);
-      box(c, Math.max(t.x0, x0), y - 2, Math.min(t.x1, x1) - Math.max(t.x0, x0), 5, M.red, 1.6); return;
+      box(c, Math.max(t.x0, x0), y - 2, Math.min(t.x1, x1) - Math.max(t.x0, x0), 5, M.red, 1.6);
+      for (const [ex, dd] of [[t.x0, -1], [t.x1, 1]]) if (ex > 1260 && ex < 2090) { poly(c, [ex, y, ex + dd * 16, y + 4, ex + dd * 7, y + 10, ex + dd * 20, y + 16, ex + dd * 5, y + 22, ex, y + 22], M.woodL, 2.2); line(c, [ex + dd * 10, y + 22, ex + dd * 14, y + 40], 3, M.wood2); }   // splintered ends where the floor gave way
+      return;
     }
     // the hall floor: boards, a carpet runner to the stairs, foundations below
     c.fillStyle = '#2c2130'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22);

@@ -25,7 +25,7 @@
   const save = () => { try { localStorage.setItem('nounsense.v2', JSON.stringify(store)); } catch (e) { /* ignore */ } };
   const prog = (id) => (store.worlds[id] = store.worlds[id] || { stars: 0, used: [] });
 
-  let sim, L, levelIndex = Math.min(NN.levels.length - 1, store.last || 0), started = false, boil = 0, hover = null, selected = null, toastT = 0, layers = null;
+  let sim, L, levelIndex = NN.levels[store.last] && !NN.levels[store.last].hidden ? store.last : 0, started = false, boil = 0, hover = null, selected = null, toastT = 0, layers = null;
   const cam = { x: 0, y: BASE };
   const mouse = { sx: VW / 2, sy: VH / 3, x: 0, y: 0, inside: false, downAt: null };
   const keys = {}, pressed = {};
@@ -187,7 +187,7 @@
     smoke.length = 0; buildWorldArt();
     $('win').hidden = true;
     $('cap').textContent = L.caption; $('cap').classList.add('show'); capT = 7;
-    $('lvlname').textContent = `${levelIndex + 1}. ${L.name}`;
+    $('lvlname').textContent = `${NN.levels.filter((l, i) => !l.hidden && i <= levelIndex).length}. ${L.name}`;
     $('introtitle').textContent = L.name; $('introbody').textContent = L.story;
     renderWorldPicker(); select(null); updateHud();
   }
@@ -195,6 +195,7 @@
   // ---- drawing helpers -----------------------------------------------------------
   const R = (seed) => rng(((seed | 0) * 131 + boil * 977 + 5) >>> 0);
   const visible = (x, pad) => x > cam.x - (pad || 60) && x < cam.x + WW + (pad || 60);
+  const chestSpec = Object.assign({}, NN.lexicon.resolve('big treasure').spec, { noun: '_seedchest', still: true });   // a chest of spare star seeds, for indoor worlds
   const heroSpec = { noun: '_nib', w: 34, h: 60, art: { a: 'person', top: 'teal', legs: 'navy', shoe: 'dbrown', hat: 'goggles', hair: 'red', satchel: 1 } };
 
   function shadow(x, y, rx, a) { ctx.fillStyle = `rgba(20,14,30,${a})`; ctx.beginPath(); ctx.ellipse(x, y + 1, rx, Math.max(2.5, rx * 0.16), 0, 0, 7); ctx.fill(); }
@@ -329,7 +330,7 @@
     for (const t of L.terrain) if (t.kind !== 'pit') drawBlock(t);
     // the crashed ship, where fresh star seeds come from
     const d = L.depot;
-    if (visible(d.x, 200)) { shadow(d.x, d.y, 70, 0.22); blit({ noun: '_comet', w: 170, h: 120, art: BG.comet, still: true }, d.x, d.y - 54); }
+    if (visible(d.x, 200)) { if (L.depotKind === 'chest') { shadow(d.x, d.y, 34, 0.22); blit(chestSpec, d.x, d.y - chestSpec.h / 2); starSeed(d.x - 8, d.y - 44 + Math.sin(sim.time * 2) * 2, 6); starSeed(d.x + 12, d.y - 40 + Math.cos(sim.time * 2.3) * 2, 5); } else { shadow(d.x, d.y, 70, 0.22); blit({ noun: '_comet', w: 170, h: 120, art: BG.comet, still: true }, d.x, d.y - 54); } }
     for (const sg of L.signs || []) if (visible(sg.x, 120)) { blit({ noun: '_sign', w: 96, h: 80, art: BG.signpost, still: true }, sg.x, L.start.y - 40); label(sg.text, sg.x, L.start.y - 66, 12); }
   }
   function drawWater() {
@@ -693,17 +694,20 @@
     $('winbody').textContent = lines.join(' ');
     for (const n of nouns) if (!pr.used.includes(n)) pr.used.push(n);
     pr.stars = Math.max(pr.stars, stars); save();
-    $('next').hidden = levelIndex >= NN.levels.length - 1;
+    $('next').hidden = nextWorld() < 0;
     $('win').hidden = false;
     ($('next').hidden ? $('again') : $('next')).focus();
     renderWorldPicker(); updateHud();
   }
+  const nextWorld = () => NN.levels.findIndex((l, i) => i > levelIndex && !l.hidden);
   function renderWorldPicker() {
-    const box = $('worlds'); box.textContent = '';
+    const box = $('worlds'); box.textContent = ''; let num = 0;
     NN.levels.forEach((lv, i) => {
+      if (lv.hidden) return;
+      num++;
       const b = document.createElement('button'), st = prog(lv.id).stars;
       b.type = 'button'; b.className = 'btn world' + (i === levelIndex ? ' on' : '');
-      b.textContent = `${i + 1}. ${lv.name}  ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`;
+      b.textContent = `${num}. ${lv.name}  ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`;
       b.addEventListener('click', () => { newGame(i); started = false; $('intro').hidden = false; });
       box.appendChild(b);
     });
@@ -715,7 +719,7 @@
   }
   $('start').addEventListener('click', () => { start(); view.focus(); });
   $('again').addEventListener('click', () => { newGame(); view.focus(); });
-  $('next').addEventListener('click', () => { newGame(levelIndex + 1); view.focus(); });
+  $('next').addEventListener('click', () => { newGame(nextWorld()); view.focus(); });
   $('restart').addEventListener('click', () => { newGame(); setMsg('World reset.'); });
   $('pick').addEventListener('click', () => { started = false; $('intro').hidden = false; $('win').hidden = true; });
   $('clear').addEventListener('click', () => { sim.clearAll(); setMsg('Page cleared.'); });

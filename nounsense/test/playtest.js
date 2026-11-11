@@ -16,6 +16,14 @@ const TESTS = [
   [-2, 'torch burns the hoarding', (s, p, run, at, N, has) => { N.magpie.asleepUntil = Infinity; s.spawn('torch', 1960, 480); run(40); at(1960); run(3, {}, { interactPressed: true }); run(40, { right: true }); run(5, {}, { usePressed: true }); run(420, { left: true }); return !has('hoarding') ? true : 'still standing'; }],
   [-2, 'neighbours wave and say hello', (s, p, run, at, N) => { at(N.kid.x - 40); run(200); return N.kid.waveUntil > 0 && s.fx.some((f) => f.type === 'speech') ? true : [N.kid.waveUntil, s.fx.length]; }],
   [-2, 'lighting the beacon wins', (s, p, run, at) => { at(2420); run(60, { right: true }); return s.won ? true : 'no win'; }],
+  // Gloamwick Manor (index 1)
+  [-1, 'stairs lead up to the gallery', (s, p, run, at, N) => { N.armour.asleepUntil = Infinity; at(880); run(200, { right: true }); return p.y < 320 && p.x > 1250 ? true : [p.x | 0, p.y | 0]; }],
+  [-1, 'haunted armour attacks', (s, p, run, at, N) => { at(N.armour.x - 90); run(240); return p.hp < 3 || p.x < 400 ? true : p.hp; }],
+  [-1, 'rain rusts the armour to a stop', (s, p, run, at, N) => { s.spawn('rain cloud', N.armour.x, 200); run(60); return N.armour.stunUntil > s.time ? true : 'still moving'; }],
+  [-1, 'bridge spans the hole in the gallery', (s, p, run, at, N) => { s.spawn('bridge', 1680, 240); run(80); at(1500, 300); run(130, { right: true }); return p.x > 1820 && p.y < 310 ? true : [p.x | 0, p.y | 0]; }],
+  [-1, 'key opens the vault door', (s, p, run, at, N, has) => { s.spawn('key', 2040, 480); run(40); at(2040); run(3, {}, { interactPressed: true }); run(20, { right: true }); run(3, {}, { usePressed: true }); run(5); return !has('vaultdoor') ? true : 'still locked'; }],
+  [-1, 'lantern drives off the poltergeist; beacon lit', (s, p, run, at, N) => { s.spawn('lantern', 2170, 480); run(40); at(2170); run(3, {}, { interactPressed: true }); run(80, { right: true }); return s.won && p.hp === 3 ? true : [p.x | 0, p.hp, s.won]; }],
+  [-1, 'poltergeist guards the beacon', (s, p, run, at, N) => { at(2180); run(200, { right: true }); return p.hp < 3 || p.x < 600 ? true : [p.hp, s.won]; }],
   // world 0: Glowroot Gorge
   [0, 'bridge spans the gorge', (s, p, run, at) => { s.spawn('bridge', 870, 470); run(90); at(640); run(160, { right: true }); return p.x > 1040 && p.y < 520 ? true : [p.x | 0, p.y | 0]; }],
   [0, 'plain jump does not clear the gorge', (s, p, run, at) => { at(640); run(18, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.x < 1040 ? true : p.x | 0; }],
