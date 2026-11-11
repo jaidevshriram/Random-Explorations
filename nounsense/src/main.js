@@ -188,6 +188,23 @@
     c.globalCompositeOperation = 'source-atop'; c.globalAlpha = hazeAlpha; c.fillStyle = T.haze; c.fillRect(0, 0, w, h);
     return { cv: c0, w, h, extra, par, horizon: extra + HORIZON + 4 };
   }
+  // Baked scene layers are several screens wide. Cut them into tiles so each frame only touches the ones in
+  // view and no single texture is bigger than phones allow. Tiles with nothing on them are dropped.
+  function tileLayer(l) {
+    if (!l || l.tiles) return l;
+    const src = l.cv, sc = src.width / L.W, TW = 512, tiles = [], probe = document.createElement('canvas'); probe.width = probe.height = 24;
+    const pc = probe.getContext('2d', { willReadFrequently: true });
+    for (let x = 0; x < L.W; x += TW) {
+      const w = Math.min(TW + 1, L.W - x), t = document.createElement('canvas'); t.width = Math.ceil(w * sc); t.height = src.height;
+      t.getContext('2d').drawImage(src, -Math.round(x * sc), 0);
+      pc.clearRect(0, 0, 24, 24); pc.drawImage(t, 0, 0, 24, 24);
+      const d = pc.getImageData(0, 0, 24, 24).data; let any = false; for (let i = 3; i < d.length; i += 4) if (d[i]) { any = true; break; }
+      if (any) tiles.push({ cv: t, x, w: t.width / sc });
+    }
+    src.width = src.height = 0;                                   // let the big canvas go
+    return { tiles, top: l.top, h: l.h };
+  }
+  function drawLayer(l) { for (const t of l.tiles) if (t.x < cam.x + WW + 4 && t.x + t.w > cam.x - 4) ctx.drawImage(t.cv, t.x, l.top, t.w, l.h); }
   function buildWorldArt() {
     const T = THEMES[L.theme], S = SCENES[L.theme];
     if (T.custom) {   // the town is drawn from architectural parts, see town.js
@@ -228,7 +245,7 @@
     sim = NN.createSim({ toast: showToast, changed: updateHud, won: onWin, sfx }, L);
     Z = L.zoom || 1.6; WW = VW / Z; WH = VH / Z; BASE = L.zoom ? 520 - WH * 0.84 : 290; HORIZON = (520 - BASE) * Z;
     cam.x = 0; cam.y = BASE; hover = null; selected = null;
-    smoke.length = 0; buildWorldArt();
+    smoke.length = 0; buildWorldArt(); layers.front = tileLayer(layers.front); layers.over = tileLayer(layers.over);
     $('win').hidden = true;
     $('cap').textContent = L.caption; $('cap').classList.add('show'); capT = 7;
     $('lvlname').textContent = `${NN.levels.filter((l, i) => !l.hidden && i <= levelIndex).length}. ${L.name}`;
@@ -363,7 +380,7 @@
     if (st.hull) { ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.fillStyle = st.cap; for (let x = Math.max(t.x0 + 6, Math.ceil(x0 / 60) * 60); x < x1; x += 60) { ctx.fillRect(x - 3, y0 - 26, 6, 26); ctx.strokeRect(x - 3, y0 - 26, 6, 26); } ctx.beginPath(); ctx.moveTo(Math.max(t.x0 + 3, x0), y0 - 26); ctx.lineTo(x1, y0 - 26); ctx.stroke(); }
   }
   function drawWorld() {
-    if (layers.front) ctx.drawImage(layers.front.cv, 0, layers.front.top, L.W, layers.front.h);
+    if (layers.front) drawLayer(layers.front);
     for (const pf of smoke) { const k = pf.age / 2.6; ctx.globalAlpha = Math.max(0, 0.85 - k); ctx.beginPath(); ctx.arc(pf.x + pf.age * 7, pf.y - pf.age * 20, 5 + pf.age * 5, 0, 7); ctx.fillStyle = '#f6f1e6'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke(); ctx.globalAlpha = 1; }
     for (const t of L.terrain) if (t.trench) {   // the far wall of a trench, in shadow
       const st = THEMES[L.theme].ground.pit;
@@ -632,8 +649,9 @@
     }
   }
 
+  const perf = { scene: 0, lights: 0, present: 0 };
   function draw() {
-    const k = cv.width / VW;
+    const k = cv.width / VW, t0 = performance.now();
     ctx.setTransform(k, 0, 0, k, 0, 0);
     u.setTransform(1, 0, 0, 1, 0, 0); u.clearRect(0, 0, uiCv.width, uiCv.height); u.setTransform(k * Z, 0, 0, k * Z, -cam.x * k * Z, -cam.y * k * Z);
     drawBackdrop();
@@ -645,7 +663,7 @@
     if (sim.player.mount) { drawEnt(sim.player.mount); drawPlayer(); }
     for (const e of list) if (layerOf(e) >= 4 && e !== sim.player.mount) drawEnt(e);
     if (!sim.player.mount) drawPlayer();
-    if (layers.over) ctx.drawImage(layers.over.cv, 0, layers.over.top, L.W, layers.over.h);   // railings and such, in front of the action
+    if (layers.over) drawLayer(layers.over);   // railings and such, in front of the action
     if (layers.animate) layers.animate(ctx, reduceMotion ? 0 : sim.time, 'front', cam, WW, WH);
     drawWater();
     drawFx();
@@ -653,8 +671,8 @@
     ctx.restore();
     // the panel border
     u.setTransform(k, 0, 0, k, 0, 0); u.strokeStyle = INK; u.lineWidth = 7; u.strokeRect(3.5, 3.5, VW - 7, VH - 7);
-    drawLights();
-    present();
+    const t1 = performance.now(); drawLights(); const t2 = performance.now(); present(); const t3 = performance.now();
+    perf.scene += (t1 - t0 - perf.scene) * 0.1; perf.lights += (t2 - t1 - perf.lights) * 0.1; perf.present += (t3 - t2 - perf.present) * 0.1;   // rolling averages in ms, readable as NN.game.perf
   }
 
   // ---- loop -----------------------------------------------------------------
@@ -865,5 +883,5 @@
   requestAnimationFrame(frame);
 
   // for tests and the curious
-  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select };
+  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select, perf };
 })(window.NN);

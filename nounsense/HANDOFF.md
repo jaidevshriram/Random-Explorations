@@ -24,6 +24,9 @@ The game was reworked after the notes below were written. What is true now:
   minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).
 - **Music:** `TUNES` in `main.js` gives each world a key, tempo and four chords; `musicTick()` schedules a pad, a
   bass and a seeded music-box line. No audio files.
+- **Performance:** baked scene layers are cut into 512-unit tiles (`tileLayer` in `main.js`) so only visible tiles
+  are drawn and no texture exceeds phone limits. `NN.game.perf` holds rolling per-frame timings in ms
+  (`scene`, `lights`, `present`). In software rendering all three worlds cost about 15 ms scene + 15 ms present.
 - **Camera:** follows the ground under the hero (`sim.groundBelow`), so high ground does not fill the frame with soil.
 - **Studies:** `test/study.html` is a measured redraw of a reference illustration (18.5 dB PSNR), with tools in
   `test/study-tools/`. `test/recreation.html` is an earlier freehand attempt. Neither is used by the game.
