@@ -13,7 +13,9 @@
     lampGlow(c, x, y, r, a, col || '255,176,96');
     if (col) return;
     const rr = r * 1.9, g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(255,170,78,${Math.min(0.5, (a || 0.5) * 0.85)})`); g.addColorStop(0.45, `rgba(255,150,70,${Math.min(0.5, (a || 0.5) * 0.3)})`); g.addColorStop(1, 'rgba(255,150,70,0)');
-    c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(x - rr, y - rr, rr * 2, rr * 2); c.restore();
+    c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+    for (const [k, al] of [[1.25, 0.09], [0.78, 0.1], [0.42, 0.12]]) { c.beginPath(); c.ellipse(x, y + r * 0.1, r * k, r * k * 0.86, 0, 0, 7); c.fillStyle = `rgba(255,186,96,${al})`; c.fill(); }   // light as flat lit shapes with an edge, the way it is inked in a comic
+    c.restore();
   };   // candlelight here is amber, so it reads as warm against the teal walls
   const M = { wall: '#3f5e62', wall2: '#324b50', pat: '#52787c', wood: '#6b4433', wood2: '#553426', woodL: '#8a5a3f', gold: '#d0a84e', gold2: '#a27c2c', red: '#a53d46', red2: '#84303b', night: '#2b3768', moon: '#e9edf7', stone: '#a8998c', stone2: '#8f8073', paper: '#efe2c4', iron: '#9aa0b0' };
   const CEIL = 40, GAL = 300;                           // ceiling line and gallery floor, in world y
