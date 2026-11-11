@@ -105,10 +105,11 @@
       ground: { dust: { body: '#b96a3a', body2: '#a35a30', cap: '#e9a35a', line: '#8a4a28' }, island: { body: '#8a5a44', body2: '#74493a', cap: '#7cc46a', line: '#5b3a2e', glow: '#fff3b0' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     keep: { ambient: '#7a82b8', sky: ['#0b0e22', '#1a2150', '#3b3f7a'], haze: '#161b40', stars: 120, bodies: [[230, 130, 84, '#6fa8d6', 2]],
       ground: { moon: { body: '#454a66', body2: '#3a3f58', cap: '#8a8fa8', line: '#2c3048' }, keep: { body: '#34395a', body2: '#2b3050', cap: '#676d96', line: '#1f2340', bricks: 1 }, pit: { body: '#1a1d33', cap: '#1a1d33', line: '#2c3048' } }, water: ['rgba(87,201,143,0.7)', '#d9ffe9'] },
-    manor: { custom: true, ambient: '#a09cb2', bloom: 0.2, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    hollow: { custom: true, ambient: '#7a84c2', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
-    town: { custom: true, ambient: '#d0cedc', farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    port: { custom: true, ambient: '#b8a0d4', farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
+    manor: { custom: true, ambient: '#666686', bloom: 0.3, contrast: 0.24, saturate: 0.1, haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    hollow: { custom: true, ambient: '#7a84c2', contrast: 0.12, saturate: -0.06, haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
+    town: { custom: true, ambient: '#a8accc', bloom: 0.08, contrast: 0.2, saturate: 0,          // cool street, warm windows: chosen by side-by-side ranking
+      farLine: '#8492bc', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
+    port: { custom: true, ambient: '#a09cc8', bloom: 0.12, contrast: 0.21, saturate: 0.03, farLine: '#7f62ac', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
   // background props, in the same shape language as the dictionary art
   const BG = {
@@ -613,7 +614,7 @@
     lit = !!T.ambient;
     if (!lit) return;
     const k = lmCv.width / VW;                                 // low resolution on purpose: it softens for free
-    for (const [c, bg] of [[lm, T.ambient], [gl, '#000']]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.fillStyle = bg; c.fillRect(0, 0, lmCv.width, lmCv.height); c.setTransform(k * Z, 0, 0, k * Z, -cam.x * k * Z, -cam.y * k * Z); c.globalCompositeOperation = 'lighter'; }
+    for (const [c, bg] of [[lm, tune.ambient || T.ambient], [gl, '#000']]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.fillStyle = bg; c.fillRect(0, 0, lmCv.width, lmCv.height); c.setTransform(k * Z, 0, 0, k * Z, -cam.x * k * Z, -cam.y * k * Z); c.globalCompositeOperation = 'lighter'; }
     for (const l of collectLights()) for (const c of [lm, gl]) {
       const g = c.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
       g.addColorStop(0, `rgba(${l.color},${l.a})`); g.addColorStop(0.2, `rgba(${l.color},${l.a * 0.6})`); g.addColorStop(0.5, `rgba(${l.color},${l.a * 0.18})`); g.addColorStop(1, `rgba(${l.color},0)`);   // a bright core and a faint skirt: a lamp, not a smudge
@@ -640,12 +641,13 @@
       const world = new PIXI.Container(); world.addChild(scene, light, glowS, vig, grain);
       const grade = new PIXI.ColorMatrixFilter(); grade.saturate(-0.08, false); grade.contrast(0.05, true); world.filters = [grade];
       app.stage.addChild(world, ui);
-      px = { app, scene, light, glowS, ui, vig, grain };
+      px = { app, scene, light, glowS, ui, vig, grain, grade };
     } catch (e) { console.warn('WebGL renderer unavailable, drawing without it:', e.message); px = null; v2 = view.getContext('2d'); view.width = cv.width; view.height = cv.height; }
   }
   function present() {
     if (px) {
-      px.light.visible = px.glowS.visible = lit; px.glowS.alpha = THEMES[L.theme].bloom || 0.12;   // how much each world's lamps glow into the air
+      px.light.visible = px.glowS.visible = lit; px.glowS.alpha = tune.bloom !== undefined ? tune.bloom : THEMES[L.theme].bloom || 0.12;
+      const TH = THEMES[L.theme], gk = (tune.saturate !== undefined ? tune.saturate : TH.saturate !== undefined ? TH.saturate : -0.08) + '/' + (tune.contrast !== undefined ? tune.contrast : TH.contrast !== undefined ? TH.contrast : 0.05);   // each world has its own grade if (gk !== px.gradeKey) { px.gradeKey = gk; px.grade.reset(); px.grade.saturate(+gk.split('/')[0], false); px.grade.contrast(+gk.split('/')[1], true); }   // how much each world's lamps glow into the air
       for (const sp of [px.scene, px.light, px.glowS, px.ui]) sp.texture.baseTexture.update();
       px.app.renderer.render(px.app.stage);
     } else if (v2) {
@@ -656,6 +658,7 @@
   }
 
   const perf = { scene: 0, lights: 0, present: 0 };
+  const tune = {};                                               // overrides for trying out lighting: ambient, bloom, saturate, contrast (NN.game.tune)
   function draw() {
     const k = cv.width / VW, t0 = performance.now();
     ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -904,5 +907,5 @@
   requestAnimationFrame(frame);
 
   // for tests and the curious
-  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select, perf, get audio() { return { ac, mus }; } };
+  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select, perf, tune, get audio() { return { ac, mus }; } };
 })(window.NN);

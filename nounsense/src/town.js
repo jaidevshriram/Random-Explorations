@@ -172,7 +172,7 @@
       const h = 250, p = 64;
       wall(c, x + 10, g - h, w - 20, h, C.sand); shade(c, x + w - 30, g - h, 20, h);
       // lit hall with a great spiral fossil
-      box(c, x + p, g - h + 40, w - p * 2, h - 60, C.lit, 2.4); c.fillStyle = C.lit2; c.fillRect(x + p, g - 70, w - p * 2, 50); { const ig = c.createLinearGradient(0, g - h + 40, 0, g - 76); ig.addColorStop(0, 'rgba(176,98,40,0.46)'); ig.addColorStop(1, 'rgba(176,98,40,0)'); c.fillStyle = ig; c.fillRect(x + p + 1, g - h + 41, w - p * 2 - 2, h - 118); }   // the hall is darker up under its ceiling glow(c, x + w / 2, g - h / 2, 150, 0.35);
+      box(c, x + p, g - h + 40, w - p * 2, h - 60, C.lit, 2.4); c.fillStyle = C.lit2; c.fillRect(x + p, g - 70, w - p * 2, 50); { const ig = c.createLinearGradient(0, g - h + 40, 0, g - 76); ig.addColorStop(0, 'rgba(176,98,40,0.46)'); ig.addColorStop(1, 'rgba(176,98,40,0)'); c.fillStyle = ig; c.fillRect(x + p + 1, g - h + 41, w - p * 2 - 2, h - 118); }   // the hall is darker up under its ceiling glow(c, x + w / 2, g - h / 2, 110, 0.24);
       icon(c, 'spiral', x + w / 2, g - h * 0.52, 56); box(c, x + w / 2 - 50, g - 62, 100, 12, '#8a5a3a', 2); line(c, [x + w / 2 - 20, g - 62, x + w / 2 - 20, g - 20], 3); line(c, [x + w / 2 + 20, g - 62, x + w / 2 + 20, g - 20], 3);
       for (const bx of [x + p + 14, x + w - p - 46]) { box(c, bx, g - h + 52, 32, 96, C.red, 2); poly(c, [bx, g - h + 148, bx + 16, g - h + 136, bx + 32, g - h + 148], C.red, 2); icon(c, bx < x + w / 2 ? 'star' : 'moon', bx + 16, g - h + 92, 10); }
       // columns, steps and pediment

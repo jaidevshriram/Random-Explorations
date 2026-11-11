@@ -79,7 +79,7 @@
       win(c, x + 22, y + 26, 40, 50, { lit: 1 }); win(c, x + 78, y + 26, 40, 50, { lit: 1, inside: 'shelf' }); win(c, x + 134, y + 26, 40, 50, {}); glow(c, x + 60, y + 50, 90, 0.4);
       box(c, x + 16, y + 100, w - 32, 30, K.cream, 2.4); c.font = '700 15px "Bangers", "Comic Neue", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = O; c.fillText('PORT NEBULA', x + w / 2, y + 116);
       door(c, x + 120, G - 92, 46, 92, K.teal, true); win(c, x + 24, G - 96, 64, 56, { lit: 1 }); glow(c, x + 56, G - 68, 80, 0.4);
-      line(c, [x + w / 2, y - 62, x + w / 2, y - 150], 3); line(c, [x + w / 2 - 30, y - 124, x + w / 2 + 30, y - 124], 2.4); disc(c, x + w / 2, y - 152, 5, K.red, 1.8); glow(c, x + w / 2, y - 152, 30, 0.5, '255,120,100');
+      line(c, [x + w / 2, y - 62, x + w / 2, y - 150], 3); line(c, [x + w / 2 - 30, y - 124, x + w / 2 + 30, y - 124], 2.4); disc(c, x + w / 2, y - 152, 5, K.red, 1.8); glow(c, x + w / 2, y - 152, 22, 0.26, '255,120,100');
       for (const [fx, col] of [[-30, K.gold], [-12, K.cyan], [10, K.red], [28, K.cream]]) poly(c, [x + w / 2 + fx - 6, y - 122, x + w / 2 + fx + 6, y - 122, x + w / 2 + fx, y - 106], col, 1.6);
     }
     // the crane, with a crate on the hook
@@ -90,7 +90,7 @@
       poly(c, [x + 34, jy - 30, x + 250, jy - 58, x + 250, jy - 48, x + 34, jy - 8], '#c8a04e', 2.6); for (let i = 0; i < 6; i++) line(c, [x + 50 + i * 34, jy - 30 - i * 4.4 + 18 - i * 2.6, x + 68 + i * 34, jy - 32 - i * 4.6], 1.4);
       line(c, [x - 34, jy - 30, x - 90, jy - 6], 4); box(c, x - 104, jy - 14, 26, 26, K.iron, 2.2);
       line(c, [x + 236, jy - 50, x + 236, G - 236], 1.8); poly(c, [x + 230, G - 236, x + 242, G - 236, x + 236, G - 224], K.iron, 1.6); line(c, [x + 236, G - 226, x + 212, G - 204], 1.4); line(c, [x + 236, G - 226, x + 260, G - 204], 1.4); crate(c, x + 210, G - 160, 52, 44, '#b98a5a');
-      disc(c, x + 250, jy - 53, 4, K.red, 1.6); glow(c, x + 250, jy - 53, 26, 0.5, '255,120,100');
+      disc(c, x + 250, jy - 53, 4, K.red, 1.6); glow(c, x + 250, jy - 53, 20, 0.26, '255,120,100');
     }
     // cargo left on the quay
     crate(c, 396, G, 46, 40); crate(c, 440, G, 40, 34, '#b98a5a'); crate(c, 408, G - 40, 38, 32, '#c9a070'); barrel(c, 500, G, 1.1); barrel(c, 528, G, 1, K.teal2); barrel(c, 226, G, 1);
