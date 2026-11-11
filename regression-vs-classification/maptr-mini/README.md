@@ -9,7 +9,7 @@
 - dividers, pedestrian crossings and boundaries, each resampled to 20 points;
 - polygons get MapTRv2's `v2` start-point shifts (at most 19 random); lines get forward and reversed orderings.
 
-The input is a 3-channel rasterised BEV map (0.3 m/px). This stands in for the camera BEV features, so the comparison isolates the coordinate head. Data: 2,685 training and 778 validation patches from 92 / 25 AV2 sensor logs.
+The input is a 3-channel rasterised BEV map (0.3 m/px). This stands in for the camera BEV features, so the comparison isolates the coordinate head. Data: 2,685 training and 778 validation patches from 120 / 40 AV2 sensor logs.
 
 **Conditions:**
 - (A) clean input;
