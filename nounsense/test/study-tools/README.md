@@ -9,7 +9,14 @@ in the repo.
   The probe image is a screenshot of `study.html?probe`, where every fill is
   painted in a unique id colour so the script can tell which pixels each shape covers.
 
-`study.html` accepts `?nofit` (ignore the fitted colours), `?o=rrggbb`
+- `align.js '<passes>' '' '<corner steps>' <reference.png>` tunes each shape's placement:
+  a shift and size correction per shape, then each polygon corner on its own. It only
+  moves what is already drawn, and writes `../study-adj.js`.
+
+The loop is: `align.js`, screenshot `study.html?probe`, `fit.py`, `score.py`.
+On the street reference this took the redraw from 13.2 dB (freehand) to 18.5 dB.
+
+`study.html` accepts `?noadj` (ignore placement corrections), `?nofit` (ignore the fitted colours), `?o=rrggbb`
 (outline colour) and `?lw=1.2` (outline width multiplier).
 
 ## Tracing, for comparison
