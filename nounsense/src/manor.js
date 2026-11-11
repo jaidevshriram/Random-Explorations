@@ -9,7 +9,7 @@
   const { O, C, box, shade, line, poly, disc, glow: lampGlow, icon, rng } = NN.town.parts;
   // Candlelight is recorded as a real light and also painted onto whatever is behind it as a warm pool.
   // The light map only brightens; on teal paper that turns grey-green, so the amber has to be in the paint.
-  let POOLS = [];                                         // where warm light reaches the floor
+  let POOLS = [], COOL = [];                              // where warm light, and moonlight, reach the floor
   const glow = (c, x, y, r, a, col) => {
     lampGlow(c, x, y, r, a, col || '255,176,96');
     if (col) return;
@@ -73,7 +73,7 @@
     disc(c, x, CEIL + drop + 24, 5, M.gold, 1.8);
   }
 
-  function build(L, scale) { POOLS = []; const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
+  function build(L, scale) { POOLS = []; COOL = []; const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
   function paint(L, scale) {
     const g = L.start.y, top = -10, H = g - top + 6, W = L.W;
     const mk = () => { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * scale); cv.height = Math.ceil(H * scale); const c = cv.getContext('2d'); c.scale(scale, scale); c.translate(0, -top); return { cv, c }; };
@@ -94,7 +94,7 @@
     box(c, -10, g - 16, W + 20, 16, M.wood2, 2.2);
 
     // tall arched window with the moon, curtains pulled back
-    { const x = 70, w = 220, y0 = 140, y1 = g - 126, cx = x + w / 2;
+    const moonWindow = (x, w, y0, y1, drapes) => { const cx = x + w / 2;
       c.beginPath(); c.moveTo(x, y1); c.lineTo(x, y0 + w / 2); c.arc(cx, y0 + w / 2, w / 2, Math.PI, 0); c.lineTo(x + w, y1); c.closePath(); c.fillStyle = M.night; c.fill();
       c.save(); c.clip(); glow(c, cx + 30, y0 + 120, 190, 0.42, '170,195,255'); disc(c, cx + 30, y0 + 86, 38, M.moon, 0); disc(c, cx + 18, y0 + 78, 7, '#cfd6e8', 0); disc(c, cx + 44, y0 + 98, 5, '#cfd6e8', 0);
       c.fillStyle = '#1d2548'; c.beginPath(); c.ellipse(cx, y1 + 30, w * 0.8, 70, 0, 0, 7); c.fill();
@@ -104,10 +104,16 @@
       for (const mx of [x + w / 3, x + w * 2 / 3]) line(c, [mx, y0 + 16, mx, y1], 5, M.wood2); for (const my of [y0 + w / 2, y0 + w / 2 + 96, y0 + w / 2 + 180]) line(c, [x, my, x + w, my], 5, M.wood2);
       c.beginPath(); c.moveTo(x, y1); c.lineTo(x, y0 + w / 2); c.arc(cx, y0 + w / 2, w / 2, Math.PI, 0); c.lineTo(x + w, y1); c.lineWidth = 13; c.strokeStyle = O; c.stroke(); c.lineWidth = 8; c.strokeStyle = M.woodL; c.stroke();
       box(c, x - 18, y1 - 2, w + 36, 12, M.woodL, 2.4);
-      for (const s of [-1, 1]) { const ex = s < 0 ? x - 34 : x + w + 34; poly(c, [ex, y0 - 40, ex - s * 96, y0 - 40, ex - s * 70, y0 + 120, ex - s * 20, y0 + 210, ex - s * 34, y1 + 6, ex + s * 4, y1 + 6], M.red, 2.6); for (const k of [0.25, 0.5, 0.75]) line(c, [ex - s * 96 * k, y0 - 36, ex - s * (20 + 30 * k), y0 + 200, ex - s * 30 * k, y1], 1.5, M.red2); box(c, ex - s * 34 - 10, y0 + 204, 20, 9, M.gold, 1.8); }
-      line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 7); line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 3.4, M.gold); disc(c, x - 62, y0 - 44, 7, M.gold, 2); disc(c, x + w + 62, y0 - 44, 7, M.gold, 2);
-      for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(x - 34 + (w + 68) * (i + 0.5) / 8, y0 - 38, (w + 68) / 16, 0, Math.PI); c.fillStyle = M.red2; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); }
-    }
+      if (drapes) for (const s of [-1, 1]) { const ex = s < 0 ? x - 34 : x + w + 34; poly(c, [ex, y0 - 40, ex - s * 96, y0 - 40, ex - s * 70, y0 + 120, ex - s * 20, y0 + 210, ex - s * 34, y1 + 6, ex + s * 4, y1 + 6], M.red, 2.6); for (const k of [0.25, 0.5, 0.75]) line(c, [ex - s * 96 * k, y0 - 36, ex - s * (20 + 30 * k), y0 + 200, ex - s * 30 * k, y1], 1.5, M.red2); box(c, ex - s * 34 - 10, y0 + 204, 20, 9, M.gold, 1.8); }
+      if (drapes) { line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 7); line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 3.4, M.gold); disc(c, x - 62, y0 - 44, 7, M.gold, 2); disc(c, x + w + 62, y0 - 44, 7, M.gold, 2); }
+      if (drapes) for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(x - 34 + (w + 68) * (i + 0.5) / 8, y0 - 38, (w + 68) / 16, 0, Math.PI); c.fillStyle = M.red2; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); }
+      if (!drapes) {                                         // moonlight falls through it across the wall, and lands on the floor
+        c.save(); c.globalCompositeOperation = 'screen'; poly(c, [x + 8, y0 + w / 2, x + w - 8, y0 + w / 2, x + w + 190, g, x + 110, g], 'rgba(150,185,255,0.13)', 0); poly(c, [x + 30, y0 + w / 2, x + w - 30, y0 + w / 2, x + w + 150, g, x + 150, g], 'rgba(170,200,255,0.1)', 0); c.restore();
+        COOL.push([x + 110, x + w + 190]);
+      }
+    };
+    moonWindow(70, 220, 140, g - 126, true);
+    moonWindow(862, 126, 112, g - 150, false);
     // a suit of armour on a plinth
     { const x = 420; box(c, x - 34, g - 26, 68, 26, M.stone, 2.4); box(c, x - 28, g - 34, 56, 9, M.stone2, 2);
       line(c, [x + 34, g - 30, x + 34, g - 190], 4.4); line(c, [x + 34, g - 30, x + 34, g - 190], 2, M.woodL); poly(c, [x + 34, g - 178, x + 60, g - 190, x + 62, g - 160, x + 34, g - 150], M.iron, 2); poly(c, [x + 30, g - 190, x + 34, g - 212, x + 38, g - 190], M.iron, 1.8);
@@ -124,7 +130,7 @@
     { const x = 790, w = 54; box(c, x - w / 2 - 5, g - 30, w + 10, 30, M.wood2, 2.4); box(c, x - w / 2, g - 150, w, 122, M.woodL, 2.4); box(c, x - w / 2 + 9, g - 140, w - 18, 96, '#2c1e2a', 2); line(c, [x, g - 140, x, g - 72], 1.6, M.gold); disc(c, x, g - 66, 9, M.gold, 1.8);
       box(c, x - w / 2 - 5, g - 214, w + 10, 66, M.wood, 2.4); disc(c, x, g - 181, 24, M.paper, 2.2); for (let i = 0; i < 12; i++) { const an = i / 12 * Math.PI * 2; line(c, [x + Math.cos(an) * 19, g - 181 + Math.sin(an) * 19, x + Math.cos(an) * 22, g - 181 + Math.sin(an) * 22], 1.2); } line(c, [x, g - 181, x, g - 198], 2.2); line(c, [x, g - 181, x + 11, g - 175], 2.2); disc(c, x, g - 181, 2.2, O, 0);
       poly(c, [x - w / 2 - 9, g - 214, x - 16, g - 238, x, g - 228, x + 16, g - 238, x + w / 2 + 9, g - 214], M.wood2, 2.4); disc(c, x, g - 238, 5, M.gold, 1.8); }
-    portrait(c, 1010, 96, 130, 84, 'castle'); portrait(c, 840, 120, 62, 76, 'lady');
+    portrait(c, 1010, 96, 130, 84, 'castle'); portrait(c, 742, 132, 62, 76, 'lady');
     // the gallery above: a library
     box(c, 1250, CEIL + 16, 850, GAL - CEIL - 16, M.wall2, 0);
     bookcase(c, 1290, 86, 340, GAL - 86, 11); bookcase(c, 1690, 86, 300, GAL - 86, 29);
@@ -201,7 +207,7 @@
     c.fillStyle = '#5c4c5e'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22);
     c.strokeStyle = '#3f3344'; c.lineWidth = 2; for (let yy = y + 50, row = 0; yy < y1; yy += 30, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 90) * 90 + (row % 2 ? 45 : 0); x < x1; x += 90) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 30); c.stroke(); } }
     box(c, x0 - 4, y, x1 - x0 + 8, 22, M.woodL, 2.6); for (let x = Math.floor(x0 / 74) * 74; x < x1; x += 74) line(c, [x, y + 1, x, y + 21], 1.4, M.wood2); line(c, [x0, y + 11, x1, y + 11], 1.2, 'rgba(43,48,68,0.25)');
-    if (t.kind === 'floor') { c.save(); c.beginPath(); c.rect(x0, y + 1, x1 - x0, 20); c.clip(); for (const [lx, lr] of POOLS) if (lx > x0 - 120 && lx < x1 + 120) { c.beginPath(); c.ellipse(lx, y + 10, 40 + lr * 0.5, 13, 0, 0, 7); c.fillStyle = 'rgba(255,196,110,0.3)'; c.fill(); c.beginPath(); c.ellipse(lx, y + 10, 18 + lr * 0.25, 7, 0, 0, 7); c.fillStyle = 'rgba(255,214,140,0.3)'; c.fill(); } c.restore(); }   // candlelight pooled on the boards
+    if (t.kind === 'floor') { c.save(); c.beginPath(); c.rect(x0, y + 1, x1 - x0, 20); c.clip(); for (const [a, b] of COOL) poly(c, [a, y + 1, b, y + 1, b + 26, y + 21, a + 26, y + 21], 'rgba(170,200,255,0.3)', 0); for (const [lx, lr] of POOLS) if (lx > x0 - 120 && lx < x1 + 120) { c.beginPath(); c.ellipse(lx, y + 10, 40 + lr * 0.5, 13, 0, 0, 7); c.fillStyle = 'rgba(255,196,110,0.3)'; c.fill(); c.beginPath(); c.ellipse(lx, y + 10, 18 + lr * 0.25, 7, 0, 0, 7); c.fillStyle = 'rgba(255,214,140,0.3)'; c.fill(); } c.restore(); }   // candlelight pooled on the boards
     for (let ax = Math.floor((x0 - 200) / 400) * 400 + 200; ax < x1 + 200; ax += 400) {       // cellar arches under the hall: a barrel and a candle in each
       c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 78); c.arc(ax, y + 78, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#2a1e2c'; c.fill(); c.lineWidth = 5; c.strokeStyle = '#7a6878'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke();
       c.beginPath(); c.ellipse(ax - 18, y + 92, 22, 17, 0, 0, 7); c.fillStyle = M.wood; c.fill(); c.lineWidth = 2; c.stroke(); line(c, [ax - 30, y + 78, ax - 30, y + 106], 2.2, M.wood2); line(c, [ax - 6, y + 78, ax - 6, y + 106], 2.2, M.wood2);

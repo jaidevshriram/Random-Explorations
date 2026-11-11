@@ -344,13 +344,13 @@
       else if (kind === 5) { for (const dx of [-0.26, 0.2]) { c.fillStyle = '#8a6a78'; c.fillRect(mx + dx * bw, ty - 22, 12, 22); c.strokeRect(mx + dx * bw, ty - 22, 12, 22); } c.fillStyle = '#b9c6e0'; c.beginPath(); c.moveTo(mx - 14, ty); c.lineTo(mx - 4, ty - 12); c.lineTo(mx + 14, ty - 12); c.lineTo(mx + 4, ty); c.closePath(); c.fill(); c.stroke(); }
       else { c.fillStyle = '#efe6d2'; c.beginPath(); c.arc(mx, ty - 26, 17, 0, 7); c.fill(); c.stroke(); c.fillStyle = col; c.fillRect(mx - 22, ty - 12, 44, 12); c.strokeRect(mx - 22, ty - 12, 44, 12); c.beginPath(); c.moveTo(mx, ty - 26); c.lineTo(mx, ty - 37); c.moveTo(mx, ty - 26); c.lineTo(mx + 8, ty - 22); c.stroke(); }   // a clock
     }
-    const vy = horizon - 250;                              // high enough to clear the shopfronts, so the line and its train are seen
-    c.fillStyle = '#8691b6'; c.strokeStyle = LO; c.lineWidth = 2;
+    const vy = horizon - 300;                              // above the shop roofs, across the band of sky, so it reads as the middle distance
+    c.fillStyle = '#66739f'; c.strokeStyle = '#343c62'; c.lineWidth = 2.6;
     for (let x = -60; x < w; x += 150) { c.beginPath(); c.moveTo(x, horizon); c.lineTo(x, vy + 24); c.lineTo(x + 26, vy + 24); c.lineTo(x + 26, vy + 112); c.arc(x + 88, vy + 112, 62, Math.PI, 0); c.lineTo(x + 150, vy + 24); c.lineTo(x + 176, vy + 24); c.lineTo(x + 176, horizon); c.closePath(); c.fill(); c.stroke(); }
     c.fillRect(-60, vy, w + 120, 26); c.strokeRect(-60, vy, w + 120, 26);
-    c.fillStyle = '#a3add0'; c.fillRect(-60, vy - 7, w + 120, 8); c.strokeRect(-60, vy - 7, w + 120, 8);                                   // parapet
+    c.fillStyle = '#8c98c0'; c.fillRect(-60, vy - 7, w + 120, 8); c.strokeRect(-60, vy - 7, w + 120, 8);                                   // parapet
     for (let x = -60; x < w; x += 30) { c.beginPath(); c.moveTo(x, vy + 9); c.lineTo(x + 15, vy + 9); c.moveTo(x + 15, vy + 17); c.lineTo(x + 30, vy + 17); c.lineWidth = 1; c.strokeStyle = 'rgba(60,70,110,0.5)'; c.stroke(); }   // stone courses
-    for (let x = 28; x < w; x += 150) { c.lineWidth = 2; c.strokeStyle = LO; c.beginPath(); c.arc(x, vy + 112, 62, Math.PI, 0); c.stroke(); c.fillStyle = '#a3add0'; c.fillRect(x - 6, vy + 44, 12, 12); c.strokeRect(x - 6, vy + 44, 12, 12);   // keystones
+    for (let x = 28; x < w; x += 150) { c.lineWidth = 2; c.strokeStyle = LO; c.beginPath(); c.arc(x, vy + 112, 62, Math.PI, 0); c.stroke(); c.fillStyle = '#8c98c0'; c.fillRect(x - 6, vy + 44, 12, 12); c.strokeRect(x - 6, vy + 44, 12, 12);   // keystones
       c.beginPath(); c.moveTo(x - 75, vy - 7); c.lineTo(x - 75, vy - 30); c.stroke(); c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x - 75, vy - 33, 4.5, 0, 7); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,233,160,0.28)'; c.beginPath(); c.arc(x - 75, vy - 33, 13, 0, 7); c.fill(); }   // lamps along the line
     c.lineWidth = 2; c.strokeStyle = LO;
     for (let x = 30; x < w; x += 130 + r() * 110) { const s = 1.4 + r() * 1.1, dark = r() < 0.5; c.fillStyle = '#6a5a52'; c.fillRect(x - 4 * s, horizon - 40 * s, 8 * s, 40 * s); for (const [dx, dy, rr] of [[-20, -30, 26], [20, -34, 26], [0, -56, 30], [-8, -44, 20]]) { c.beginPath(); c.arc(x + dx * s, horizon + dy * s, rr * s, 0, 7); c.fillStyle = dark ? '#5f8468' : '#7d9a7a'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke(); } c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.arc(x - 8 * s, horizon - 62 * s, 14 * s, 0, 7); c.fill(); }
