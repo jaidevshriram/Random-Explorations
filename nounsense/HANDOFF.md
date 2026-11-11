@@ -22,7 +22,7 @@ The game was reworked after the notes below were written. What is true now:
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
-- **Tests:** `node nounsense/test/playtest.js` runs 69 scripted scenarios and a fuzz pass over every word.
+- **Tests:** `node nounsense/test/playtest.js` runs 71 scripted scenarios and a fuzz pass over every word.
   World labels in the test list: `-2` town, `-1` manor, `'h'` hollow, `3` port, `0..2` the fixtures. A few scenarios depend on
   creature AI that uses `Math.random`, so an occasional single failure on a re-run is a flake, not a regression. It takes several
   minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).

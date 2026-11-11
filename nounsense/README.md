@@ -90,7 +90,7 @@ node nounsense/test/playtest.js
 ```
 
 The first checks the dictionary and parser. The second needs Playwright; it
-plays 69 scripted solutions and interactions in a headless browser, then
+plays 71 scripted solutions and interactions in a headless browser, then
 spawns every word with random adjectives and inputs to look for crashes. It
 takes several minutes. `test/sheet.html` draws every object on one page.
 
@@ -112,7 +112,7 @@ node nounsense/test/ui-playthrough-port.js
 
 Those four finish each world the way a player would, with mouse clicks, typed words and
 held keys only (three words and three stars each). Playing whole levels this way found
-four problems that the single-interaction scenarios could not:
+six problems that the single-interaction scenarios could not:
 
 - A scarecrow protected only its own neighbourhood, so the magpie stole the star seed
   further down the street. Creatures are now too wary to eat or steal while anything
@@ -122,6 +122,10 @@ four problems that the single-interaction scenarios could not:
   He now guards the middle of the deck.
 - A rabbit under the end of a bridge propped it up and it slid into the river. Animals
   are now lifted on top of a structure that lands on them.
+- Stepping off the boat beside the cargo net dropped the hero into the sea unless "up"
+  was pressed at once. Leaving a mount beside something climbable now grabs it.
+- The captain's blow could still knock a climber off the bow and back to the quay. A
+  hero knocked flying by a blow now catches anything climbable on the way down.
 
 ## Not done yet
 
