@@ -21,6 +21,7 @@ describing word to change it (`sleepy`, `tiny`, `flying`).
 | Lamplight Row | A street at dusk: shops, a lab, a museum, an observatory, a monorail | A flooded excavation, a magpie that steals shiny things, a wooden hoarding | raft, bridge, wings; decoy ring, cat, scarecrow; axe, torch, ladder |
 | Gloamwick Manor | A haunted hall with a library gallery | Haunted armour, a collapsed gallery over a locked vault door, a poltergeist that hates light | rain, flute; bridge, key, bomb; lantern, sun |
 | Glowroot Hollow | A moonlit forest of giant trees and mushroom houses | A river with no bridge, a gremlin with a taste for star seeds, a bluff with a dried-up skyvine, a curtain of thornvines | bridge, raft; donut, cat, trumpet; rain cloud, ladder, trampoline; torch, axe, lumberjack |
+| Port Nebula | A harbour at sunset under a ringed planet, and a sky-pirate galleon | A quicksilver bay with a star shark in it, a hull to climb, a captain who dislikes stowaways | boat, a fish for the shark, a friendly shark to ride; the cargo net; treasure, a ghost |
 
 Design choices that keep a world from being solved the same way every time:
 
@@ -29,9 +30,9 @@ Design choices that keep a world from being solved the same way every time:
 - **Multi-purpose words exist** and are meant to be found.
 - **Failure is soft.** Lose the star seed and you fetch another; what you built stays.
 
-Four older worlds (a gorge, a sky island, a keep, a harbour) are still in
-`src/levels.js` and covered by the tests, but marked `hidden` until they are
-redrawn in the current style.
+Three early worlds (a gorge, a sky island, a keep) are no longer in the game; their
+puzzles were folded into the four above. They survive as `test/fixtures.js`, which the
+playtest loads so the rules they exercise stay covered.
 
 ## Tech
 
@@ -43,7 +44,7 @@ One page, plain scripts, no build:
 | `src/lexicon.js` | Phrase → object spec. Finds the longest trailing noun, treats the words before it as adjectives, walks the category tree, applies overrides. Unknown words are refused with a nearest-match suggestion. |
 | `src/sim.js` | Physics (Matter.js) and the rules. No drawing, no DOM. |
 | `src/art.js` | Object and character drawing: shapes merge into clean silhouettes with one ink outline, a cel-shaded edge and a highlight; three frames per sprite so the line shimmers. Rigs for four-legged animals, birds and chibi people. |
-| `src/town.js`, `src/manor.js`, `src/hollow.js` | Scene painters. Each builds a world from small part functions (windows, doors, trunks, mushroom houses, lanterns) and records where its lights are. |
+| `src/town.js`, `src/manor.js`, `src/hollow.js`, `src/port.js` | Scene painters. Each builds a world from small part functions (windows, doors, trunks, mushroom houses, lanterns) and records where its lights are. |
 | `src/levels.js` | Worlds as data: terrain boxes, water, natives, goal. |
 | `src/main.js` | Rendering, input, HUD, sound and music, saved progress. |
 
@@ -95,7 +96,6 @@ takes several minutes. `test/sheet.html` draws every object on one page.
 
 ## Not done yet
 
-- The four hidden worlds need scene painters in the current style.
 - Nothing has been tuned by long hand play; difficulty and phone layout are untested by people.
 - The "new way" (an LLM filling in the same object spec) for a side-by-side comparison.
 

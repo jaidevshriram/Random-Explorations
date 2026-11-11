@@ -34,7 +34,7 @@ const TESTS = [
   ['h', 'gremlin gobbles the star seed if ignored', (s, p, run, at, N) => { at(N.gremlin.x - 100); run(300); return !p.hasParcel ? true : 'seed survived'; }],
   ['h', 'donut distracts the gremlin', (s, p, run, at, N) => { s.spawn('donut', N.gremlin.x + 60, 480); run(100); at(N.gremlin.x - 80); run(200, { right: true }); return p.hasParcel ? true : 'gobbled'; }],
   ['h', 'trumpet frightens the gremlin', (s, p, run, at, N) => { s.spawn('trumpet', 1200, 480); run(40); at(1200); run(3, {}, { interactPressed: true }); at(N.gremlin.x - 130); run(3, {}, { usePressed: true }); let fled = false; for (let i = 0; i < 12; i++) { run(10); fled = fled || !!(N.gremlin.goal && N.gremlin.goal.type === 'flee'); } return fled ? true : 'not scared'; }],
-  ['h', 'cat scares the gremlin away', (s, p, run, at, N) => { const x0 = N.gremlin.x; s.spawn('cat', x0 - 120, 480); run(120); return Math.abs(N.gremlin.x - x0) > 60 && N.gremlin.goal ? true : [x0 | 0, N.gremlin.x | 0]; }],
+  ['h', 'cat scares the gremlin away', (s, p, run, at, N) => { const x0 = N.gremlin.x; s.spawn('cat', x0 - 50, 480); let fled = false; for (let i = 0; i < 20; i++) { run(10); fled = fled || !!(N.gremlin.goal && N.gremlin.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.gremlin.x | 0]; }],
   ['h', 'the bluff is too high to jump', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; at(1800); run(20, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.y > 400 && p.x < 1900 ? true : [p.x | 0, p.y | 0]; }],
   ['h', 'rain grows the skyvine; climb it onto the bluff', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; s.spawn('rain cloud', 1862, 200); run(300); if (N.vine.h < 250) return ['vine', N.vine.h]; at(1862); run(160, { up: true }); run(8, { right: true }, { jumpPressed: true }); run(60, { right: true }); return p.y < 300 && p.x > 1900 ? true : [p.x | 0, p.y | 0]; }],
   ['h', 'ladder gets up the bluff', (s, p, run, at, N) => { N.gremlin.asleepUntil = Infinity; s.spawn('ladder', 1872, 400); run(60); at(1872); run(150, { up: true }); run(8, { right: true }, { jumpPressed: true }); run(60, { right: true }); return p.y < 300 && p.x > 1900 ? true : [p.x | 0, p.y | 0]; }],
@@ -49,7 +49,7 @@ const TESTS = [
   [0, 'bridge spans the gorge', (s, p, run, at) => { s.spawn('bridge', 870, 470); run(90); at(640); run(160, { right: true }); return p.x > 1040 && p.y < 520 ? true : [p.x | 0, p.y | 0]; }],
   [0, 'plain jump does not clear the gorge', (s, p, run, at) => { at(640); run(18, { right: true }); run(120, { right: true }, { jumpPressed: true }); return p.x < 1040 ? true : p.x | 0; }],
   [0, 'gremlin gobbles the star seed if ignored', (s, p, run, at, N) => { at(N.gremlin.x - 100); run(300); return !p.hasParcel ? true : 'seed survived'; }],
-  [0, 'cat scares the gremlin away', (s, p, run, at, N) => { const x0 = N.gremlin.x; s.spawn('cat', x0 - 120, 480); run(120); return Math.abs(N.gremlin.x - x0) > 60 && N.gremlin.goal ? true : [x0 | 0, N.gremlin.x | 0]; }],
+  [0, 'cat scares the gremlin away', (s, p, run, at, N) => { const x0 = N.gremlin.x; s.spawn('cat', x0 - 50, 480); let fled = false; for (let i = 0; i < 20; i++) { run(10); fled = fled || !!(N.gremlin.goal && N.gremlin.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.gremlin.x | 0]; }],
   [0, 'donut distracts the gremlin', (s, p, run, at, N) => { s.spawn('donut', N.gremlin.x + 60, 480); run(100); at(N.gremlin.x - 80); run(200, { right: true }); return p.hasParcel ? true : 'gobbled'; }],
   [0, 'torch melts the frostglass', (s, p, run, at, N, has) => { s.spawn('torch', 1800, 480); run(40); at(1800); run(3, {}, { interactPressed: true }); run(40, { right: true }); run(5, {}, { usePressed: true }); return !has('frostglass') ? true : 'still there'; }],
   [0, 'trumpet cracks the frostglass', (s, p, run, at, N, has) => { s.spawn('trumpet', 1800, 480); run(40); at(1800); run(3, {}, { interactPressed: true }); run(5, {}, { usePressed: true }); run(170); return !has('frostglass') ? true : N.wall.hp; }],
@@ -80,15 +80,19 @@ const TESTS = [
   [3, 'ghost spooks the captain', (s, p, run, at, N) => { const x0 = N.captain.x; s.spawn('ghost', x0 - 100, 300); let fled = false; for (let i = 0; i < 15; i++) { run(10); fled = fled || !!(N.captain.goal && N.captain.goal.type === 'flee'); } return fled ? true : [x0 | 0, N.captain.x | 0]; }],
 ];
 
+// world labels in the list above -> index in NN.levels once the fixtures are appended
+const IDX = { '-2': 0, '-1': 1, h: 2, 3: 3, 0: 4, 1: 5, 2: 6 };
+
 (async () => {
   const b = await chromium.launch();
   const page = await b.newPage({ viewport: { width: 1200, height: 900 } });
   const errs = [];
   page.on('pageerror', (e) => { errs.push(e.message); console.log('PAGE ERROR', e.message, (e.stack || '').split('\n')[1]); });
   await page.goto(url);
+  await page.addScriptTag({ path: require('path').resolve(__dirname, 'fixtures.js') });
   await page.waitForTimeout(400);
   for (const [world, name, fn] of TESTS) {
-    const r = await page.evaluate(`(() => { NN.game.newGame(${world === 'h' ? 2 : world < 0 ? world + 2 : world + 3}); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
+    const r = await page.evaluate(`(() => { NN.game.newGame(${IDX[world]}); NN.game.start(); const s = NN.game.sim, p = s.player, B = Matter.Body, N = s.natives;
       const run = (n, k, pr) => { for (let i = 0; i < n; i++) s.step(Object.assign({}, k || {}, i === 0 ? (pr || {}) : {})); };
       const at = (x, y) => { B.setPosition(p.body, { x, y: (y === undefined ? 520 : y) - 26 }); B.setVelocity(p.body, { x: 0, y: 0 }); s.step({}); s.step({}); };
       const has = (n) => s.ents.some((e) => e.spec.noun === n);

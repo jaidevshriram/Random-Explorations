@@ -390,5 +390,6 @@
     for (const ex of [t.x0, t.x1]) if (ex > x0 - 2 && ex < x1 + 2) { line(c, [ex, y, ex, t.face || y1], 3.4); const s = ex === t.x0 ? -1 : 1; blob(c, [ex - s * 16, y - 2, ex - s * 4, y - 9, ex + s * 9, y - 2, ex + s * 10, y + 16, ex + s * 3, y + 26, ex - s * 3, y + 12], H.leaf, 2.2); }   // turf curling over an edge
   }
 
-  NN.hollow = { build, sky, far, mid, ground };
+  const skyLights = (VW) => [{ x: VW * 0.63, y: 150, r: 260, color: '255,250,225', a: 0.7 }];       // the moon
+  NN.hollow = { build, sky, far, mid, ground, skyLights };
 })(window.NN = window.NN || {});

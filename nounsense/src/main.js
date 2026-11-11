@@ -64,6 +64,7 @@
   const TUNES = {
     town: { bpm: 96, root: 57, scale: [0, 2, 4, 7, 9], chords: [[0, 4, 7], [9, 12, 16], [5, 9, 12], [7, 11, 14]], wave: 'triangle' },
     manor: { bpm: 70, root: 50, scale: [0, 2, 3, 7, 8], chords: [[0, 3, 7], [8, 12, 15], [5, 8, 12], [7, 10, 14]], wave: 'sine' },
+    port: { bpm: 104, root: 55, scale: [0, 2, 5, 7, 9], chords: [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]], wave: 'triangle' },
     hollow: { bpm: 80, root: 52, scale: [0, 2, 4, 7, 9, 11], chords: [[0, 4, 7, 11], [5, 9, 12, 16], [9, 12, 16], [7, 11, 14]], wave: 'sine' },
   };
   let mus = null;
@@ -83,7 +84,7 @@
     if (!ac || !mus || !started || ac.state !== 'running' || store.muted) return;
     const T = TUNES[L.theme] || TUNES.town, sp = 30 / T.bpm;      // one step is an eighth note
     if (mus.next < ac.currentTime) mus.next = ac.currentTime + 0.05;
-    while (mus.next < ac.currentTime + 0.3) {
+    while (mus.next < ac.currentTime + 0.6) {                    // far enough ahead that a slow frame does not leave a gap
       const st = mus.step % 8, bar = Math.floor(mus.step / 8), ch = T.chords[bar % T.chords.length], t = mus.next;
       if (mus.step % 32 === 0) { mus.r = rng(L.W + (Math.floor(mus.step / 32) % 3) * 17); mus.last = 3; }
       if (st === 0) { for (const n of ch) mnote(T.root + n, t, sp * 8.4, 0.02, 'sine'); mnote(T.root - 12 + ch[0], t, sp * 7, 0.045, 'triangle'); }
@@ -107,9 +108,7 @@
     manor: { custom: true, ambient: '#70669c', haze: '#3a2a40', ground: { floor: { body: '#4a3038', cap: '#7a5140', line: '#3a2630' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
     hollow: { custom: true, ambient: '#6670ae', haze: '#3a4a86', ground: { turf: { body: '#54425f', cap: '#3f9a86', line: '#33294a' }, pit: { body: '#3d3657', cap: '#3d3657', line: '#33294a' } }, water: ['rgba(96,205,225,0.6)', '#e6fffa'] },
     town: { custom: true, ambient: '#9ba1cf', haze: '#c9d6ea', ground: { street: { body: '#4c5169', cap: '#cfcabf', line: '#3a3f55' }, pit: { body: '#2f3349', cap: '#2f3349', line: '#3a3f55' } }, water: ['rgba(90,151,208,0.6)', '#ffffff'] },
-    port: { ambient: '#c2a6c6', sky: ['#371c58', '#a83f78', '#f7a35c'], haze: '#7a3d7a', stars: 50, bodies: [[880, 120, 34, '#ffe9b0']],
-      ground: { dock: { body: '#4f3b30', body2: '#43322a', cap: '#c08a52', line: '#2e221c', planks: 1 }, rock: { body: '#5a5670', body2: '#4c4962', cap: '#8c88a6', line: '#353248' }, hull: { body: '#7c3b3b', body2: '#6a3030', cap: '#d0a060', line: '#3f1d1d', planks: 1, hull: 1 }, pit: { body: '#2a2440', cap: '#2a2440', line: '#3b3458' } },
-      water: ['rgba(196,208,232,0.8)', '#ffffff'] },
+    port: { custom: true, ambient: '#b8a0d4', haze: '#e0a0b8', midHaze: 0.3, ground: { dock: { body: '#35284a', cap: '#c79a66', line: '#2e2240' }, pit: { body: '#4a3a70', cap: '#4a3a70', line: '#3b3458' } }, water: ['rgba(206,190,236,0.66)', '#ffffff'] },
   };
   // background props, in the same shape language as the dictionary art
   const BG = {
@@ -158,7 +157,7 @@
   const PROPS = {
     manor: [], town: [], hollow: [], forest: [], sky: [{ a: BG.skyrock, x: 1560, y: -420, w: 220, h: 120 }],
     keep: [{ a: BG.arch, x: 1500, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 1800, y: 520, w: 260, h: 250 }, { a: BG.arch, x: 2100, y: 520, w: 260, h: 250 }, { a: BG.banner, x: 1650, y: 440, w: 50, h: 130 }, { a: BG.banner, x: 1950, y: 440, w: 50, h: 130 }],
-    port: [{ a: BG.mast, x: 1780, y: 380, w: 200, h: 430 }, { a: BG.mast, x: 2110, y: 380, w: 180, h: 370 }, { a: BG.cabin, x: 2440, y: 380, w: 240, h: 160 }, { a: BG.crates, x: 420, y: 520, w: 90, h: 90 }, { a: BG.lamp, x: 590, y: 520, w: 50, h: 130 }],
+    port: [],
   };
 
   let dotPat = {};
@@ -211,9 +210,10 @@
       const sky = document.createElement('canvas'); sky.width = VW * LS; sky.height = VH * LS;
       const c = sky.getContext('2d'); c.scale(LS, LS); NN.town.sky(c, VW, VH);
       if (L.theme === 'manor') { const m = NN.manor.build(L, 2); c.fillStyle = '#3a2a40'; c.fillRect(0, 0, VW, VH); layers = { sky, far: null, mid: null, front: m.front, over: m.over, lights: m.lights }; return; }
-      if (L.theme === 'hollow') {
-        const hw = NN.hollow.build(L, 2); c.clearRect(0, 0, VW, VH); NN.hollow.sky(c, VW, VH);
-        layers = { sky, far: bake(0.14, NN.hollow.far, 0, T, true), mid: bake(0.4, NN.hollow.mid, 0.1, T, true), front: hw.front, over: hw.over, lights: hw.lights, emitters: hw.emitters, animate: hw.animate, liveLights: hw.liveLights, skyLights: [{ x: VW * 0.63, y: 150, r: 260, color: '255,250,225', a: 0.7 }] };
+      const P = NN[L.theme];
+      if (P && P.build && P.far) {                               // worlds with a full painter: hollow, port
+        const pw = P.build(L, 2); c.clearRect(0, 0, VW, VH); P.sky(c, VW, VH);
+        layers = { sky, far: bake(0.14, P.far, 0, T, true), mid: bake(0.4, P.mid, T.midHaze || 0.1, T, true), front: pw.front, over: pw.over, lights: pw.lights, emitters: pw.emitters, animate: pw.animate, liveLights: pw.liveLights, skyLights: P.skyLights ? P.skyLights(VW, VH) : [] };
         return;
       }
       const f = NN.town.front(L.W, L.start.y, 2, L.holes);
@@ -328,8 +328,7 @@
     const x0 = Math.max(t.x0, cam.x - 40), x1 = Math.min(t.x1, cam.x + WW + 40), y0 = t.y0, y1 = Math.min(t.y1, cam.y + WH + 40);
     if (x1 <= x0 || y0 > cam.y + WH + 20) return;
     if (t.kind === 'street') { NN.town.street(ctx, t, x0, x1, y1, reduceMotion ? 0 : sim.time); return; }
-    if (L.theme === 'manor') { NN.manor.ground(ctx, t, x0, x1, y1); return; }
-    if (L.theme === 'hollow') { NN.hollow.ground(ctx, t, x0, x1, y1); return; }
+    if (NN[L.theme] && NN[L.theme].ground) { NN[L.theme].ground(ctx, t, x0, x1, y1); return; }
     const r0 = rng(t.x0 * 7 + t.y0 * 3 + 11);
     if (t.kind === 'island') {
       // a floating island: flat top, ragged rock hanging underneath
@@ -883,5 +882,5 @@
   requestAnimationFrame(frame);
 
   // for tests and the curious
-  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select, perf };
+  NN.game = { get sim() { return sim; }, get level() { return L; }, submit, summon, start, keys, pressed, cam, mouse, newGame, store, select, perf, get audio() { return { ac, mus }; } };
 })(window.NN);
