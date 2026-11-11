@@ -22,10 +22,20 @@ The game was reworked after the notes below were written. What is true now:
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
-- **Tests:** `node nounsense/test/playtest.js` runs 65 scripted scenarios and a fuzz pass over every word.
+- **Tests:** `node nounsense/test/playtest.js` runs 66 scripted scenarios and a fuzz pass over every word.
   World labels in the test list: `-2` town, `-1` manor, `'h'` hollow, `3` port, `0..2` the fixtures. A few scenarios depend on
   creature AI that uses `Math.random`, so an occasional single failure on a re-run is a flake, not a regression. It takes several
   minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).
+- **Whole-level playthroughs:** `test/ui-playthrough.js` (manor) and `test/ui-playthrough-town.js` finish a level with
+  real mouse, typing and keys only. Run them after any change to creature rules: the scripted scenarios each test
+  one interaction and missed that a scarecrow did not stop the magpie along the whole street. When scripting with
+  the mouse, wait for the camera to settle before aiming, and do not aim within 70 px of a screen edge while holding
+  an item (that scrolls the camera, by design).
+- **Fear and appetite:** a creature flees a feared thing within 215 units and will not eat or steal while one is
+  within 600 (`think()` in `sim.js`).
+- **Lighting and design choices** were picked by rendering variants of the same screen and having one reviewer rank
+  them side by side; separate reviewers' absolute scores varied more than the changes. `NN.game.tune` overrides
+  ambient, bloom, contrast and saturation at run time for that. Per-world values live in `THEMES`.
 - **Music:** `TUNES` in `main.js` gives each world a key, tempo and four chords; `musicTick()` schedules a pad, a
   bass and a seeded music-box line. No audio files.
 - **Performance:** baked scene layers are cut into 512-unit tiles (`tileLayer` in `main.js`) so only visible tiles

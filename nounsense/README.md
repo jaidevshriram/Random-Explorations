@@ -90,7 +90,7 @@ node nounsense/test/playtest.js
 ```
 
 The first checks the dictionary and parser. The second needs Playwright; it
-plays 65 scripted solutions and interactions in a headless browser, then
+plays 66 scripted solutions and interactions in a headless browser, then
 spawns every word with random adjectives and inputs to look for crashes. It
 takes several minutes. `test/sheet.html` draws every object on one page.
 
@@ -104,7 +104,10 @@ node nounsense/test/ui-playthrough-town.js
 
 Those two finish Gloamwick Manor and Lamplight Row the way a player would, with mouse
 clicks, typed words and held keys only (three words and three stars each), to check the
-interface end to end.
+interface end to end. They found something the scripted scenarios could not: a scarecrow
+used to protect only its own neighbourhood, so the magpie stole the star seed further
+down the street. Creatures are now too wary to eat or steal while anything they fear is
+in sight.
 
 ## Not done yet
 
