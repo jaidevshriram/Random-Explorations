@@ -94,7 +94,7 @@
   function porthole(c, x, y, r, o) {
     o = o || {};
     disc(c, x, y, r + 5, o.frame || H.woodL, 2.4); disc(c, x, y, r, H.lit, 2); c.save(); c.beginPath(); c.arc(x, y, r, 0, 7); c.clip(); c.fillStyle = H.lit2; c.fillRect(x - r, y + r * 0.1, r * 2, r); if (o.inside) { c.fillStyle = 'rgba(110,70,60,0.55)'; c.fillRect(x - r * 0.5, y + r * 0.2, r, r * 0.8); c.beginPath(); c.arc(x, y + r * 0.1, r * 0.34, 0, 7); c.fill(); } c.restore();
-    line(c, [x - r, y, x + r, y], 2); line(c, [x, y - r, x, y + r], 2); glow(c, x, y, r * 3.6, 0.42);
+    line(c, [x - r, y, x + r, y], 2); line(c, [x, y - r, x, y + r], 2); glow(c, x, y, r * 2.5, 0.36);
     if (o.box) { box(c, x - r - 3, y + r + 4, r * 2 + 6, 8, H.wood, 2); for (let i = 0; i < 4; i++) disc(c, x - r + 3 + i * (r * 2 - 6) / 3, y + r + 2, 4.2, [H.pink, H.lime, H.cyan, H.cream][i], 1.4); }
   }
   // an arched plank door with a little lit window and a step
@@ -375,9 +375,9 @@
     for (const x of xs) {
       const tw = 60 + r() * 50, col = ['#5c6cc0', '#6a62b8', '#5578b8'][Math.floor(r() * 3)];
       if (r() < 0.34) {                                                       // a mushroom tower
-        const sh = 190 + r() * 120, cw2 = tw * 3.2, capY = horizon - sh, cc = [['#c06fa8', '#8a4a86'], ['#6fa8c8', '#4a7aa4'], ['#c89a6a', '#96684a']][Math.floor(r() * 3)];
+        const sh = 190 + r() * 120, cw2 = tw * 3.2, capY = horizon - sh, cc = [['#a8508e', '#6a2f70'], ['#4f8cb4', '#2f5c8c'], ['#b07a4c', '#7a4c38']][Math.floor(r() * 3)];
         c.beginPath(); c.moveTo(x - tw * 0.36, horizon); c.quadraticCurveTo(x - tw * 0.2, horizon - sh * 0.5, x - tw * 0.26, capY); c.lineTo(x + tw * 0.26, capY); c.quadraticCurveTo(x + tw * 0.2, horizon - sh * 0.5, x + tw * 0.36, horizon); c.closePath();
-        { const g = c.createLinearGradient(x - tw * 0.36, 0, x + tw * 0.36, 0); g.addColorStop(0, '#dfe6ff'); g.addColorStop(0.5, '#b9c4ec'); g.addColorStop(1, '#8c98cc'); c.fillStyle = g; } c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
+        { const g = c.createLinearGradient(x - tw * 0.36, 0, x + tw * 0.36, 0); g.addColorStop(0, '#a4b0e4'); g.addColorStop(0.5, '#7a88cc'); g.addColorStop(1, '#5a68b0'); c.fillStyle = g; } c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
         halo(c, x, capY + 16, cw2 * 0.42, '255,226,170', 0.5);                                                                           // lamplight under the cap MIDL.push([x, horizon - capY - 14, cw2 * 0.5, '255,214,150', 0.75]);
         c.beginPath(); c.ellipse(x, capY + 6, cw2 * 0.46, 13, 0, 0, 7); c.fillStyle = '#ffe2b0'; c.fill(); c.stroke(); c.lineWidth = 1; for (let k = -6; k <= 6; k++) { c.beginPath(); c.moveTo(x + k * 5, capY + 4); c.lineTo(x + k * cw2 * 0.07, capY + 17); c.stroke(); } c.lineWidth = 2;   // gills
         c.beginPath(); c.moveTo(x - cw2 / 2, capY + 8); c.bezierCurveTo(x - cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY - cw2 * 0.44, x + cw2 / 2, capY + 8); c.quadraticCurveTo(x, capY - 12, x - cw2 / 2, capY + 8);

@@ -330,7 +330,7 @@
   function drawBackdrop() {
     ctx.drawImage(layers.sky, 0, 0, VW, VH);
     for (const l of [layers.far, layers.mid]) if (l) ctx.drawImage(l.cv, -cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par, l.w, l.h);
-    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, span = l.w + 520; for (const off of [0, 0.3]) { const tx = ((t * 70 + off * span) % span) - 420; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 396, 396, 36); } }   // the monorail crosses the viaduct
+    if (layers.train) { const l = layers.mid, t = reduceMotion ? 8 : sim.time, span = l.w + 520; for (const off of [0, 0.3]) { const tx = ((t * 70 + off * span) % span) - 420; const ty = -l.extra + (BASE - cam.y) * Z * l.par + l.horizon - 396; ctx.drawImage(layers.train, tx - cam.x * l.par * Z, ty, 396, 36); ctx.fillStyle = 'rgba(255,220,150,0.32)'; ctx.fillRect(tx - cam.x * l.par * Z + 6, ty + 35, 384, 5); } }   // the monorail crosses the viaduct
   }
   function drawBlock(t) {
     const T = THEMES[L.theme], st = T.ground[t.kind] || Object.values(T.ground)[0];

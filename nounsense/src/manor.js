@@ -201,7 +201,7 @@
       const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.3)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
       box(c, t.x0, y + 5, 30, hh - 5, M.wood2, 1.8);                                                   // riser, in shade
       box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); box(c, t.x0 + 1, y - 2, 28, 7, '#d24a40', 1.4); line(c, [t.x0 + 2, y + 2.6, t.x0 + 28, y + 2.6], 1, M.gold); line(c, [t.x0 - 2, y - 1, t.x0 + 32, y - 1], 1.6, 'rgba(206,224,255,0.85)');   // tread, lit, with the runner
-      if (t.x0 >= 940 && t.x0 <= 1130 && Math.floor((t.x0 - 950) / 30 + 0.5) % 3 !== 2) { c.fillStyle = 'rgba(196,220,255,0.55)'; c.fillRect(t.x0 - 2, y - 1.5, 34, 6); c.fillStyle = 'rgba(160,195,255,0.3)'; c.fillRect(t.x0 + 1, y + 6, 28, hh - 7); }   // the moon through the window lands here, the glazing bars leaving dark steps between
+      if (t.x0 >= 940 && t.x0 <= 1130 && Math.floor((t.x0 - 950) / 30 + 0.5) % 3 !== 2) { c.fillStyle = 'rgba(196,220,255,0.3)'; c.fillRect(t.x0 - 2, y - 1.5, 34, 6); c.fillStyle = 'rgba(160,195,255,0.16)'; c.fillRect(t.x0 + 1, y + 6, 28, hh - 7); }   // the moon through the window lands here, the glazing bars leaving dark steps between
       line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
       // Recessed panels and a cupboard door under the stairs. Every slab draws the whole design clipped to itself, so it lines up.
       c.save(); c.beginPath(); c.rect(t.x0 + 34, y, t.x1 - t.x0 - 34, hh); c.clip();

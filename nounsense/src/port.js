@@ -31,7 +31,7 @@
   }
   function crate(c, x, y, w, h, col) { box(c, x, y - h, w, h, col || C.sand, 2.2); box(c, x + 4, y - h + 4, w - 8, h - 8, col ? col : C.sand2, 1.4); line(c, [x + 4, y - h + 4, x + w - 4, y - 4], 1.4); line(c, [x + w - 4, y - h + 4, x + 4, y - 4], 1.4); }
   function barrel(c, x, y, s, col) { const w = 26 * s, h = 34 * s; c.beginPath(); c.moveTo(x - w / 2 + 3, y); c.quadraticCurveTo(x - w / 2 - 4, y - h / 2, x - w / 2 + 3, y - h); c.lineTo(x + w / 2 - 3, y - h); c.quadraticCurveTo(x + w / 2 + 4, y - h / 2, x + w / 2 - 3, y); c.closePath(); c.fillStyle = col || K.plank; c.fill(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); for (const k of [0.24, 0.76]) line(c, [x - w / 2 - 0.5, y - h * k, x + w / 2 + 0.5, y - h * k], 3, K.iron); line(c, [x - 4 * s, y - h + 3, x - 5 * s, y - 3], 1, 'rgba(43,48,68,0.4)'); line(c, [x + 5 * s, y - h + 3, x + 6 * s, y - 3], 1, 'rgba(43,48,68,0.4)'); }
-  function shipLantern(c, x, y, s, color) { s = s || 1; poly(c, [x - 7 * s, y, x + 7 * s, y, x + 4 * s, y - 6 * s, x - 4 * s, y - 6 * s], K.gold2, 1.8); box(c, x - 6 * s, y, 12 * s, 16 * s, color ? '#dffcf4' : C.lit, 1.8); line(c, [x, y, x, y + 16 * s], 1.1); poly(c, [x - 7 * s, y + 16 * s, x + 7 * s, y + 16 * s, x + 4 * s, y + 21 * s, x - 4 * s, y + 21 * s], K.gold2, 1.8); glow(c, x, y + 8 * s, 70 * s, 0.5, color); }
+  function shipLantern(c, x, y, s, color, tight) { s = s || 1; poly(c, [x - 7 * s, y, x + 7 * s, y, x + 4 * s, y - 6 * s, x - 4 * s, y - 6 * s], K.gold2, 1.8); box(c, x - 6 * s, y, 12 * s, 16 * s, color ? '#dffcf4' : C.lit, 1.8); line(c, [x, y, x, y + 16 * s], 1.1); poly(c, [x - 7 * s, y + 16 * s, x + 7 * s, y + 16 * s, x + 4 * s, y + 21 * s, x - 4 * s, y + 21 * s], K.gold2, 1.8); glow(c, x, y + 8 * s, (tight ? 22 : 70) * s, 0.5, color); }
   function bulbs(c, x0, y0, x1, y1, sag, n) {
     c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + sag * 2, x1, y1); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke();
     const cols = [[C.lit, WARM], ['#ff9f8a', '255,150,130'], [K.cyan, CY], [C.lit, WARM]];
@@ -66,7 +66,7 @@
       for (const k of [-0.5, 0, 0.5]) glow(c, x + k * hw + hw * 0.1, y + sh * 0.5, Math.min(hw * 0.46, sh * 0.52), 0.15, '255,226,190');   // the canvas is lit: three lights kept inside its outline, so the sky round it stays dark
       line(c, [x - hw + 4, y + sh, x - hw - 6, y + sh + 26], 1.4); line(c, [x + hw - 4, y + sh, x + hw + 6, y + sh + 26], 1.4);
     }
-    if (o.nest) { const y = top + o.nest; poly(c, [x - 26, y, x + 26, y, x + 20, y + 22, x - 20, y + 22], K.plank2, 2.4); box(c, x - 28, y - 4, 56, 6, K.plankL, 2); shipLantern(c, x + 30, y + 2, 0.8); }
+    if (o.nest) { const y = top + o.nest; poly(c, [x - 26, y, x + 26, y, x + 20, y + 22, x - 20, y + 22], K.plank2, 2.4); box(c, x - 28, y - 4, 56, 6, K.plankL, 2); shipLantern(c, x + 30, y + 2, 0.8, null, true); }
     disc(c, x, top - 3, 6, K.gold, 2);
   }
 
@@ -197,19 +197,20 @@
         ctx.fillStyle = '#f6ead0'; ctx.fillRect(-10.5, -8, 21, 5); ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(0, -28); ctx.stroke();
         ctx.beginPath(); ctx.arc(0, -31, 4.6, 0, 7); ctx.fillStyle = Math.sin(t * 2.4 + ph) > 0 ? '#fff3a0' : '#8a7a5a'; ctx.fill(); ctx.stroke(); ctx.restore();
       }
-      if (layer === 'top') { const sx = cam.x + WW * 0.74; if (sx > sea.x0 + 50 && sx < sea.x1 - 50) for (let i = 0; i < 9; i++) { const w = 120 - i * 9 + Math.sin(t * 2.2 + i * 1.3) * 12; ctx.globalAlpha = 0.9 - i * 0.07; ctx.fillStyle = '#fff0cc'; ctx.fillRect(Math.max(sea.x0, sx - w / 2), sea.y + 5 + i * 8, Math.min(w, sea.x1 - sx + w / 2), 3); } ctx.globalAlpha = 1; }   // the sun's path across the bay
+      const el = (x, y, w, h) => { ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, Math.max(0.5, w / 2), Math.max(0.5, h / 2), 0, 0, 7); ctx.fill(); };   // every mark on the water is a tapered stroke, not a bar
+      if (layer === 'top') { const sx = cam.x + WW * 0.74; if (sx > sea.x0 + 50 && sx < sea.x1 - 50) for (let i = 0; i < 9; i++) { const w = 120 - i * 9 + Math.sin(t * 2.2 + i * 1.3) * 12; ctx.globalAlpha = 0.9 - i * 0.07; ctx.fillStyle = '#fff0cc'; el(Math.max(sea.x0, sx - w / 2), sea.y + 5 + i * 8, Math.min(w, sea.x1 - sx + w / 2), 3); } ctx.globalAlpha = 1; }   // the sun's path across the bay
       if (layer === 'top') {                                // what stands over the water lies broken on it
         const kx = sea.x0 + 270, wob = (i, k) => Math.sin(t * (1.3 + (i % 3) * 0.3) + i * 1.9 + k) * 2.6;
         { const sx = cam.x + WW * 0.74; if (sx > sea.x0 && sx < sea.x1) { const og = ctx.createLinearGradient(sx - 150, 0, sx + 150, 0); og.addColorStop(0, 'rgba(255,160,84,0)'); og.addColorStop(0.5, 'rgba(255,160,84,0.3)'); og.addColorStop(1, 'rgba(255,160,84,0)'); ctx.fillStyle = og; ctx.fillRect(Math.max(sea.x0, sx - 150), sea.y + 3, Math.min(300, sea.x1 - sx + 150), 76); } }
         if (vis(kx, 220)) {
-          for (let i = 0; i < 7; i++) { const w = 184 - i * 20; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; ctx.fillRect(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
-          for (const mx of [kx - 28, kx + 46]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; ctx.fillRect(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
-          for (const px of [kx - 62, kx + 64, kx - 118]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; ctx.fillRect(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
+          for (let i = 0; i < 7; i++) { const w = 184 - i * 20; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; el(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
+          for (const mx of [kx - 28, kx + 46]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; el(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
+          for (const px of [kx - 62, kx + 64, kx - 118]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; el(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
         }
-        for (let i = 0; i < 16; i++) { const x = sea.x0 + 26 + ((i * 131) % (sea.x1 - sea.x0 - 52)); if (!vis(x) || Math.abs(x - kx) < 130) continue; for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgba(255,200,140,${0.4 - k * 0.08})`; ctx.fillRect(x - 2.5 + wob(i, k), sea.y + 9 + k * 9 + (i % 3) * 4, 5, 4); } }   // the lit windows of the far shore
+        for (let i = 0; i < 16; i++) { const x = sea.x0 + 26 + ((i * 131) % (sea.x1 - sea.x0 - 52)); if (!vis(x) || Math.abs(x - kx) < 130) continue; for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgba(255,200,140,${0.4 - k * 0.08})`; el(x - 2.5 + wob(i, k), sea.y + 9 + k * 9 + (i % 3) * 4, 5, 4); } }   // the lit windows of the far shore
       }
       // sunset glitter on the water: short bright dashes that come and go
-      if (layer === 'top') for (let i = 0; i < 46; i++) { const x = sea.x0 + 14 + ((i * 197) % (sea.x1 - sea.x0 - 28)), y = sea.y + 8 + ((i * 53) % 46), k = Math.sin(t * (1.4 + (i % 5) * 0.3) + i * 1.7); if (k < 0.2 || !vis(x)) continue; ctx.globalAlpha = (k - 0.2) * 0.9; ctx.fillStyle = i % 3 ? '#fff0d0' : '#ffd0e8'; ctx.fillRect(x, y, 10 + (i % 4) * 5, 2.2); }
+      if (layer === 'top') for (let i = 0; i < 46; i++) { const x = sea.x0 + 14 + ((i * 197) % (sea.x1 - sea.x0 - 28)), y = sea.y + 8 + ((i * 53) % 46), k = Math.sin(t * (1.4 + (i % 5) * 0.3) + i * 1.7); if (k < 0.2 || !vis(x)) continue; ctx.globalAlpha = (k - 0.2) * 0.9; ctx.fillStyle = i % 3 ? '#fff0d0' : '#ffd0e8'; el(x, y, 10 + (i % 4) * 5, 2.2); }
       ctx.globalAlpha = 1;
     }
     function liveLights(t) {
@@ -238,7 +239,7 @@
     const sx = VW * 0.74, sy = VH * 0.74;
     for (const [rad, a] of [[170, 0.1], [120, 0.14], [84, 0.2]]) { c.fillStyle = `rgba(255,236,190,${a})`; c.beginPath(); c.arc(sx, sy, rad, 0, 7); c.fill(); }
     c.fillStyle = '#fff6d6'; c.beginPath(); c.arc(sx, sy, 52, 0, 7); c.fill();
-    for (const [cx, cy, w, hh] of [[160, 330, 240, 16], [520, 250, 320, 20], [900, 300, 260, 16], [720, 400, 380, 18], [300, 420, 300, 14], [1000, 210, 200, 12]]) { c.fillStyle = 'rgba(110,60,140,0.55)'; c.beginPath(); c.ellipse(cx, cy, w / 2, hh / 2, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,190,150,0.7)'; c.beginPath(); c.ellipse(cx, cy + hh * 0.28, w * 0.46, hh * 0.22, 0, 0, 7); c.fill(); }
+    for (const [cx, cy, w, hh] of [[160, 330, 190, 12], [540, 250, 240, 14], [900, 300, 200, 12], [720, 400, 280, 13], [300, 420, 220, 11], [1000, 210, 160, 10]]) { const n = Math.max(3, Math.round(w / 46)); c.fillStyle = 'rgba(110,60,140,0.5)'; c.beginPath(); for (let k = 0; k < n; k++) { const t = (k + 0.5) / n, bw = w / n * 1.5, bh = hh * (0.9 + 1.5 * Math.sin(t * Math.PI) * (0.7 + ((k * 37 + cx) % 5) * 0.09)); c.moveTo(cx - w / 2 + t * w + bw / 2, cy); c.ellipse(cx - w / 2 + t * w, cy, bw / 2, bh, 0, 0, Math.PI, true); } c.rect(cx - w / 2 + 6, cy - 1, w - 12, hh * 0.5); c.fill(); c.fillStyle = 'rgba(255,190,150,0.7)'; c.beginPath(); c.ellipse(cx, cy + hh * 0.3, w * 0.44, hh * 0.3, 0, 0, 7); c.fill(); }
   }
   // far: islands that float, and the open sea under them
   function far(c, w, horizon) {
