@@ -292,5 +292,5 @@
     line(c, [x0, y, x1, y], 3); line(c, [x0, y + 15, x1, y + 15], 2);
   }
 
-  NN.town = { front, far, mid, sky, street, parts: { capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
+  NN.town = { front, far, mid, sky, street, parts: { ICON, awning, poster, tree, lamp, cornice, wall, bricks, cast, hangSign, vine, tank, dish, flag, vent, capture, O, C, rng, box, shade, line, poly, disc, glow, icon, win, door, sign } };
 })(window.NN);
