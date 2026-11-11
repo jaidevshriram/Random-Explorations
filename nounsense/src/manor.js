@@ -9,9 +9,11 @@
   const { O, C, box, shade, line, poly, disc, glow: lampGlow, icon, rng } = NN.town.parts;
   // Candlelight is recorded as a real light and also painted onto whatever is behind it as a warm pool.
   // The light map only brightens; on teal paper that turns grey-green, so the amber has to be in the paint.
+  let POOLS = [];                                         // where warm light reaches the floor
   const glow = (c, x, y, r, a, col) => {
     lampGlow(c, x, y, r, a, col || '255,176,96');
     if (col) return;
+    POOLS.push([x, r]);
     const rr = r * 1.9, g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(255,170,78,${Math.min(0.5, (a || 0.5) * 0.85)})`); g.addColorStop(0.45, `rgba(255,150,70,${Math.min(0.5, (a || 0.5) * 0.3)})`); g.addColorStop(1, 'rgba(255,150,70,0)');
     c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
     for (const [k, al] of [[1.25, 0.09], [0.78, 0.1], [0.42, 0.12]]) { c.beginPath(); c.ellipse(x, y + r * 0.1, r * k, r * k * 0.86, 0, 0, 7); c.fillStyle = `rgba(255,186,96,${al})`; c.fill(); }   // light as flat lit shapes with an edge, the way it is inked in a comic
@@ -71,7 +73,7 @@
     disc(c, x, CEIL + drop + 24, 5, M.gold, 1.8);
   }
 
-  function build(L, scale) { const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
+  function build(L, scale) { POOLS = []; const r = NN.town.parts.capture(() => paint(L, scale)); r.out.lights = r.lights; return r.out; }
   function paint(L, scale) {
     const g = L.start.y, top = -10, H = g - top + 6, W = L.W;
     const mk = () => { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * scale); cv.height = Math.ceil(H * scale); const c = cv.getContext('2d'); c.scale(scale, scale); c.translate(0, -top); return { cv, c }; };
@@ -83,6 +85,9 @@
     { const wg = c.createLinearGradient(0, CEIL, 0, g - 120); wg.addColorStop(0, 'rgba(8,14,28,0.5)'); wg.addColorStop(0.5, 'rgba(8,14,28,0.1)'); wg.addColorStop(1, 'rgba(8,14,28,0.24)'); c.fillStyle = wg; c.fillRect(0, CEIL, W, g - 120 - CEIL); }   // gloom gathering under the ceiling
     box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
     box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
+    { const br = rng(4711);                                 // the ceiling is lived in: cobwebs in the coffers and bats asleep on the beams
+      for (let x = 20; x < W; x += 96) { if (br() < 0.45) cobweb(c, x + 16, top + 8, 1, 1, 22 + br() * 14); if (br() < 0.3) cobweb(c, x + 80, top + 8, -1, 1, 20 + br() * 12);
+        if (br() < 0.34) { const bx = x + 34 + br() * 30, by = CEIL - 12; line(c, [bx, by - 6, bx, by], 1.6); poly(c, [bx - 7, by, bx + 7, by, bx + 5, by + 16, bx, by + 22, bx - 5, by + 16], '#2a2238', 1.6); poly(c, [bx - 4, by + 20, bx - 6, by + 27, bx - 1, by + 23], '#2a2238', 1.2); poly(c, [bx + 4, by + 20, bx + 6, by + 27, bx + 1, by + 23], '#2a2238', 1.2); } } }
     for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 80, 60, 0.45); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
     box(c, -10, g - 112, W + 20, 112, M.wood, 2.6); box(c, -10, g - 120, W + 20, 10, M.woodL, 2.2); line(c, [0, g - 121, W, g - 121], 1.6, M.gold);
     for (let x = 14; x < W; x += 78) { c.lineWidth = 1.8; c.strokeStyle = M.wood2; c.strokeRect(x, g - 98, 62, 74); c.strokeStyle = 'rgba(255,220,170,0.14)'; c.strokeRect(x + 3, g - 95, 56, 68); }
@@ -196,6 +201,7 @@
     c.fillStyle = '#5c4c5e'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22);
     c.strokeStyle = '#3f3344'; c.lineWidth = 2; for (let yy = y + 50, row = 0; yy < y1; yy += 30, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 90) * 90 + (row % 2 ? 45 : 0); x < x1; x += 90) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 30); c.stroke(); } }
     box(c, x0 - 4, y, x1 - x0 + 8, 22, M.woodL, 2.6); for (let x = Math.floor(x0 / 74) * 74; x < x1; x += 74) line(c, [x, y + 1, x, y + 21], 1.4, M.wood2); line(c, [x0, y + 11, x1, y + 11], 1.2, 'rgba(43,48,68,0.25)');
+    if (t.kind === 'floor') { c.save(); c.beginPath(); c.rect(x0, y + 1, x1 - x0, 20); c.clip(); for (const [lx, lr] of POOLS) if (lx > x0 - 120 && lx < x1 + 120) { c.beginPath(); c.ellipse(lx, y + 10, 40 + lr * 0.5, 13, 0, 0, 7); c.fillStyle = 'rgba(255,196,110,0.3)'; c.fill(); c.beginPath(); c.ellipse(lx, y + 10, 18 + lr * 0.25, 7, 0, 0, 7); c.fillStyle = 'rgba(255,214,140,0.3)'; c.fill(); } c.restore(); }   // candlelight pooled on the boards
     for (let ax = Math.floor((x0 - 200) / 400) * 400 + 200; ax < x1 + 200; ax += 400) {       // cellar arches under the hall: a barrel and a candle in each
       c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 78); c.arc(ax, y + 78, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#2a1e2c'; c.fill(); c.lineWidth = 5; c.strokeStyle = '#7a6878'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke();
       c.beginPath(); c.ellipse(ax - 18, y + 92, 22, 17, 0, 0, 7); c.fillStyle = M.wood; c.fill(); c.lineWidth = 2; c.stroke(); line(c, [ax - 30, y + 78, ax - 30, y + 106], 2.2, M.wood2); line(c, [ax - 6, y + 78, ax - 6, y + 106], 2.2, M.wood2);
