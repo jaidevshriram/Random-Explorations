@@ -738,6 +738,15 @@
       Engine.update(engine, 1000 / 60);
       // sync positions
       const p = player;
+      // A small animal under the end of a bridge used to prop it up, and the bridge then slid into the river.
+      // Anything alive that a wide summoned structure comes to rest on is lifted on top of it instead.
+      for (const e of ents) {
+        if (e.removed || e.placing || e.native || e.heldBy || !e.spec.solid || e.spec.alive || e.spec.anchored || e.w < 150 || e.h > 60) continue;
+        for (const c of ents) {
+          if (c === e || c.removed || !c.spec.alive || c.heldBy || c.mountedBy || c.spec.flies || c.spec.swims || c.h > 70) continue;
+          if (Math.abs(c.x - e.x) < e.w / 2 - 4 && c.y > e.y && c.y - c.h / 2 < e.y + e.h / 2 + 5) { Body.setPosition(c.body, { x: c.x, y: e.y - e.h / 2 - c.h / 2 - 2 }); Body.setVelocity(c.body, { x: 0, y: 0 }); }
+        }
+      }
       for (const e of ents) { if (e.heldBy || e.removed) continue; e.x = e.body.position.x; e.y = e.body.position.y; }
       if (p.mount) { p.x = p.mount.x; p.y = p.mount.y - p.mount.h / 2 - p.h / 2 + 14; } else { p.x = p.body.position.x; p.y = p.body.position.y; }
       if (p.held) { p.held.x = p.x + p.facing * 14; p.held.y = p.y; }
