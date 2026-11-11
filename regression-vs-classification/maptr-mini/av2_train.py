@@ -34,6 +34,7 @@ H, W = 100, 200  # raster rows (y, 30 m) x columns (x, 60 m)
 XR, YR = 60.0, 30.0
 W_FOCAL, W_PTS, W_DIR = 2.0, 5.0, 0.005
 K_BINS = mf.K_BINS
+KC = 16  # cbins (Tesla-style coarse + fine): 16 coarse cells per axis (3.75 m in x, 1.9 m in y) + a regressed offset per cell
 K_REL, R_REL = 64, 0.125  # rbins: bins over the correction ref + delta, delta in [-R, R] (normalized; +-7.5 m in x, +-3.75 m in y)
 CLASSES = ["divider", "ped_crossing", "boundary"]
 
@@ -58,7 +59,7 @@ class AV2MapTR(nn.Module):
         self.pts = nn.Embedding(P, 2 * d)
         self.ref = nn.Linear(d, 2)
         self.layers = nn.ModuleList([mf.DecoderLayer(d) for _ in range(layers)])
-        out = {"l1": 2, "bins": 2 * K_BINS, "rbins": 2 * K_REL}[head]
+        out = {"l1": 2, "bins": 2 * K_BINS, "rbins": 2 * K_REL, "cbins": 4 * KC}[head]
         mk_cls = lambda: nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d), nn.ReLU(), nn.Linear(d, d), nn.LayerNorm(d),
                                        nn.ReLU(), nn.Linear(d, N_CLS))
         mk_reg = lambda: nn.Sequential(nn.Linear(d, d), nn.ReLU(), nn.Linear(d, d), nn.ReLU(), nn.Linear(d, out))
@@ -85,6 +86,15 @@ class AV2MapTR(nn.Module):
             r = self.reg[l](h)
             if self.head == "l1":
                 pts = (r + mf.inverse_sigmoid(ref)).sigmoid()
+            elif self.head == "cbins":
+                r = r.view(B, N_Q * P, 2, 2 * KC)
+                cc = (torch.arange(KC, dtype=torch.float32) + 0.5) / KC
+                lg = r[..., :KC] - 0.5 * ((cc - ref[..., None]) / mf.PRIOR_SIGMA) ** 2
+                off = r[..., KC:].sigmoid()  # position inside each cell, in [0, 1]
+                c = lg.argmax(-1, keepdim=True)
+                pts = (c + off.gather(-1, c))[..., 0] / KC
+                o["bins"] = lg.view(B, N_Q, P, 2, KC)
+                o["off"] = off.view(B, N_Q, P, 2, KC)
             elif self.head == "rbins":
                 lg = r.view(B, N_Q * P, 2, K_REL) - 0.5 * ((mf.bin_centers(K_REL) - 0.5) / 0.25) ** 2
                 u = mf.decode(lg)
@@ -131,7 +141,7 @@ def loss_fn(outs, labels_b, orders_b, head, w_ce):
     for out in outs:
         B = out["logits"].shape[0]
         tgt_cls = torch.zeros_like(out["logits"])
-        l_pts, l_dir, n_pos = 0.0, 0.0, 0
+        l_pts, l_dir, l_reg, n_pos = 0.0, 0.0, 0.0, 0
         for b in range(B):
             labels = torch.as_tensor(labels_b[b])
             lg, pts = out["logits"][b], out["pts"][b]
@@ -140,6 +150,11 @@ def loss_fn(outs, labels_b, orders_b, head, w_ce):
             tgt = torch.stack([orders_b[b][g][o] for g, o in zip(gi, oi)])
             if head == "l1":
                 l_pts = l_pts + (pts[qi] - tgt).abs().sum()
+            elif head == "cbins":
+                c = (tgt * KC).long().clamp(0, KC - 1)
+                l_pts = l_pts + -(mf.hl_gauss(tgt, k=KC, sigma=0.3) * out["bins"][b][qi].log_softmax(-1)).sum()
+                off = out["off"][b][qi].gather(-1, c[..., None])[..., 0]
+                l_reg = l_reg + ((c + off) / KC - tgt).abs().sum()
             elif head == "rbins":
                 u = ((tgt - out["ref"][b][qi]) / (2 * R_REL) + 0.5).clamp(0, 1)
                 l_pts = l_pts + -(mf.hl_gauss(u, k=K_REL) * out["bins"][b][qi].log_softmax(-1)).sum()
@@ -149,7 +164,7 @@ def loss_fn(outs, labels_b, orders_b, head, w_ce):
             n_pos += len(qi)
         n_pos = max(n_pos, 1)
         w = W_PTS if head == "l1" else w_ce
-        total = total + W_FOCAL * mf.sigmoid_focal(out["logits"], tgt_cls) / n_pos + w * l_pts / n_pos + W_DIR * l_dir / n_pos
+        total = total + W_FOCAL * mf.sigmoid_focal(out["logits"], tgt_cls) / n_pos + w * l_pts / n_pos + W_DIR * l_dir / n_pos + W_PTS * l_reg / n_pos
     return total
 
 
