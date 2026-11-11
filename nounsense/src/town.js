@@ -173,7 +173,7 @@
       wall(c, x + 10, g - h, w - 20, h, C.sand); shade(c, x + w - 30, g - h, 20, h);
       // lit hall with a great spiral fossil
       box(c, x + p, g - h + 40, w - p * 2, h - 60, C.lit, 2.4); c.fillStyle = C.lit2; c.fillRect(x + p, g - 70, w - p * 2, 50); { const ig = c.createLinearGradient(0, g - h + 40, 0, g - 76); ig.addColorStop(0, 'rgba(176,98,40,0.46)'); ig.addColorStop(1, 'rgba(176,98,40,0)'); c.fillStyle = ig; c.fillRect(x + p + 1, g - h + 41, w - p * 2 - 2, h - 118); }   // the hall is darker up under its ceiling glow(c, x + w / 2, g - h / 2, 110, 0.24);
-      { const cx = x + w / 2, cy = g - h * 0.52; c.lineCap = 'round'; for (const [lw, col] of [[15, O], [11, '#8a6248'], [5, '#c79a6c']]) { c.beginPath(); for (let a = 0; a <= 15.5; a += 0.2) { const rr = 6 + a * 3.5, X = cx + Math.cos(a) * rr, Y = cy + Math.sin(a) * rr * 0.92; if (a === 0) c.moveTo(X, Y); else c.lineTo(X, Y); } c.lineWidth = lw; c.strokeStyle = col; c.stroke(); } c.lineWidth = 1.4; c.strokeStyle = O; for (let a = 1; a <= 15.4; a += 0.42) { const r0 = 6 + a * 3.5; c.beginPath(); c.moveTo(cx + Math.cos(a) * (r0 - 5), cy + Math.sin(a) * (r0 - 5) * 0.92); c.lineTo(cx + Math.cos(a) * (r0 + 5), cy + Math.sin(a) * (r0 + 5) * 0.92); c.stroke(); } c.lineCap = 'butt'; }   // the prize exhibit: a great ammonite, chambered box(c, x + w / 2 - 50, g - 62, 100, 12, '#8a5a3a', 2); line(c, [x + w / 2 - 20, g - 62, x + w / 2 - 20, g - 20], 3); line(c, [x + w / 2 + 20, g - 62, x + w / 2 + 20, g - 20], 3);
+      { const cx = x + w / 2, cy = g - h * 0.52; c.lineCap = 'round'; for (const [lw, col] of [[15, O], [11, '#8a6248'], [5, '#c79a6c']]) { c.beginPath(); for (let a = 0; a <= 15.5; a += 0.2) { const rr = 6 + a * 3.5, X = cx + Math.cos(a) * rr, Y = cy + Math.sin(a) * rr * 0.92; if (a === 0) c.moveTo(X, Y); else c.lineTo(X, Y); } c.lineWidth = lw; c.strokeStyle = col; c.stroke(); } c.lineWidth = 1.4; c.strokeStyle = O; for (let a = 1; a <= 15.4; a += 0.42) { const r0 = 6 + a * 3.5; c.beginPath(); c.moveTo(cx + Math.cos(a) * (r0 - 5), cy + Math.sin(a) * (r0 - 5) * 0.92); c.lineTo(cx + Math.cos(a) * (r0 + 5), cy + Math.sin(a) * (r0 + 5) * 0.92); c.stroke(); } { const a = 15.5, rr = 6 + a * 3.5, X = cx + Math.cos(a) * rr, Y = cy + Math.sin(a) * rr * 0.92; c.beginPath(); c.ellipse(X, Y, 11, 7, a + Math.PI / 2, 0, 7); c.fillStyle = '#5a3c2c'; c.fill(); c.lineWidth = 2.4; c.strokeStyle = O; c.stroke(); c.beginPath(); c.ellipse(X, Y, 6, 3.4, a + Math.PI / 2, 0, 7); c.fillStyle = '#2a1c1a'; c.fill(); } c.lineCap = 'butt'; }   // the prize exhibit: a great ammonite, chambered box(c, x + w / 2 - 50, g - 62, 100, 12, '#8a5a3a', 2); line(c, [x + w / 2 - 20, g - 62, x + w / 2 - 20, g - 20], 3); line(c, [x + w / 2 + 20, g - 62, x + w / 2 + 20, g - 20], 3);
       for (const bx of [x + p + 14, x + w - p - 46]) { box(c, bx, g - h + 52, 32, 96, C.red, 2); poly(c, [bx, g - h + 148, bx + 16, g - h + 136, bx + 32, g - h + 148], C.red, 2); icon(c, bx < x + w / 2 ? 'star' : 'moon', bx + 16, g - h + 92, 10); }
       // columns, steps and pediment
       for (const cx of [x + 18, x + p - 8, x + w - p - 20, x + w - 46]) { box(c, cx, g - h + 30, 28, h - 46, C.cream, 2.2); box(c, cx - 5, g - h + 22, 38, 10, C.cream, 2); box(c, cx - 5, g - 26, 38, 10, C.cream, 2); for (let i = 1; i < 3; i++) line(c, [cx + i * 9.3, g - h + 36, cx + i * 9.3, g - 30], 1.1, 'rgba(43,48,68,0.3)'); }
@@ -199,8 +199,8 @@
     },
     tower(c, x, g, w, r) {
       const h = 430;
-      wall(c, x, g - h, w, h, '#4f629c'); shade(c, x + w - 18, g - h, 18, h); cornice(c, x, g - h, w, C.stone2);
-      bricks(c, x, g - h, w, h, '#3c4e86', r, 26);
+      wall(c, x, g - h, w, h, '#8a4a42'); shade(c, x + w - 18, g - h, 18, h); cornice(c, x, g - h, w, C.stone2);
+      bricks(c, x, g - h, w, h, '#6a342e', r, 26);
       { const lg = c.createLinearGradient(x, 0, x + 70, 0); lg.addColorStop(0, 'rgba(214,226,255,0.28)'); lg.addColorStop(1, 'rgba(214,226,255,0)'); c.fillStyle = lg; c.fillRect(x + 2, g - h + 2, 70, h - 4);      // the moon on the near corner
         const rg = c.createLinearGradient(x + w - 90, 0, x + w, 0); rg.addColorStop(0, 'rgba(24,20,70,0)'); rg.addColorStop(1, 'rgba(24,20,70,0.3)'); c.fillStyle = rg; c.fillRect(x + w - 90, g - h + 2, 88, h - 4);        // the far side turning away
         const vg = c.createLinearGradient(0, g - h, 0, g - 128); vg.addColorStop(0, 'rgba(24,20,70,0)'); vg.addColorStop(1, 'rgba(24,20,70,0.24)'); c.fillStyle = vg; c.fillRect(x + 2, g - h + 2, w - 4, h - 130); }       // and the wall sinking into the street's shadow
@@ -288,7 +288,6 @@
     }
     for (const [kind, w] of ROW) { if (kind) BUILD[kind](c, x, ground, w, r); else gaps.push([x, w]); x += w; if (x > W + 40) break; }
     for (const [gx, gw] of gaps) {                        // an alley wall closes each gap, so the row is continuous and nothing floats behind it
-      if (inHole(gx + gw / 2, 30)) continue;
       const ah = 232; box(c, gx - 6, ground - ah, gw + 12, ah, C.brick2, 2.6); bricks(c, gx - 6, ground - ah, gw + 12, ah, '#7a3a34', r, 10); shade(c, gx - 6, ground - ah, gw + 12, ah, 0.22); cast(c, gx - 6, ground - ah, gw + 12, 40, 0.4);
       box(c, gx - 10, ground - ah - 6, gw + 20, 8, C.stone2, 2.2); win(c, gx + gw / 2 - 11, ground - ah + 30, 22, 28, { lit: ((gx | 0) % 2) === 0 });
       line(c, [gx + 2, ground - ah + 4, gx + 2, ground - 6], 4); line(c, [gx + 2, ground - ah + 4, gx + 2, ground - 6], 2, C.stone2);
@@ -325,7 +324,7 @@
   // pale skyline, no outlines
   function far(c, w, horizon) {
     const r = rng(77), lr = rng(321);
-    if (DUSK) { const tr = rng(5150); for (let x = -10; x < w; x += 54 + tr() * 70) { const bw = 22 + tr() * 26, bh = 290 + tr() * 120, top = horizon - bh, k = tr();   // tall enough to stand over the viaduct, short enough to leave the moon alone
+    if (DUSK) { const tr = rng(5150); for (let x = -10; x < w; x += 54 + tr() * 70) { const bw = 22 + tr() * 26, bh = 330 + tr() * 110, top = horizon - bh, k = tr();   // tall enough to stand over the viaduct, short enough to leave the moon alone
       c.fillStyle = '#6a56a0'; c.fillRect(x, top, bw, bh); c.fillStyle = 'rgba(255,226,214,0.4)'; c.fillRect(x, top, bw, 2);
       c.fillStyle = '#6a56a0'; if (k < 0.3) { c.beginPath(); c.moveTo(x, top); c.lineTo(x + bw / 2, top - 30 - tr() * 30); c.lineTo(x + bw, top); c.fill(); } else if (k < 0.55) { c.fillRect(x + bw * 0.3, top - 14, bw * 0.4, 14); c.fillRect(x + bw / 2 - 1, top - 44, 2, 30); } else if (k < 0.75) { c.beginPath(); c.arc(x + bw / 2, top, bw / 2, Math.PI, 0); c.fill(); }
       c.fillStyle = 'rgba(255,214,150,0.5)'; for (let wy = top + 12; wy < horizon - 150; wy += 16) for (let wx = x + 5; wx < x + bw - 6; wx += 9) if (tr() < 0.22) c.fillRect(wx, wy, 3.4, 5); } }   // furthest: tall, thin, a few windows lit
@@ -400,9 +399,9 @@
     c.fillStyle = 'rgba(96,150,120,0.5)'; for (let i = 0; i < 9; i++) { const sx = x0 + 14 + ((i * 67) % (x1 - x0 - 28)); c.fillRect(sx, y0 + 14, 5 + (i % 3) * 3, 6 + ((i * 13) % 14)); }   // moss under the coping
     c.fillStyle = '#8a94c0'; c.fillRect(x0, y0, x1 - x0, 10); c.fillStyle = 'rgba(236,240,255,0.55)'; c.fillRect(x0, y0, x1 - x0, 2.5); c.fillStyle = 'rgba(16,16,48,0.3)'; c.fillRect(x0, y0 + 10, x1 - x0, 5);
     c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y0 + 10); c.lineTo(x1, y0 + 10); c.stroke();
-    c.beginPath(); c.ellipse(mx, sy, 52, 28, 0, Math.PI, 0); c.lineTo(mx + 52, y1); c.lineTo(mx - 52, y1); c.closePath(); c.fillStyle = '#7c86b2'; c.fill(); c.stroke();          // the culvert's stone ring
+    c.beginPath(); c.ellipse(mx, sy, 52, 28, 0, Math.PI, 0); c.lineTo(mx + 52, sy + 2); c.lineTo(mx - 52, sy + 2); c.closePath(); c.fillStyle = '#7c86b2'; c.fill(); c.stroke();          // the culvert's stone ring
     for (let k = 1; k < 8; k++) { const a = Math.PI + k * Math.PI / 8; c.beginPath(); c.moveTo(mx + Math.cos(a) * 44, sy + Math.sin(a) * 20); c.lineTo(mx + Math.cos(a) * 52, sy + Math.sin(a) * 28); c.lineWidth = 1.2; c.stroke(); }
-    c.lineWidth = 2; c.beginPath(); c.ellipse(mx, sy, 44, 20, 0, Math.PI, 0); c.lineTo(mx + 44, y1); c.lineTo(mx - 44, y1); c.closePath(); c.fillStyle = '#12152c'; c.fill(); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.ellipse(mx, sy, 44, 20, 0, Math.PI, 0); c.lineTo(mx + 44, sy + 2); c.lineTo(mx - 44, sy + 2); c.closePath(); c.fillStyle = '#12152c'; c.fill(); c.stroke();
     c.fillStyle = 'rgba(255,214,150,0.55)'; c.fillRect(mx - 14, sy - 5, 24, 2); c.fillRect(mx - 4, sy - 11, 14, 1.6);                                                              // a lamp somewhere down the tunnel
     for (const rx of [x0 + 40, x1 - 40]) { c.fillStyle = '#9aa3c0'; c.fillRect(rx - 3.5, y0 + 22, 7, 8); c.strokeRect(rx - 3.5, y0 + 22, 7, 8); c.beginPath(); c.arc(rx, y0 + 37, 7, 0, 7); c.lineWidth = 4.4; c.strokeStyle = O; c.stroke(); c.lineWidth = 2; c.strokeStyle = '#9aa3c0'; c.stroke(); c.strokeStyle = O; }
   }

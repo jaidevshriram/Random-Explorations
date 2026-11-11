@@ -103,13 +103,14 @@
 
     // --- a ketch moored in the bay, and the piles she is tied to ---
     { const x = sea.x0 + 270, wy = sea.y - 6;
-      for (const px of [x - 186, x - 156, x + 186]) { box(c, px - 5, wy - 44, 10, 70, K.plank2, 2.2); box(c, px - 7, wy - 49, 14, 7, K.plankL, 1.8); }
-      line(c, [x - 156, wy - 30, x - 124, wy - 12], 1.8); line(c, [x + 186, wy - 30, x + 136, wy - 14], 1.8);
-      c.save(); c.translate(x, wy + 22); c.scale(1.3, 1.3); c.translate(-x, -(wy + 22));          // a proper ship: a third bigger, in the Star Gull's red and teal
+      for (const px of [x - 222, x - 190, x + 226]) { box(c, px - 5, wy - 44, 10, 70, K.plank2, 2.2); box(c, px - 7, wy - 49, 14, 7, K.plankL, 1.8); }
+      line(c, [x - 190, wy - 30, x - 150, wy - 12], 1.8); line(c, [x + 226, wy - 30, x + 166, wy - 14], 1.8);
+      c.save(); c.translate(x, wy + 22); c.scale(1.6, 1.6); c.translate(-x, -(wy + 22));          // a proper ship: half as big again, in the Star Gull's red and teal
       for (const [mx, mh] of [[x - 28, 230], [x + 46, 176]]) { line(c, [mx, wy - 16, mx, wy - mh], 6); line(c, [mx, wy - 16, mx, wy - mh], 3, K.plankL); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 4); line(c, [mx - 44, wy - mh * 0.62, mx + 44, wy - mh * 0.62], 2, K.plank);
         c.beginPath(); c.moveTo(mx - 40, wy - mh * 0.62 + 2); for (let bx = mx - 40; bx < mx + 40; bx += 20) c.quadraticCurveTo(bx + 10, wy - mh * 0.62 + 18, bx + 20, wy - mh * 0.62 + 3); c.closePath(); c.fillStyle = K.sail; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke();
         line(c, [mx, wy - mh, mx - 70, wy - 18], 1.4); line(c, [mx, wy - mh, mx + 70, wy - 18], 1.4); poly(c, [mx, wy - mh - 2, mx + 22, wy - mh + 5, mx, wy - mh + 12], K.red, 1.6); }
-      { const mx = x - 28, sy = wy - 230 * 0.62 + 5; poly(c, [mx - 40, sy, mx + 40, sy, mx + 44, sy + 62, mx, sy + 55, mx - 44, sy + 62], '#f4e2cc', 2); c.fillStyle = 'rgba(92,60,140,0.26)'; c.fillRect(mx - 42, sy + 1, 30, 58); icon(c, 'star', mx, sy + 29, 13); } poly(c, [x - 104, wy - 20, x + 112, wy - 20, x + 92, wy + 22, x - 84, wy + 22], K.hull, 3); box(c, x - 90, wy + 4, 190, 6, K.teal, 1.2); box(c, x - 104, wy - 26, 216, 8, K.gold2, 2); c.fillStyle = 'rgba(30,18,58,0.28)'; c.fillRect(x - 84, wy + 2, 176, 20);
+      for (const [mx, sy, hw2, sh2, star] of [[x - 28, wy - 230 * 0.62 + 5, 40, 66, 1], [x + 46, wy - 176 * 0.62 + 5, 36, 50, 0]]) { const sp = () => { c.beginPath(); c.moveTo(mx - hw2, sy); c.lineTo(mx + hw2, sy); c.quadraticCurveTo(mx + hw2 + 9, sy + sh2 * 0.55, mx + hw2 - 2, sy + sh2); c.quadraticCurveTo(mx, sy + sh2 - 11, mx - hw2 + 2, sy + sh2); c.quadraticCurveTo(mx - hw2 - 9, sy + sh2 * 0.55, mx - hw2, sy); c.closePath(); }; sp(); const sg = c.createLinearGradient(0, sy, 0, sy + sh2); sg.addColorStop(0, '#c4aed4'); sg.addColorStop(0.45, '#f4e2cc'); sg.addColorStop(1, '#f2a66c'); c.fillStyle = sg; c.fill(); c.save(); c.clip(); const sd = c.createLinearGradient(mx - hw2, 0, mx, 0); sd.addColorStop(0, 'rgba(92,60,140,0.34)'); sd.addColorStop(1, 'rgba(92,60,140,0)'); c.fillStyle = sd; c.fillRect(mx - hw2 - 10, sy, hw2 + 10, sh2); for (const k of [-0.45, 0, 0.45]) { c.beginPath(); c.moveTo(mx + k * hw2, sy + 3); c.quadraticCurveTo(mx + k * hw2 * 1.25, sy + sh2 * 0.55, mx + k * hw2 * 1.05, sy + sh2 - 3); c.lineWidth = 0.9; c.strokeStyle = 'rgba(120,90,80,0.5)'; c.stroke(); } c.restore(); sp(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); if (star) icon(c, 'star', mx, sy + sh2 * 0.46, 12); }   // bellied sails, shaded like the Star Gull's
+      box(c, x + 62, wy - 62, 12, 40, K.iron2, 2); box(c, x + 59, wy - 67, 18, 6, K.gold2, 1.6); box(c, x + 60, wy - 46, 16, 4, K.gold2, 1.2); poly(c, [x - 104, wy - 20, x + 112, wy - 20, x + 92, wy + 22, x - 84, wy + 22], K.hull, 3); box(c, x - 90, wy + 4, 190, 6, K.teal, 1.2); box(c, x - 104, wy - 26, 216, 8, K.gold2, 2); c.fillStyle = 'rgba(30,18,58,0.28)'; c.fillRect(x - 84, wy + 2, 176, 20);
       box(c, x - 6, wy - 46, 44, 22, '#8a4a5c', 2.2); for (const lx of [x + 2, x + 18]) { box(c, lx, wy - 41, 10, 10, C.lit, 1.4); glow(c, lx + 5, wy - 36, 26, 0.4); }
       for (const lx of [x - 60, x + 76]) disc(c, lx, wy - 6, 5, '#bff6ee', 1.6);
       c.restore();
@@ -153,6 +154,7 @@
     { const x = 1930, y = DECK;
       box(c, x - 46, y - 58, 92, 58, K.iron, 2.6); box(c, x - 52, y - 66, 104, 10, K.gold2, 2.2); for (let i = 0; i < 4; i++) { box(c, x - 36 + i * 20, y - 46, 12, 30, '#1f2a44', 1.6); c.fillStyle = K.cyan; c.fillRect(x - 34 + i * 20, y - 44 + (i % 2) * 8, 8, 14); } glow(c, x, y - 30, 90, 0.5, CY);
       box(c, x - 14, y - 150, 28, 86, K.iron2, 2.6); box(c, x - 19, y - 158, 38, 10, K.gold2, 2.2); line(c, [x - 14, y - 110, x + 14, y - 110], 2); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 5); line(c, [x + 46, y - 30, x + 76, y - 30, x + 76, y], 2.4, K.gold); box(c, x + 69, y - 6, 14, 6, K.gold2, 1.6); for (const by of [y - 138, y - 84]) box(c, x - 16, by, 32, 6, K.gold2, 1.6);
+      blob(c, [x - 6, y - 162, x - 18, y - 176, x - 8, y - 196, x + 8, y - 192, x + 14, y - 214, x + 36, y - 222, x + 50, y - 206, x + 44, y - 188, x + 28, y - 184, x + 22, y - 168, x + 8, y - 160], '#f0e2da', 2); blob(c, [x + 46, y - 226, x + 58, y - 240, x + 76, y - 236, x + 78, y - 222, x + 64, y - 214, x + 50, y - 216], '#f0e2da', 1.8);   // steam
       disc(c, x - 30, y - 80, 9, K.gold, 2); line(c, [x - 30, y - 80, x - 26, y - 86], 1.6);
     }
     const furl = L.sails === 'furled' ? 1 : 0;                  // lower sails set unless a level asks otherwise: side by side, set sails read as a ship
@@ -205,9 +207,9 @@
         const kx = sea.x0 + 270, wob = (i, k) => Math.sin(t * (1.3 + (i % 3) * 0.3) + i * 1.9 + k) * 2.6;
         { const sx = cam.x + WW * 0.74; if (sx > sea.x0 && sx < sea.x1) { const og = ctx.createLinearGradient(sx - 150, 0, sx + 150, 0); og.addColorStop(0, 'rgba(255,160,84,0)'); og.addColorStop(0.5, 'rgba(255,160,84,0.3)'); og.addColorStop(1, 'rgba(255,160,84,0)'); ctx.fillStyle = og; ctx.fillRect(Math.max(sea.x0, sx - 150), sea.y + 3, Math.min(300, sea.x1 - sx + 150), 76); } }
         if (vis(kx, 220)) {
-          for (let i = 0; i < 7; i++) { const w = 240 - i * 26; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; el(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
-          for (const mx of [kx - 36, kx + 60]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; el(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
-          for (const px of [kx - 78, kx + 99, kx - 96]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; el(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
+          for (let i = 0; i < 7; i++) { const w = 300 - i * 32; ctx.fillStyle = `rgba(58,22,52,${0.5 - i * 0.06})`; el(kx + 4 - w / 2 + wob(i, 0), sea.y + 5 + i * 8, w, 5); }
+          for (const mx of [kx - 45, kx + 74]) for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(58,26,56,${0.42 - i * 0.04})`; el(mx - 2.5 + wob(i, mx), sea.y + 8 + i * 8, 5, 5); }
+          for (const px of [kx - 96, kx + 122, kx - 96]) for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(255,226,150,${0.75 - i * 0.11})`; el(px - 3.5 + wob(i, px), sea.y + 7 + i * 8, 7, 3.4); }
         }
         for (let i = 0; i < 16; i++) { const x = sea.x0 + 26 + ((i * 131) % (sea.x1 - sea.x0 - 52)); if (!vis(x) || Math.abs(x - kx) < 130) continue; for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgba(255,200,140,${0.4 - k * 0.08})`; el(x - 2.5 + wob(i, k), sea.y + 9 + k * 9 + (i % 3) * 4, 5, 4); } }   // the lit windows of the far shore
       }
@@ -275,7 +277,7 @@
       c.fillStyle = 'rgba(255,232,170,0.85)'; for (let wy = top + 12; wy < horizon - 44; wy += 18) for (let wx = x + 7; wx < x + bw - 11; wx += 13) if (r() < 0.26) c.fillRect(wx, wy, 5, 7);
     }
     for (const fx of [0.22, 0.58, 0.9]) {                                        // dockside cranes
-      const x = w * fx, top = horizon - 176 - ((fx * 53) % 50), dir = fx > 0.5 ? -1 : 1; c.strokeStyle = '#8a5a7c'; c.fillStyle = '#8a5a7c'; c.lineWidth = 2.6;
+      const x = w * fx, top = horizon - 128 - ((fx * 53) % 40), dir = fx > 0.5 ? -1 : 1; c.strokeStyle = '#8a5a7c'; c.fillStyle = '#8a5a7c'; c.lineWidth = 2.6;
       c.beginPath(); c.moveTo(x - 12, horizon); c.lineTo(x - 5, top); c.moveTo(x + 12, horizon); c.lineTo(x + 5, top); for (let yy = horizon; yy > top + 30; yy -= 34) { c.moveTo(x - 12 + (horizon - yy) * 0.028, yy); c.lineTo(x + 11 - (horizon - yy - 34) * 0.028, yy - 34); } c.stroke();
       c.fillRect(x - 14, top - 22, 28, 24); c.beginPath(); c.moveTo(x, top - 16); c.lineTo(x + dir * 150, top - 46); c.lineTo(x + dir * 150, top - 40); c.lineTo(x, top - 4); c.closePath(); c.fill(); c.lineWidth = 1.6; c.beginPath(); c.moveTo(x + dir * 144, top - 42); c.lineTo(x + dir * 144, top + 40); c.moveTo(x, top - 22); c.lineTo(x, top - 44); c.lineTo(x + dir * 150, top - 46); c.moveTo(x, top - 44); c.lineTo(x - dir * 40, top - 8); c.stroke(); c.fillRect(x + dir * 144 - 9, top + 40, 18, 14);
       c.fillStyle = '#ffb060'; c.beginPath(); c.arc(x, top - 46, 3, 0, 7); c.fill();
@@ -302,7 +304,7 @@
     for (let x = 90; x < w; x += 210 + r() * 190) {                              // boats tied up along the far shore
       const bw = 50 + r() * 34, by = horizon + 4;
       c.beginPath(); c.moveTo(x - bw / 2, by - 12); c.lineTo(x + bw / 2, by - 12); c.lineTo(x + bw / 2 - 9, by + 2); c.lineTo(x - bw / 2 + 7, by + 2); c.closePath(); c.fillStyle = ['#8a4a62', '#5a6a9c', '#9a7a52'][Math.floor(r() * 3)]; c.fill(); c.lineWidth = 1.8; c.strokeStyle = LO; c.stroke();
-      c.beginPath(); c.moveTo(x, by - 12); c.lineTo(x, by - 70 - r() * 30); c.stroke(); c.beginPath(); c.moveTo(x + 2, by - 62); c.lineTo(x + bw * 0.4, by - 20); c.lineTo(x + 2, by - 20); c.closePath(); c.fillStyle = '#f2dcc0'; c.fill(); c.stroke();
+      c.beginPath(); c.moveTo(x, by - 12); c.lineTo(x, by - 70 - r() * 30); c.stroke(); c.beginPath(); c.moveTo(x + 2, by - 62); c.lineTo(x + bw * 0.4, by - 20); c.lineTo(x + 2, by - 20); c.closePath(); c.fillStyle = '#d8a48c'; c.fill(); c.stroke();
       c.fillStyle = '#ffe09a'; c.beginPath(); c.arc(x - bw * 0.3, by - 18, 3, 0, 7); c.fill(); halo(c, x - bw * 0.3, by - 18, 18, '255,224,154', 0.36);
     }
   }

@@ -94,7 +94,7 @@
     { const br = rng(4711);                                 // the ceiling is lived in: cobwebs in the coffers and bats asleep on the beams
       for (let x = 20; x < W; x += 96) { if (br() < 0.2) cobweb(c, x + 16, top + 8, 1, 1, 16 + br() * 26); if (br() < 0.12) cobweb(c, x + 80, top + 8, -1, 1, 14 + br() * 22);
         if (br() < 0.34) { const bx = x + 34 + br() * 30, by = CEIL - 12; line(c, [bx, by - 6, bx, by], 1.6); poly(c, [bx - 7, by, bx + 7, by, bx + 5, by + 16, bx, by + 22, bx - 5, by + 16], '#2a2238', 1.6); poly(c, [bx - 4, by + 20, bx - 6, by + 27, bx - 1, by + 23], '#2a2238', 1.2); poly(c, [bx + 4, by + 20, bx + 6, by + 27, bx + 1, by + 23], '#2a2238', 1.2); line(c, [bx - 7, by + 2, bx - 11, by + 12, bx - 5, by + 15], 1.4, '#4a3e5c'); line(c, [bx + 7, by + 2, bx + 11, by + 12, bx + 5, by + 15], 1.4, '#4a3e5c'); disc(c, bx - 2, by + 18, 1.1, '#ffd978', 0); disc(c, bx + 2, by + 18, 1.1, '#ffd978', 0); } } }
-    for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 80, 60, 0.45); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
+    for (let ax = 200; ax < W; ax += 400) glow(c, ax + 24, g + 130, 50, 0.3); line(c, [0, CEIL + 16, W, CEIL + 16], 2, M.gold2);
     box(c, -10, g - 112, W + 20, 112, M.wood, 2.6); box(c, -10, g - 120, W + 20, 10, M.woodL, 2.2); line(c, [0, g - 121, W, g - 121], 1.6, M.gold);
     for (let x = 14; x < W; x += 78) { c.lineWidth = 1.8; c.strokeStyle = M.wood2; c.strokeRect(x, g - 98, 62, 74); c.strokeStyle = 'rgba(255,220,170,0.14)'; c.strokeRect(x + 3, g - 95, 56, 68); }
     box(c, -10, g - 16, W + 20, 16, M.wood2, 2.2);
@@ -180,14 +180,15 @@
 
     // in front of the characters: stair rail and gallery balustrade
     const b = mk(), d = b.c;
-    const baluster = (x, y0, y1) => { line(d, [x, y0, x, y1], 5.4); line(d, [x, y0, x, y1], 3, M.woodL); disc(d, x, (y0 + y1) / 2, 4.2, M.woodL, 1.6); };
+    const baluster = (x, y0, y1) => { line(d, [x, y0, x, y1], 5.4); line(d, [x, y0, x, y1], 3, M.woodL); disc(d, x, (y0 + y1) / 2, 4.2, M.woodL, 1.6); line(d, [x - 1.4, y0 + 1, x - 1.4, y1 - 1], 1, 'rgba(255,222,160,0.6)'); };
     const newel = (x, y0, y1) => { box(d, x - 8, y0, 16, y1 - y0, M.wood, 2.4); box(d, x - 11, y0 - 6, 22, 8, M.woodL, 2); disc(d, x, y0 - 12, 8, M.gold, 2.2); };
     for (let i = 0; i < 11; i++) baluster(935 + i * 30, 520 - (i + 1) * 20 - 44, 520 - (i + 1) * 20);
     line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL); line(d, [914, 520 - 65.5, 1248, GAL - 49.5], 1.8, 'rgba(206,224,255,0.8)');   // moonlight along the handrail
     newel(908, g - 74, g); newel(1250, GAL - 60, GAL);
     for (const [ga, gb] of L.gallery || [[1250, 2100]]) {          // one balustrade per surviving stretch of gallery
+      d.fillStyle = 'rgba(18,10,22,0.5)'; d.fillRect(ga, GAL - 40, gb - ga, 40);                    // what is behind the rail sinks into shadow, so the rail reads
       for (let x = ga + 24; x < gb - 10; x += 22) baluster(x, GAL - 40, GAL);
-      box(d, ga, GAL - 46, gb - ga, 8, M.woodL, 2.4); newel(gb - 4, GAL - 60, GAL); if (ga > 1250) newel(ga + 4, GAL - 60, GAL);
+      box(d, ga, GAL - 46, gb - ga, 8, M.woodL, 2.4); line(d, [ga + 2, GAL - 44.5, gb - 2, GAL - 44.5], 1.4, 'rgba(255,222,160,0.7)'); newel(gb - 4, GAL - 60, GAL); if (ga > 1250) newel(ga + 4, GAL - 60, GAL);
     }
     return { front: { cv: a.cv, top, h: H }, over: { cv: b.cv, top, h: H } };
   }
@@ -208,14 +209,13 @@
       for (let px = 1006; px < 1240; px += 58) { const top = 520 - 20 * Math.floor((px - 920) / 30 + 1) + 16; if (510 - top < 26) continue; const door = px === 1180;
         c.fillStyle = 'rgba(20,8,16,0.16)'; c.fillRect(px, top, 46, 506 - top); c.lineWidth = 1.8; c.strokeStyle = O; c.strokeRect(px, top, 46, 506 - top); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,170,0.5)'; c.beginPath(); c.moveTo(px + 3, 503); c.lineTo(px + 43, 503); c.lineTo(px + 43, top + 3); c.stroke();
         if (door) { disc(c, px + 9, (top + 506) / 2, 3.4, M.gold, 1.4); c.strokeStyle = O; c.lineWidth = 1.4; c.strokeRect(px + 5, top + 5, 36, 496 - top); } }
-      for (let pi = 0; pi < 2; pi++) for (let pj = 0; pj < 3; pj++) { const u0 = pi / 2 + 0.03, u1 = (pi + 1) / 2 - 0.03, v0 = pj / 3 + 0.025, v1 = (pj + 1) / 3 - 0.025, P = (u, v) => [966 + 92 * u + 74 * v, 392 + 126 * v]; c.beginPath(); for (const [u, v] of [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]) { const q = P(u, v); c.lineTo(q[0], q[1]); } c.closePath(); c.fillStyle = 'rgba(170,208,255,0.38)'; c.fill(); }   // the window itself, thrown across the side of the stairs: six panes with the glazing bars dark between them
       c.restore();
       return;
     }
     if (t.kind === 'balcony') {
       box(c, t.x0, y, t.x1 - t.x0, t.y1 - y, M.woodL, 2.6); line(c, [t.x0, y + 7, t.x1, y + 7], 1.6, M.gold); for (let x = t.x0 + 8; x < t.x1; x += 34) poly(c, [x, t.y1, x + 14, t.y1, x, t.y1 + 12], M.wood, 1.8);
       box(c, Math.max(t.x0, x0), y - 2, Math.min(t.x1, x1) - Math.max(t.x0, x0), 5, M.red, 1.6);
-      for (const [ex, dd] of [[t.x0, -1], [t.x1, 1]]) if (ex > 1260 && ex < 2090) { poly(c, [ex, y, ex + dd * 9, y + 2, ex + dd * 4, y + 6, ex + dd * 12, y + 9, ex + dd * 5, y + 13, ex + dd * 10, y + 17, ex + dd * 3, y + 22, ex, y + 22], M.woodL, 2.2); line(c, [ex + dd * 10, y + 22, ex + dd * 14, y + 40], 3, M.wood2); }   // splintered ends where the floor gave way
+      for (const ex of [t.x0, t.x1]) if (ex > 1260 && ex < 2090) box(c, ex - 4, y - 1, 8, t.y1 - y + 2, M.wood2, 2);   // the floor ends in a plain trimmer where it gave way
       return;
     }
     // the hall floor: boards, a carpet runner to the stairs, foundations below
@@ -225,9 +225,9 @@
     if (t.kind === 'floor') { c.save(); c.beginPath(); c.rect(x0, y + 1, x1 - x0, 20); c.clip(); for (const [a, b] of COOL) poly(c, [a, y + 1, b, y + 1, b + 26, y + 21, a + 26, y + 21], 'rgba(170,208,255,0.62)', 0); for (const [lx, lr] of POOLS) if (lx > x0 - 120 && lx < x1 + 120) { c.beginPath(); c.ellipse(lx, y + 10, 40 + lr * 0.5, 13, 0, 0, 7); c.fillStyle = 'rgba(255,196,110,0.3)'; c.fill(); c.beginPath(); c.ellipse(lx, y + 10, 18 + lr * 0.25, 7, 0, 0, 7); c.fillStyle = 'rgba(255,214,140,0.3)'; c.fill(); } c.restore(); }   // candlelight pooled on the boards
     for (let yy = y + 42; yy < y1; yy += 20) { line(c, [x0, yy, x1, yy], 1.2, 'rgba(20,10,24,0.38)'); for (let bx = Math.floor(x0 / 52) * 52 + (Math.floor(yy / 20) % 2 ? 26 : 0); bx < x1; bx += 52) line(c, [bx, yy, bx, yy + 20], 1.1, 'rgba(20,10,24,0.32)'); }   // the foundation in coursed stone
     for (let ax = Math.floor((x0 - 200) / 400) * 400 + 200; ax < x1 + 200; ax += 400) {       // cellar arches under the hall: a barrel and a candle in each
-      c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 78); c.arc(ax, y + 78, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#3a2a34'; c.fill(); c.save(); c.clip(); { const cg = c.createRadialGradient(ax + 24, y + 80, 4, ax + 24, y + 80, 96); cg.addColorStop(0, 'rgba(255,196,120,0.7)'); cg.addColorStop(0.5, 'rgba(255,170,96,0.28)'); cg.addColorStop(1, 'rgba(255,170,96,0)'); c.fillStyle = cg; c.fillRect(ax - 70, y, 140, 160); } c.restore(); c.lineWidth = 11; c.strokeStyle = '#8a7888'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); for (let k = 1; k < 8; k++) { const a2 = Math.PI + k * Math.PI / 8; line(c, [ax + Math.cos(a2) * 57, y + 78 + Math.sin(a2) * 57, ax + Math.cos(a2) * 67, y + 78 + Math.sin(a2) * 67], 1.3); }
-      c.beginPath(); c.ellipse(ax - 18, y + 92, 22, 17, 0, 0, 7); c.fillStyle = M.wood; c.fill(); c.lineWidth = 2; c.stroke(); line(c, [ax - 30, y + 78, ax - 30, y + 106], 2.2, M.wood2); line(c, [ax - 6, y + 78, ax - 6, y + 106], 2.2, M.wood2);
-      box(c, ax + 22, y + 84, 5, 12, M.paper, 1.2); disc(c, ax + 24.5, y + 80, 3, '#ffd978', 0);
+      c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 128); c.arc(ax, y + 128, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#3a2a34'; c.fill(); c.save(); c.clip(); { const cg = c.createRadialGradient(ax + 24, y + 130, 4, ax + 24, y + 130, 96); cg.addColorStop(0, 'rgba(255,196,120,0.7)'); cg.addColorStop(0.5, 'rgba(255,170,96,0.28)'); cg.addColorStop(1, 'rgba(255,170,96,0)'); c.fillStyle = cg; c.fillRect(ax - 70, y, 140, 160); } c.restore(); c.lineWidth = 11; c.strokeStyle = '#8a7888'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); for (let k = 1; k < 8; k++) { const a2 = Math.PI + k * Math.PI / 8; line(c, [ax + Math.cos(a2) * 57, y + 128 + Math.sin(a2) * 57, ax + Math.cos(a2) * 67, y + 128 + Math.sin(a2) * 67], 1.3); }
+      c.beginPath(); c.ellipse(ax - 18, y + 142, 22, 17, 0, 0, 7); c.fillStyle = M.wood; c.fill(); c.lineWidth = 2; c.stroke(); line(c, [ax - 30, y + 128, ax - 30, y + 156], 2.2, M.wood2); line(c, [ax - 6, y + 128, ax - 6, y + 156], 2.2, M.wood2);
+      box(c, ax + 22, y + 134, 5, 12, M.paper, 1.2); disc(c, ax + 24.5, y + 130, 3, '#ffd978', 0);
     }
     const rx0 = Math.max(x0, 1290), rx1 = Math.min(x1, 2090);
     if (rx1 > rx0) { box(c, rx0, y - 3, rx1 - rx0, 9, '#6a4a8a', 2); line(c, [rx0, y - 0.5, rx1, y - 0.5], 1.4, M.gold); line(c, [rx0, y + 3.5, rx1, y + 3.5], 1.4, M.gold); for (let x = Math.ceil(rx0 / 40) * 40; x < rx1; x += 40) poly(c, [x - 5, y + 1.5, x, y - 1.5, x + 5, y + 1.5, x, y + 4.5], M.gold, 0); }   // a second runner through the arcade

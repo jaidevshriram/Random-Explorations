@@ -16,7 +16,7 @@
     bark: '#7a5f74', bark2: '#5d4660', barkL: '#987a8c', wood: '#8a5a3f', wood2: '#6b4433', woodL: '#b07c52',
     leaf: '#3f9a86', leaf2: '#2c7a70', leaf3: '#226063', leafL: '#7fd0a8', moss: '#86c06f', moss2: '#5f9a5c',
     red: '#d0554f', red2: '#a8403f', blue: '#5b86cf', blue2: '#4468ad', plum: '#a070c8', plum2: '#7f52a6', cream: '#f6ead0', stalk: '#efe2c6', stalk2: '#cdb99a',
-    rock: '#7c86a6', rock2: '#646d8e', rockL: '#9aa5c2', soil: '#54425f', soil2: '#443450', lit: '#ffdc94', lit2: '#f7c468',
+    rock: '#6670aa', rock2: '#525b94', rockL: '#8892ca', soil: '#54425f', soil2: '#443450', lit: '#ffdc94', lit2: '#f7c468',
     cyan: '#8ff4e6', pink: '#f6a2de', lime: '#d6f58a', water: '#8fdcec', metal: '#aab3c4', metal2: '#8891a6',
   };
   const G = 520, CY = '140,240,225', PK = '246,150,220', WARM = '255,214,150';
@@ -234,7 +234,6 @@
       glow(c, RX, G - 200, 150, 0.3, CY); glow(c, RX, G - 20, 120, 0.42, CY);
       glowshrooms(c, x0 + 30, G - 204, 1.2, H.cyan, CY, r, 3); glowshrooms(c, x1 - 40, G - 270, 1.1, H.pink, PK, r, 3); glowshrooms(c, x1 + 20, G - 64, 1, H.cyan, CY, r, 2);
       fern(c, x0 + 78, G - 308, 1.1, H.leaf, r); fern(c, RX + 60, G - 376, 1.1, H.leaf2, r); fern(c, x0 + 4, G - 92, 0.9, H.leaf2, r);
-      c.beginPath(); c.ellipse(RX + 2, G - 372, 28, 5.5, 0, 0, 7); c.fillStyle = '#9fe8f4'; c.fill(); c.lineWidth = 1.8; c.strokeStyle = O; c.stroke(); line(c, [RX - 8, G - 368, RX - 4, G - 346], 7, '#bff2f8'); line(c, [RX - 12, G - 372, RX + 14, G - 372], 1.2, 'rgba(255,255,255,0.9)');   // a spring pool on the top ledge: where the water comes from
     }
     // giant trees. Windows, doors and fungus go on after the bark.
     trunk(c, 20, 230, top, G, r);
@@ -276,7 +275,8 @@
     ropeLights(c, 2360, TOPY - 330, 2674, TOPY - 330, 38, 10);
 
     // leaves overhead
-    canopy(c, 40, top + 30, 620, 250, r); canopy(c, 1190, top + 30, 700, 270, r); canopy(c, 620, top + 10, 380, 150, r); canopy(c, 1720, top + 10, 420, 150, r);
+    canopy(c, 40, top + 30, 620, 250, r); canopy(c, 1190, top + 30, 700, 270, r); canopy(c, 620, top + 10, 380, 150, r); canopy(c, 1600, top + 6, 200, 96, r);
+    { c.save(); c.globalCompositeOperation = 'screen'; for (const [a0, a1, b0, b1, al] of [[1840, 1900, 1650, 1760, 0.13], [1790, 1830, 1730, 1800, 0.1], [1890, 1920, 1790, 1850, 0.09]]) { const sg = c.createLinearGradient(0, top, 0, G); sg.addColorStop(0, `rgba(170,205,255,${al * 1.6})`); sg.addColorStop(1, `rgba(170,205,255,${al * 0.4})`); c.fillStyle = sg; c.beginPath(); c.moveTo(a0, top); c.lineTo(a1, top); c.lineTo(b1, G); c.lineTo(b0, G); c.closePath(); c.fill(); } c.restore(); for (const [gx, gy] of [[1840, G - 330], [1790, G - 200], [1740, G - 70]]) glow(c, gx, gy, 60, 0.24, '170,205,255'); }   // shafts of moonlight through the gap, falling on the low ground under the bluff
     canopy(c, 2265, top + 10, 560, 150, r); canopy(c, 2800, top + 14, 520, 170, r);
     for (const [x, len] of [[150, 110], [300, 70], [1010, 90], [1330, 120], [1470, 60], [2480, 60], [2620, 80]]) { let px = x, py = top + 110; c.beginPath(); c.moveTo(px, py); for (let i = 0; i < len / 12; i++) { px = x + (r() - 0.5) * 10; py += 12; c.lineTo(px, py); } c.lineWidth = 3.6; c.strokeStyle = O; c.stroke(); c.lineWidth = 1.8; c.strokeStyle = H.moss2; c.stroke(); disc(c, px, py + 4, 4.4, r() < 0.5 ? H.pink : H.cyan, 1.5); glow(c, px, py + 4, 16, 0.3, CY); }
     for (const [x, len] of [[236, 120], [1050, 150], [1360, 110], [2440, 30], [2700, 40]]) lantern(c, x, top + 130, len);
@@ -308,7 +308,7 @@
       if (layer === 'back') {
         if (!vis(RX)) return;
         // the crag carries on down to the water, so it does not float above the river
-        ctx.fillStyle = H.rock2; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G); ctx.fillStyle = '#333856'; ctx.fillRect(RX - 36, G + 2, 72, river.y - G); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 60) continue; ctx.beginPath(); ctx.moveTo(bx, river.y); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
+        ctx.fillStyle = '#4c548e'; ctx.fillRect(river.x0 - 4, G + 2, river.x1 - river.x0 + 8, river.y - G); ctx.fillStyle = '#252b52'; ctx.fillRect(RX - 36, G + 2, 72, river.y - G); ctx.fillStyle = H.rock; for (let i = 0; i < 5; i++) { const bx = river.x0 + 10 + i * 56; if (Math.abs(bx + 20 - RX) < 60) continue; ctx.beginPath(); ctx.moveTo(bx, river.y); ctx.lineTo(bx + 6, G + 8 + (i % 2) * 8); ctx.lineTo(bx + 36, G + 6); ctx.lineTo(bx + 44, river.y); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = O; ctx.stroke(); }
         // falling water: bright streaks sliding down the channel, and the lower reach below the bank
         fallShape(ctx, RX, G + 1, river.y + 4, G - 328, river.y); ctx.fillStyle = '#7fd0e6'; ctx.fill();
         ctx.save(); fallShape(ctx, RX, G - 324, river.y + 4, G - 328, river.y); ctx.clip();
@@ -390,8 +390,8 @@
         continue;
       }
       c.fillStyle = col; c.beginPath(); c.moveTo(x - tw / 2, -10); c.lineTo(x - tw / 2, horizon - 80); c.quadraticCurveTo(x - tw / 2, horizon - 14, x - tw, horizon); c.lineTo(x + tw, horizon); c.quadraticCurveTo(x + tw / 2, horizon - 14, x + tw / 2, horizon - 80); c.lineTo(x + tw / 2, -10); c.closePath(); c.fill();
-      c.fillStyle = 'rgba(24,26,80,0.2)'; c.fillRect(x + tw * 0.12, 0, tw * 0.38, horizon - 60); c.fillStyle = 'rgba(200,220,255,0.22)'; c.fillRect(x - tw / 2 + 2, 0, tw * 0.13, horizon - 76); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
-      for (let i = 0; i < 22; i++) { const bx = x - tw * 0.42 + r() * tw * 0.84, by = 10 + r() * (horizon - 130), bl = 40 + r() * 70; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + (r() - 0.5) * 9, by + bl / 2, bx + (r() - 0.5) * 5, by + bl); c.lineWidth = 1.4; c.strokeStyle = 'rgba(34,40,104,0.55)'; c.stroke(); }
+      c.fillStyle = 'rgba(24,26,80,0.2)'; c.fillRect(x + tw * 0.12, 0, tw * 0.38, horizon - 60); c.fillStyle = 'rgba(206,224,255,0.42)'; c.fillRect(x - tw / 2 + 2, 0, tw * 0.1, horizon - 76); c.fillStyle = 'rgba(206,224,255,0.16)'; c.fillRect(x - tw / 2 + 2 + tw * 0.1, 0, tw * 0.12, horizon - 76); c.lineWidth = 2; c.strokeStyle = LO; c.stroke();
+      for (let i = 0; i < 22; i++) { const bx = x - tw * 0.42 + r() * tw * 0.84, by = 10 + r() * (horizon - 130), bl = 40 + r() * 70; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + (r() - 0.5) * 9, by + bl / 2, bx + (r() - 0.5) * 5, by + bl); c.lineWidth = 2; c.strokeStyle = 'rgba(30,34,96,0.85)'; c.stroke(); }
       for (let i = 0; i < 3; i++) { const kx = x + (r() - 0.5) * tw * 0.5, ky = 60 + r() * (horizon - 220); c.beginPath(); c.ellipse(kx, ky, 6, 9, 0, 0, 7); c.fillStyle = 'rgba(34,40,104,0.5)'; c.fill(); c.lineWidth = 1.4; c.strokeStyle = LO; c.stroke(); }
       for (let i = 0; i < 2; i++) { const sd = i ? 1 : -1, ky = horizon - 260 - r() * 160; c.beginPath(); c.moveTo(x + sd * tw / 2, ky + 14); c.lineTo(x + sd * (tw / 2 + 38), ky - 12); c.lineTo(x + sd * (tw / 2 + 40), ky - 2); c.lineTo(x + sd * tw / 2, ky + 30); c.closePath(); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = LO; c.stroke(); for (const [dx, dy, rr] of [[40, -14, 18], [58, -22, 15], [50, -34, 15], [30, -28, 13]]) { c.beginPath(); c.arc(x + sd * (tw / 2 + dx), ky + dy, rr, 0, 7); c.fillStyle = '#4f93a6'; c.fill(); c.stroke(); } }   // a branch with a tuft of leaves
       for (let i = 0; i < 4; i++) { const sd = r() < 0.5 ? -1 : 1, fy = horizon - 70 - i * 34 - r() * 20, fx = x + sd * tw / 2, fc = r() < 0.5 ? ['#a8fff0', '150,250,230'] : ['#ffc0ee', '250,170,225']; halo(c, fx + sd * 8, fy, 22, fc[1], 0.4); c.beginPath(); c.moveTo(fx, fy); c.quadraticCurveTo(fx + sd * 12, fy - 9, fx + sd * 20, fy); c.quadraticCurveTo(fx + sd * 10, fy + 4, fx, fy + 3); c.closePath(); c.fillStyle = fc[0]; c.fill(); c.lineWidth = 1.4; c.strokeStyle = LO; c.stroke(); }   // glowing shelf fungi
