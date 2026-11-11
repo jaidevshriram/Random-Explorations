@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--page-->
+<title>Nounsense</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Patrick+Hand&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<main class="wrap">
+  <header class="top">
+    <h1>Nounsense</h1>
+    <p class="goal">Carry the parcel to the mailbox. Write any word and it appears.</p>
+    <ul class="stats" aria-live="polite">
+      <li id="hearts" class="hearts" aria-label="Health">♥♥♥</li>
+      <li id="parcel">Parcel: safe</li>
+      <li id="words">Words: 0 (par 3)</li>
+      <li id="page">On the page: 0/10</li>
+    </ul>
+  </header>
+
+  <div class="stage">
+    <canvas id="game" tabindex="0" aria-label="Game view: a courier, a ravine with a broken bridge, a goat, a wall of brambles and a mailbox"></canvas>
+    <div id="toast" class="toast" role="status"></div>
+
+    <section id="intro" class="card">
+      <h2>One parcel, three problems</h2>
+      <p>The bridge is out, the goat eats paper, and the brambles have swallowed the lane. Write a word and it shows up: a <em>ladder</em>, a <em>dog</em>, a <em>giant friendly dragon</em>. Par is three words.</p>
+      <dl class="keys">
+        <div><dt>A D / ← →</dt><dd>walk</dd></div>
+        <div><dt>Space / W</dt><dd>jump, climb</dd></div>
+        <div><dt>Enter</dt><dd>write a word</dd></div>
+        <div><dt>Mouse</dt><dd>drag things, right-click erases</dd></div>
+        <div><dt>E</dt><dd>pick up, ride, launch</dd></div>
+        <div><dt>F / Q</dt><dd>use what you hold / drop it</dd></div>
+      </dl>
+      <button id="start" type="button" class="btn primary">Start the round</button>
+    </section>
+
+    <section id="win" class="card" hidden>
+      <p id="stars" class="stars" aria-label="Stars earned">★☆☆</p>
+      <h2 id="wintitle">Delivered!</h2>
+      <p id="winbody"></p>
+      <button id="again" type="button" class="btn primary">Deliver again</button>
+    </section>
+  </div>
+
+  <form id="write" class="write" autocomplete="off">
+    <label for="word">Write a word</label>
+    <input id="word" name="word" type="text" maxlength="60" placeholder="bridge, sleepy bear, hot air balloon…" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="submit" class="btn primary">Summon</button>
+    <button id="hint" type="button" class="btn">Hint</button>
+    <button id="clear" type="button" class="btn">Clear page</button>
+    <button id="restart" type="button" class="btn">Restart</button>
+    <p id="msg" class="msg" role="status"></p>
+  </form>
+
+  <div class="touch" aria-label="Touch controls">
+    <button type="button" class="btn" data-key="left" aria-label="Walk left">←</button>
+    <button type="button" class="btn" data-key="right" aria-label="Walk right">→</button>
+    <button type="button" class="btn" data-key="jump" aria-label="Jump">Jump</button>
+    <button type="button" class="btn" data-key="down" aria-label="Down">↓</button>
+    <button type="button" class="btn" data-key="interact" aria-label="Pick up or ride">E</button>
+    <button type="button" class="btn" data-key="use" aria-label="Use held item">F</button>
+    <button type="button" class="btn" data-key="drop" aria-label="Drop held item">Q</button>
+  </div>
+
+  <section class="notes">
+    <details>
+      <summary>Notebook: <span id="found">0 of 0</span> things found</summary>
+      <p id="foundlist"></p>
+    </details>
+    <details>
+      <summary>How the stars work</summary>
+      <p>One star for delivering. Two for delivering in three words or fewer. Three for doing that without reusing any word from an earlier win, so every perfect run has to find a new way through.</p>
+    </details>
+  </section>
+</main>
+
+<script src="vendor/matter.min.js"></script>
+<script src="src/dictionary.js"></script>
+<script src="src/lexicon.js"></script>
+<script src="src/art.js"></script>
+<script src="src/sim.js"></script>
+<script src="src/main.js"></script>
+<!--/page-->
+</head>
+</html>

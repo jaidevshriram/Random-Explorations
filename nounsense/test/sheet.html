@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Nounsense contact sheet</title>
+<style>
+  body { background: #f3ead3; font: 12px/1.2 sans-serif; color: #2a2520; margin: 12px; }
+  #grid { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+  figure { margin: 0; text-align: center; }
+  figcaption { max-width: 110px; }
+</style>
+<div id="grid"></div>
+<script src="../src/dictionary.js"></script>
+<script src="../src/lexicon.js"></script>
+<script src="../src/art.js"></script>
+<script>
+  // Every noun in the dictionary, drawn once. Add ?q=giant+flaming to try adjectives.
+  const pre = new URLSearchParams(location.search).get('q') || '';
+  const only = new URLSearchParams(location.search).get('only');
+  for (const noun of NN.lexicon.nouns()) {
+    const r = NN.lexicon.resolve((pre + ' ' + noun.replace(/([a-z])([A-Z])/g, '$1 $2')).trim());
+    if (!r.ok) { console.error(noun, r.error); continue; }
+    if (only && !r.spec.kind.includes(only)) continue;
+    const s = NN.art.sprite(r.spec, 0);
+    const cv = s.frames[0];
+    const k = Math.min(1, 150 / Math.max(s.w, s.h));
+    cv.style.width = s.w * k + 'px'; cv.style.height = s.h * k + 'px';
+    const f = document.createElement('figure'); f.appendChild(cv);
+    const c = document.createElement('figcaption'); c.textContent = r.name; f.appendChild(c);
+    document.getElementById('grid').appendChild(f);
+  }
+</script>

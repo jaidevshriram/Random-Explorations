@@ -8,3 +8,4 @@ Some random thoughts and explorations on various topics.
 - [Image Reconstruction Bench - PSNR/SSIM of images Claude redraws as SVG](./image-recon-bench/README.md)
 - [Regression vs. classification heads for continuous outputs (L2 / L1 / bins)](./regression-vs-classification/README.md)
 - [Concert scenes - animated, painterly canvas recreations](./concert-scenes/index.html)
+- [Nounsense - a write-a-word puzzle game with a hand-authored dictionary](./nounsense/README.md)

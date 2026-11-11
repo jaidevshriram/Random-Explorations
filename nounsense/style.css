@@ -1,0 +1,76 @@
+/* Layout: one sketchbook page. Title strip, the drawing taped in the middle,
+   the writing line under it. Single paper-and-ink look on purpose (no dark theme). */
+:root {
+  --desk: #e5d9b9;
+  --paper: #f3ead3;
+  --card: #fdf9ee;
+  --ink: #2a2520;
+  --ink-soft: #5d5852;
+  --line: #2a252033;
+  --red: #c94a3d;
+  --teal: #3f8f85;
+  --yellow: #f0c64a;
+  --navy: #3c5578;
+  --display: "Caveat Brush", "Patrick Hand", "Comic Sans MS", cursive;
+  --body: "Patrick Hand", "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.35; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-block: 14px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 12px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 2.5rem; line-height: 1; margin: 0; letter-spacing: 0.01em; transform: rotate(-1.5deg); }
+.goal { margin: 0; flex: 1 1 260px; min-width: 0; color: var(--ink-soft); }
+.stats { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-variant-numeric: tabular-nums; }
+.hearts { color: var(--red); letter-spacing: 0.08em; }
+.stats .bad { color: var(--red); }
+
+.stage { position: relative; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px 10px 4px 8px; box-shadow: 4px 5px 0 var(--line); overflow: hidden; }
+#game { display: block; width: 100%; aspect-ratio: 1100 / 620; max-width: 100%; touch-action: none; outline: none; }
+#game:focus-visible { box-shadow: inset 0 0 0 3px var(--teal); }
+
+.toast { position: absolute; left: 50%; top: 12px; transform: translate(-50%, -8px); max-width: min(92%, 640px); padding: 6px 14px; background: var(--card); border: 2px solid var(--ink); border-radius: 12px 4px 10px 5px; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; text-align: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-0.6deg); width: min(92%, 540px); max-height: 94%; overflow: auto; padding: 16px 20px 18px; background: var(--card); border: 2px solid var(--ink); border-radius: 4px 12px 5px 10px; box-shadow: 5px 6px 0 var(--line); display: flex; flex-direction: column; gap: 10px; }
+.card h2 { font-family: var(--display); font-weight: 400; font-size: 1.8rem; line-height: 1.05; margin: 0; text-wrap: balance; }
+.card p { margin: 0; }
+.card em { font-style: normal; border-bottom: 2px solid var(--yellow); }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 2px 16px; }
+.keys div { display: flex; gap: 8px; min-width: 0; }
+.keys dt { flex: 0 0 96px; color: var(--navy); }
+.keys dd { margin: 0; min-width: 0; }
+.stars { font-size: 2.2rem; line-height: 1; color: var(--yellow); -webkit-text-stroke: 1.5px var(--ink); letter-spacing: 0.08em; }
+
+.write { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.write label { font-family: var(--display); font-size: 1.4rem; }
+.write input { flex: 1 1 240px; min-width: 0; font: inherit; font-size: 1.25rem; color: var(--ink); padding: 6px 10px; background: var(--card); border: 0; border-bottom: 3px solid var(--ink); border-radius: 4px 4px 0 0; }
+.write input::placeholder { color: #8d877c; }
+.write input:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.msg { flex: 1 0 100%; margin: 0; min-height: 1.4em; color: var(--ink-soft); }
+
+.btn { font: inherit; color: var(--ink); background: var(--card); border: 2px solid var(--ink); border-radius: 10px 4px 9px 5px; padding: 4px 14px; cursor: pointer; box-shadow: 2px 2px 0 var(--line); }
+.btn:hover { background: #fff; }
+.btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line); }
+.btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--yellow); align-self: flex-start; }
+.linkish { font: inherit; color: var(--navy); background: none; border: 0; border-bottom: 2px solid var(--navy); padding: 0; cursor: pointer; }
+
+.touch { display: none; flex-wrap: wrap; gap: 8px; }
+.touch .btn { min-width: 52px; min-height: 44px; touch-action: none; user-select: none; -webkit-user-select: none; }
+@media (pointer: coarse) { .touch { display: flex; } }
+
+.notes { display: flex; flex-direction: column; gap: 6px; color: var(--ink-soft); }
+.notes summary { cursor: pointer; color: var(--ink); }
+.notes p { margin: 6px 0 0; max-width: 70ch; overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  h1 { font-size: 2rem; }
+  .card { padding: 10px 12px; gap: 6px; }
+  .card h2 { font-size: 1.3rem; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
