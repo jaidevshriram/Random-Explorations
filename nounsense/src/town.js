@@ -256,7 +256,10 @@
       let bx = -170;
       for (const [kind, w] of [['tower', 250], ['potions', 300], ['workshop', 340], ['teashop', 250], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340], ['tower', 250], ['potions', 300], ['teashop', 250], ['workshop', 340]]) {
         box(bc, bx + 6, ground - 4, w - 18, lift + 10, C.slate2, 2.4); for (let wy = ground + 16; wy < ground + lift - 20; wy += 44) for (let wx = bx + 24; wx < bx + w - 50; wx += 46) win(bc, wx, wy, 24, 28, { lit: ((wx + wy) | 0) % 3 === 0 });   // the storeys below, for where a gap shows them
-        BUILD[kind](bc, bx, ground, w, rb); bx += w - 6; if (bx > W + 60) break;
+        BUILD[kind](bc, bx, ground, w, rb);
+        // Their shopfronts would show at upper-storey height over the street row, so each stands on a plain stone storey instead.
+        box(bc, bx + 3, ground - 126, w - 12, 130, C.stone2, 2.4); box(bc, bx - 2, ground - 132, w - 2, 8, C.stone, 2.2); for (let wx = bx + 22; wx < bx + w - 48; wx += 52) win(bc, wx, ground - 104, 26, 40, { lit: ((wx * 3) | 0) % 4 === 0, frame: C.stone });
+        bx += w - 6; if (bx > W + 60) break;
       }
       bc.setTransform(1, 0, 0, 1, 0, 0); bc.globalCompositeOperation = 'source-atop'; bc.fillStyle = 'rgba(178,188,222,0.44)'; bc.fillRect(0, 0, bcv.width, bcv.height);
       c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(bcv, 0, 0); c.restore();
