@@ -90,7 +90,7 @@
     for (let x = 30; x < W; x += 60) { c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x - 9, CEIL, 18, g - 120 - CEIL); }                        // striped paper
     for (let y = CEIL + 34, row = 0; y < g - 120; y += 34, row++) for (let x = (row % 2) * 30; x < W; x += 60) poly(c, [x, y - 7, x + 6, y, x, y + 7, x - 6, y], M.pat, 0);
     { const wg = c.createLinearGradient(0, CEIL, 0, g - 120); wg.addColorStop(0, 'rgba(8,14,28,0.5)'); wg.addColorStop(0.5, 'rgba(8,14,28,0.1)'); wg.addColorStop(1, 'rgba(8,14,28,0.24)'); c.fillStyle = wg; c.fillRect(0, CEIL, W, g - 120 - CEIL); }   // gloom gathering under the ceiling
-    box(c, -10, top, W + 20, CEIL - top, '#4a3040', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#3c2634', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
+    box(c, -10, top, W + 20, CEIL - top, '#5e3e4c', 2.6); for (let x = 20; x < W; x += 96) { box(c, x + 16, top + 8, 64, CEIL - top - 18, '#4c3040', 1.6); box(c, x, top, 14, CEIL - top - 4, M.wood, 2); disc(c, x + 7, CEIL - 14, 2.6, M.gold, 1); }   // a coffered ceiling with beams
     box(c, -10, CEIL - 4, W + 20, 16, M.wood, 2.4);
     for (const tx of [150, 420, 690, 1040, 1330, 1560, 1790, 2020, 2300, 2560]) if (tx < W) {   // heavy trusses across the ceiling, each on a carved corbel, throwing shadow down the paper
       const sg = c.createLinearGradient(0, CEIL + 12, 0, CEIL + 150); sg.addColorStop(0, 'rgba(8,6,20,0.42)'); sg.addColorStop(1, 'rgba(8,6,20,0)'); c.fillStyle = sg; c.beginPath(); c.moveTo(tx - 20, CEIL + 12); c.lineTo(tx + 20, CEIL + 12); c.lineTo(tx + 46, CEIL + 150); c.lineTo(tx - 46, CEIL + 150); c.closePath(); c.fill();
@@ -120,13 +120,17 @@
       if (drapes) { line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 7); line(c, [x - 60, y0 - 44, x + w + 60, y0 - 44], 3.4, M.gold); disc(c, x - 62, y0 - 44, 7, M.gold, 2); disc(c, x + w + 62, y0 - 44, 7, M.gold, 2); }
       if (drapes) for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(x - 34 + (w + 68) * (i + 0.5) / 8, y0 - 38, (w + 68) / 16, 0, Math.PI); c.fillStyle = M.red2; c.fill(); c.lineWidth = 2; c.strokeStyle = O; c.stroke(); }
       if (!drapes) {                                         // moonlight falls through it across the wall, and lands on the floor
-        c.save(); c.globalCompositeOperation = 'screen'; poly(c, [x + 8, y0 + w / 2, x + w - 8, y0 + w / 2, x + w + 190, g, x + 110, g], 'rgba(140,186,255,0.3)', 0); poly(c, [x + 30, y0 + w / 2, x + w - 30, y0 + w / 2, x + w + 150, g, x + 150, g], 'rgba(160,200,255,0.2)', 0); c.restore();
+        c.save(); c.globalCompositeOperation = 'screen'; const bw = (w + 80) / 3, mr = rng(x * 7 + 3);
+        for (let k = 0; k < 3; k++) { const t0 = x + 8 + k * w / 3 + (k ? 4 : 0), t1 = x + (k + 1) * w / 3 - (k < 2 ? 4 : 8), b0 = x + 110 + k * bw + 6, b1 = x + 110 + (k + 1) * bw - 6; poly(c, [t0, y0 + w / 2, t1, y0 + w / 2, b1, g, b0, g], 'rgba(150,194,255,0.3)', 0); poly(c, [t0 + 10, y0 + w / 2, t1 - 10, y0 + w / 2, b1 - 16, g, b0 + 16, g], 'rgba(176,210,255,0.16)', 0); }
+        for (let k = 0; k < 34; k++) { const v = mr(), u = mr(), yy = y0 + w / 2 + v * (g - y0 - w / 2), xx = (x + 8 + u * (w - 16)) * (1 - v) + (x + 110 + u * (w + 80)) * v; disc(c, xx, yy, 0.7 + mr() * 1.3, 'rgba(234,242,255,0.75)', 0); }   // dust turning in the light
+        c.restore();
         COOL.push([x + 110, x + w + 190]);
       }
     };
     moonWindow(70, 220, 140, g - 126, true);
-    moonWindow(836, 152, 80, g - 150, false);
-    for (const [sx, sy] of [[950, 486], [1030, 436], [1110, 386], [1190, 336]]) glow(c, sx, sy, 50, 0.34, '176,204,255');   // the moon shaft lies along the staircase
+    moonWindow(800, 200, 46, g - 150, false);                     // the great window: its arch runs up into the ceiling beams
+    for (const [sx, sy] of [[950, 486], [1030, 436], [1110, 386], [1190, 336]]) glow(c, sx, sy, 54, 0.4, '176,204,255');   // the moon shaft lies along the staircase
+    lampGlow(c, 1088, 478, 34, 0.32, '255,176,96');                          // a candle in the alcove under the stairs
     // a suit of armour on a plinth
     { const x = 420; box(c, x - 34, g - 26, 68, 26, M.stone, 2.4); box(c, x - 28, g - 34, 56, 9, M.stone2, 2);
       line(c, [x + 34, g - 30, x + 34, g - 190], 4.4); line(c, [x + 34, g - 30, x + 34, g - 190], 2, M.woodL); poly(c, [x + 34, g - 178, x + 60, g - 190, x + 62, g - 160, x + 34, g - 150], M.iron, 2); poly(c, [x + 30, g - 190, x + 34, g - 212, x + 38, g - 190], M.iron, 1.8);
@@ -143,7 +147,7 @@
     { const x = 790, w = 54; box(c, x - w / 2 - 5, g - 30, w + 10, 30, M.wood2, 2.4); box(c, x - w / 2, g - 150, w, 122, M.woodL, 2.4); box(c, x - w / 2 + 9, g - 140, w - 18, 96, '#2c1e2a', 2); line(c, [x, g - 140, x, g - 72], 1.6, M.gold); disc(c, x, g - 66, 9, M.gold, 1.8);
       box(c, x - w / 2 - 5, g - 214, w + 10, 66, M.wood, 2.4); disc(c, x, g - 181, 24, M.paper, 2.2); for (let i = 0; i < 12; i++) { const an = i / 12 * Math.PI * 2; line(c, [x + Math.cos(an) * 19, g - 181 + Math.sin(an) * 19, x + Math.cos(an) * 22, g - 181 + Math.sin(an) * 22], 1.2); } line(c, [x, g - 181, x, g - 198], 2.2); line(c, [x, g - 181, x + 11, g - 175], 2.2); disc(c, x, g - 181, 2.2, O, 0);
       poly(c, [x - w / 2 - 9, g - 214, x - 16, g - 238, x, g - 228, x + 16, g - 238, x + w / 2 + 9, g - 214], M.wood2, 2.4); disc(c, x, g - 238, 5, M.gold, 1.8); }
-    portrait(c, 1010, 96, 130, 84, 'castle'); portrait(c, 742, 132, 62, 76, 'lady');
+    portrait(c, 1036, 100, 100, 68, 'castle'); portrait(c, 704, 132, 62, 76, 'lady');
     // the gallery above: a library
     box(c, 1250, CEIL + 16, 850, GAL - CEIL - 16, M.wall2, 0);
     bookcase(c, 1290, 86, 340, GAL - 86, 11); bookcase(c, 1690, 86, 300, GAL - 86, 29);
@@ -189,7 +193,7 @@
     const baluster = (x, y0, y1) => { line(d, [x, y0, x, y1], 5.4); line(d, [x, y0, x, y1], 3, M.woodL); disc(d, x, (y0 + y1) / 2, 4.2, M.woodL, 1.6); line(d, [x - 1.4, y0 + 1, x - 1.4, y1 - 1], 1, 'rgba(255,222,160,0.6)'); };
     const newel = (x, y0, y1) => { box(d, x - 8, y0, 16, y1 - y0, M.wood, 2.4); box(d, x - 11, y0 - 6, 22, 8, M.woodL, 2); disc(d, x, y0 - 12, 8, M.gold, 2.2); };
     for (let i = 0; i < 11; i++) baluster(935 + i * 30, 520 - (i + 1) * 20 - 44, 520 - (i + 1) * 20);
-    line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL); line(d, [914, 520 - 65.5, 1248, GAL - 49.5], 1.8, 'rgba(206,224,255,0.8)');   // moonlight along the handrail
+    line(d, [912, 520 - 62, 1250, GAL - 46], 9); line(d, [912, 520 - 62, 1250, GAL - 46], 5.4, M.woodL); line(d, [914, 520 - 65.5, 1248, GAL - 49.5], 1.8, 'rgba(206,224,255,0.8)');   // moonlight along the handrail line(d, [950, 431.6, 1150, 310.8], 3, 'rgba(220,234,255,0.95)');
     newel(908, g - 74, g); newel(1250, GAL - 60, GAL);
     for (const [ga, gb] of L.gallery || [[1250, 2100]]) {          // one balustrade per surviving stretch of gallery
       d.fillStyle = 'rgba(18,10,22,0.5)'; d.fillRect(ga, GAL - 40, gb - ga, 40);                    // what is behind the rail sinks into shadow, so the rail reads
@@ -207,13 +211,16 @@
       for (let x = Math.ceil((t.x0 + 36) / 58) * 58; x < t.x1 - 4; x += 58) { c.fillStyle = 'rgba(30,14,20,0.4)'; c.fillRect(x, y, 2.4, hh); c.fillStyle = 'rgba(255,220,180,0.12)'; c.fillRect(x + 2.4, y, 1.6, hh); }   // grooves on one grid, so stacked slabs read as tall panels
       const sg = c.createLinearGradient(t.x0, 0, t.x1, 0); sg.addColorStop(0, 'rgba(20,8,16,0)'); sg.addColorStop(1, 'rgba(20,8,16,0.3)'); c.fillStyle = sg; c.fillRect(t.x0, y, t.x1 - t.x0, hh);                         // the side falls into shadow toward the wall
       if (t.x0 < 1220) { poly(c, [t.x0, y, t.x0 + 30, y - 20, t.x0 + 30, y], M.wood, 0); c.fillStyle = 'rgba(255,214,176,0.13)'; c.beginPath(); c.moveTo(t.x0, y); c.lineTo(t.x0 + 30, y - 20); c.lineTo(t.x0 + 30, y); c.fill(); }   // a closed stringer: the side of the stairs is one board, not a pile of boxes
-      if (t.x0 < 1220) { line(c, [t.x0 - 1, y + 1, t.x0 + 31, y - 20.5], 8); line(c, [t.x0 - 1, y + 1, t.x0 + 31, y - 20.5], 5, (t.x0 >= 940 && t.x0 <= 1130 && Math.floor((t.x0 - 950) / 30 + 0.5) % 3 !== 2) ? '#c6d6f4' : M.woodL); line(c, [t.x0 - 1, y + 2.4, t.x0 + 31, y - 19.1], 1.6, '#d24a40'); } else { box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); }   // its capping, with the runner's edge; where the moon falls it is pale
+      if (t.x0 < 1220) { line(c, [t.x0 - 1, y + 1, t.x0 + 31, y - 20.5], 8); line(c, [t.x0 - 1, y + 1, t.x0 + 31, y - 20.5], 5, t.x0 >= 950 && t.x0 <= 1160 ? '#c6d6f4' : M.woodL); } else { box(c, t.x0 - 3, y - 2, 36, 7, M.woodL, 2); }   // the capping of the stringer, pale where the moon falls on it
       line(c, [t.x0 + 33, y, t.x0 + 33, t.y1], 1.6);
       // Recessed panels and a cupboard door under the stairs. Every slab draws the whole design clipped to itself, so it lines up.
       c.save(); c.beginPath(); c.rect(t.x0 + 34, y, t.x1 - t.x0 - 34, hh); c.clip();
-      for (let px = 1006; px < 1240; px += 58) { const top = 520 - 20 * Math.floor((px - 920) / 30 + 1) + 16; if (510 - top < 26) continue; const door = px === 1180;
-        c.fillStyle = 'rgba(20,8,16,0.16)'; c.fillRect(px, top, 46, 506 - top); c.lineWidth = 1.8; c.strokeStyle = O; c.strokeRect(px, top, 46, 506 - top); c.lineWidth = 1.2; c.strokeStyle = 'rgba(255,214,170,0.5)'; c.beginPath(); c.moveTo(px + 3, 503); c.lineTo(px + 43, 503); c.lineTo(px + 43, top + 3); c.stroke();
-        if (door) { disc(c, px + 9, (top + 506) / 2, 3.4, M.gold, 1.4); c.strokeStyle = O; c.lineWidth = 1.4; c.strokeRect(px + 5, top + 5, 36, 496 - top); } }
+      poly(c, [948, 508, 1238, 508, 1238, 306, 948, 499], 'rgba(20,8,16,0.16)', 1.8); line(c, [952, 505, 1235, 505, 1235, 312], 1.2, 'rgba(255,214,170,0.45)');   // the spandrel: one recessed panel under the rake of the stairs
+      box(c, 1166, 392, 52, 114, M.wood, 2.2); box(c, 1172, 398, 40, 46, M.wood2, 1.4); box(c, 1172, 450, 40, 50, M.wood2, 1.4); disc(c, 1174, 448, 3.4, M.gold, 1.4);                                 // a cupboard door
+      c.beginPath(); c.moveTo(1066, 506); c.lineTo(1066, 468); c.arc(1088, 468, 22, Math.PI, 0); c.lineTo(1110, 506); c.closePath(); c.fillStyle = '#2a1a20'; c.fill(); c.lineWidth = 5; c.strokeStyle = M.woodL; c.stroke(); c.lineWidth = 2; c.strokeStyle = O; c.stroke();
+      { const ag = c.createRadialGradient(1088, 482, 2, 1088, 482, 40); ag.addColorStop(0, 'rgba(255,200,120,0.85)'); ag.addColorStop(1, 'rgba(255,200,120,0)'); c.fillStyle = ag; c.fillRect(1046, 440, 84, 70); }
+      box(c, 1085, 488, 6, 16, M.paper, 1.2); poly(c, [1085, 488, 1088, 478, 1091, 488], '#ffb347', 1.2); box(c, 1078, 503, 20, 4, M.gold, 1.2);                                                       // an alcove with a candle in it
+      for (let k = 0; k < 3; k++) { const t0 = 808 + k * 66.7 + (k ? 4 : 0), t1 = 800 + (k + 1) * 66.7 - (k < 2 ? 4 : 8), b0 = 910 + k * 93.3 + 6, b1 = 910 + (k + 1) * 93.3 - 6; poly(c, [t0, 146, t1, 146, b1, 520, b0, 520], 'rgba(170,206,255,0.17)', 0); }   // the window's three shafts fall across it
       c.restore();
       return;
     }
@@ -228,6 +235,7 @@
     c.strokeStyle = '#3f3344'; c.lineWidth = 2; for (let yy = y + 50, row = 0; yy < y1; yy += 30, row++) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x1, yy); c.stroke(); for (let x = Math.floor(x0 / 90) * 90 + (row % 2 ? 45 : 0); x < x1; x += 90) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x, yy + 30); c.stroke(); } }
     box(c, x0 - 4, y, x1 - x0 + 8, 22, M.woodL, 2.6); for (let x = Math.floor(x0 / 74) * 74; x < x1; x += 74) line(c, [x, y + 1, x, y + 21], 1.4, M.wood2); line(c, [x0, y + 11, x1, y + 11], 1.2, 'rgba(43,48,68,0.25)');
     if (t.kind === 'floor') { c.save(); c.beginPath(); c.rect(x0, y + 1, x1 - x0, 20); c.clip(); for (const [a, b] of COOL) { poly(c, [a, y + 1, b, y + 1, b + 26, y + 21, a + 26, y + 21], 'rgba(170,208,255,0.62)', 0); for (const f of [1 / 3, 2 / 3]) { const bx = a + (b - a) * f; poly(c, [bx - 4, y + 1, bx + 4, y + 1, bx + 30, y + 21, bx + 22, y + 21], 'rgba(40,52,110,0.5)', 0); } poly(c, [a + 12, y + 10, b + 12, y + 10, b + 15, y + 12.5, a + 15, y + 12.5], 'rgba(40,52,110,0.42)', 0); } for (const [lx, lr] of POOLS) if (lx > x0 - 120 && lx < x1 + 120) { c.beginPath(); c.ellipse(lx, y + 10, 40 + lr * 0.5, 13, 0, 0, 7); c.fillStyle = 'rgba(255,196,110,0.3)'; c.fill(); c.beginPath(); c.ellipse(lx, y + 10, 18 + lr * 0.25, 7, 0, 0, 7); c.fillStyle = 'rgba(255,214,140,0.3)'; c.fill(); } c.restore(); }   // candlelight pooled on the boards
+    c.fillStyle = '#4a3a4c'; c.fillRect(x0, y + 22, x1 - x0, y1 - y - 22); c.fillStyle = 'rgba(255,224,200,0.07)'; for (let yy = y + 22; yy < y1; yy += 40) c.fillRect(x0, yy, x1 - x0, 20);
     for (let yy = y + 42; yy < y1; yy += 20) { line(c, [x0, yy, x1, yy], 1.2, 'rgba(20,10,24,0.38)'); for (let bx = Math.floor(x0 / 52) * 52 + (Math.floor(yy / 20) % 2 ? 26 : 0); bx < x1; bx += 52) line(c, [bx, yy, bx, yy + 20], 1.1, 'rgba(20,10,24,0.32)'); }   // the foundation in coursed stone
     for (let ax = Math.floor((x0 - 200) / 400) * 400 + 200; ax < x1 + 200; ax += 400) {       // cellar arches under the hall: a barrel and a candle in each
       c.beginPath(); c.moveTo(ax - 62, y1 + 4); c.lineTo(ax - 62, y + 128); c.arc(ax, y + 128, 62, Math.PI, 0); c.lineTo(ax + 62, y1 + 4); c.closePath(); c.fillStyle = '#3a2a34'; c.fill(); c.save(); c.clip(); { const cg = c.createRadialGradient(ax + 24, y + 130, 4, ax + 24, y + 130, 96); cg.addColorStop(0, 'rgba(255,196,120,0.7)'); cg.addColorStop(0.5, 'rgba(255,170,96,0.28)'); cg.addColorStop(1, 'rgba(255,170,96,0)'); c.fillStyle = cg; c.fillRect(ax - 70, y, 140, 160); } c.restore(); c.lineWidth = 11; c.strokeStyle = '#8a7888'; c.stroke(); c.lineWidth = 2.2; c.strokeStyle = O; c.stroke(); for (let k = 1; k < 8; k++) { const a2 = Math.PI + k * Math.PI / 8; line(c, [ax + Math.cos(a2) * 57, y + 128 + Math.sin(a2) * 57, ax + Math.cos(a2) * 67, y + 128 + Math.sin(a2) * 67], 1.3); }

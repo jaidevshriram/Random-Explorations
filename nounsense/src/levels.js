@@ -88,7 +88,7 @@
         { key: 'gremlin', word: 'gremlin', x: 1420, range: 150, facing: -1 },
         { key: 'vine', x: 1862, y: 520, fixed: true, resists: SIZE,
           spec: { noun: 'skyvine', name: 'skyvine', w: 46, h: 70, climbable: true, anchored: true, upright: true, material: 'plant', flammable: true, tags: ['plant', 'vine'], hp: 8, grow: { to: 262, thirsty: true }, custom: 'vine', art: [] } },
-        { key: 'keeper', word: 'gardener', x: 560, range: 80, spec: { noun: 'keeper', name: 'mushroom keeper', dmg: 0, hunts: [], greets: ['Evening, traveller!', 'Bridge washed out again.', 'Mind the gremlin. It bites spoons.'], art: { a: 'person', top: 'sage', legs: 'brown', hat: 'straw', hair: 'grey', beard: 'grey' } } },
+        { key: 'keeper', word: 'gardener', x: 560, range: 80, spec: { noun: 'keeper', name: 'mushroom keeper', dmg: 0, hunts: [], greets: ['Evening, traveller!', 'Bridge washed out again.', 'Mind the gremlin. It bites spoons.'], art: { a: 'person', top: 'sage', legs: 'brown', hat: 'straw', hair: 'white', beard: 'white' } } },
         { key: 'brewer', word: 'doctor', x: 1640, range: 110, spec: { noun: 'brewer', name: 'potion brewer', heals: false, greets: ['Potions! Mostly harmless.', 'The vine? Bone dry.', 'Lovely night.'], art: { a: 'person', top: 'purple', legs: 'navy', hat: 'wizard', hatColor: 'purple', hair: 'orange', robe: 1 } } },
         { key: 'thorns', x: 2130, y: 300, fixed: true, resists: SIZE, goneMsg: 'The thornvines fall away. The way is clear!',
           spec: { noun: 'thornvines', name: 'thornvine curtain', w: 74, h: 960, solid: true, anchored: true, upright: true, material: 'plant', flammable: true, tags: ['plant', 'bramble', 'tree'], hp: 8, mass: 5, custom: 'thorns', art: [] } },
