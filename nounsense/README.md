@@ -98,8 +98,13 @@ takes several minutes. `test/sheet.html` draws every object on one page.
 node nounsense/test/ui-playthrough.js
 ```
 
-That one finishes Gloamwick Manor the way a player would, with mouse clicks, typed
-words and held keys only (three words, three stars), to check the interface end to end.
+```bash
+node nounsense/test/ui-playthrough-town.js
+```
+
+Those two finish Gloamwick Manor and Lamplight Row the way a player would, with mouse
+clicks, typed words and held keys only (three words and three stars each), to check the
+interface end to end.
 
 ## Not done yet
 
