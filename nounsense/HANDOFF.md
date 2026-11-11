@@ -19,7 +19,7 @@ The game was reworked after the notes below were written. What is true now:
 - **Engine additions:** water (things float, swimmers swim, boats sail), describing words applied to anything already
   on the page (`sim.describe`), growing plants, locks and keys, bribes, per-world camera zoom.
 - **People** are chibi (`person()` in `src/art.js`); pose 5 is a wave. Walks are a four-step cycle.
-- **Tests:** `node nounsense/test/playtest.js` runs about 65 scripted scenarios and a fuzz pass over every word.
+- **Tests:** `node nounsense/test/playtest.js` runs 65 scripted scenarios and a fuzz pass over every word.
   World labels in the test list: `-2` town, `-1` manor, `'h'` hollow, `0..3` the hidden worlds. It takes several
   minutes because the renderer runs in software there (about 2 frames a second; that says nothing about real GPUs).
 - **Music:** `TUNES` in `main.js` gives each world a key, tempo and four chords; `musicTick()` schedules a pad, a
@@ -27,6 +27,8 @@ The game was reworked after the notes below were written. What is true now:
 - **Camera:** follows the ground under the hero (`sim.groundBelow`), so high ground does not fill the frame with soil.
 - **Studies:** `test/study.html` is a measured redraw of a reference illustration (18.5 dB PSNR), with tools in
   `test/study-tools/`. `test/recreation.html` is an earlier freehand attempt. Neither is used by the game.
+- **Placement lesson:** keep small wandering natives away from gaps players will bridge. A frog under the end of a
+  bridge props it up and can tip it into the river.
 - **Not done:** the four hidden worlds need painters, frame rate has not been measured on real hardware, and
   nothing has been tuned by long hand play.
 

@@ -405,6 +405,27 @@
     }
   }
   // a climbing plant drawn to whatever height it has grown to
+  // a curtain of thornvines hanging from the canopy: wavy strands, thorns, leaves and glowing buds
+  function drawThorns(e) {
+    const bottom = e.y + e.h / 2, top = Math.max(e.y - e.h / 2, cam.y - 30), sway = reduceMotion ? 0 : Math.sin(sim.time * 0.9);
+    const offs = [-27, -14, 0, 13, 27];
+    const xAt = (i, y) => e.x + offs[i] + Math.sin(y * 0.031 + i * 1.9) * 8 + Math.sin(y * 0.011 + i) * 5 + sway * (i % 2 ? 1.4 : -1.4);
+    for (let i = 0; i < 5; i++) {
+      for (const [lw, col] of [[9, INK], [5.4, i % 2 ? '#3f9a78' : '#57b488']]) {
+        ctx.beginPath(); ctx.moveTo(xAt(i, top), top);
+        for (let y = top + 12; y < bottom; y += 12) ctx.lineTo(xAt(i, y), y);
+        ctx.lineTo(xAt(i, bottom), bottom); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      }
+      for (let y = Math.ceil(top / 26) * 26 + i * 5, k = Math.round(y / 26) + i; y < bottom - 8; y += 26, k++) {
+        const x = xAt(i, y), sd = k % 2 ? 1 : -1;
+        ctx.beginPath(); ctx.moveTo(x + sd * 2, y - 4); ctx.lineTo(x + sd * 11, y - 1); ctx.lineTo(x + sd * 2, y + 4); ctx.closePath(); ctx.fillStyle = '#f1f6d0'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke();
+        if (k % 4 === 0) { ctx.save(); ctx.translate(x - sd * 11, y + 9); ctx.rotate(sd * 0.6); ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, 7); ctx.fillStyle = '#7fd0a8'; ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = INK; ctx.stroke(); ctx.restore(); }
+        if (k % 7 === 3) { ctx.beginPath(); ctx.arc(x - sd * 8, y + 2, 5.5, 0, 7); ctx.fillStyle = '#f6a2de'; ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = INK; ctx.stroke(); ctx.beginPath(); ctx.arc(x - sd * 9, y, 1.6, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); }
+      }
+    }
+    // the tangle where they meet the ground
+    for (const [dx, r] of [[-30, 13], [-8, 17], [16, 14], [34, 10]]) { ctx.beginPath(); ctx.arc(e.x + dx, bottom - r * 0.5, r, Math.PI * 0.9, Math.PI * 2.1); ctx.strokeStyle = INK; ctx.lineWidth = 8; ctx.stroke(); ctx.strokeStyle = '#3f9a78'; ctx.lineWidth = 4.6; ctx.stroke(); }
+  }
   function drawVine(e) {
     const bottom = e.y + e.h / 2, top = e.y - e.h / 2, sway = reduceMotion ? 0 : Math.sin(sim.time * 1.2) * 2;
     const xAt = (y) => e.x + Math.sin((bottom - y) * 0.045) * 9 + sway * (bottom - y) / 400;
@@ -430,6 +451,7 @@
     if (e.heldBy || !visible(e.x, e.w / 2 + 80)) return;
     const s = e.spec, live = s.alive && sim.active(e);
     if (s.custom === 'vine') { drawVine(e); if (e.burning > 0) flames(e); return; }
+    if (s.custom === 'thorns') { drawThorns(e); if (e.burning > 0) flames(e); return; }
     const pose = (live || e.mountedBy) && e.moving && !s.flies && !s.swims ? [1, 0, 2, 0][Math.floor(e.walkT * 11) % 4] : live && e.waveUntil > sim.time ? 5 : 0;   // four-step walk; pose 5 is a wave
     let y = e.y, angle = s.upright ? 0 : e.body.angle;
     if ((s.flies || s.swims) && (live || e.mountedBy) && !reduceMotion) y += Math.sin(sim.time * 5 + e.id) * 2.5;
@@ -554,6 +576,7 @@
       if (e.burning > 0 || (s.hot && !e.doused) || s.aflame) add(x, y, 130 + Math.min(140, e.w) + Math.sin(sim.time * 17 + e.id) * 8, '255,170,90', 1);
       else if (s.light) add(x, y, s.warm ? 560 : 140 + Math.min(110, e.w), s.tags.includes('crystal') ? '150,220,255' : '255,228,170', 0.95);
       if (s.portal) add(x, y, 100, '120,240,220', 0.7);
+      if (s.custom === 'thorns' && !(e.burning > 0)) for (let ly = e.y + e.h / 2 - 70; ly > cam.y - 60; ly -= 150) add(e.x, ly, 70, '246,150,220', 0.28);
       if (s.tags.includes('ghost')) add(x, y, 96, '205,225,255', 0.62);
       if (s.strike) add(x, y, 420, '255,255,220', 1);
     }

@@ -20,7 +20,7 @@ describing word to change it (`sleepy`, `tiny`, `flying`).
 | --- | --- | --- | --- |
 | Lamplight Row | A street at dusk: shops, a lab, a museum, an observatory, a monorail | A flooded excavation, a magpie that steals shiny things, a wooden hoarding | raft, bridge, wings; decoy ring, cat, scarecrow; axe, torch, ladder |
 | Gloamwick Manor | A haunted hall with a library gallery | Haunted armour, a collapsed gallery over a locked vault door, a poltergeist that hates light | rain, flute; bridge, key, bomb; lantern, sun |
-| Glowroot Hollow | A moonlit forest of giant trees and mushroom houses | A river with no bridge, a gremlin with a taste for star seeds, a bluff with a dried-up skyvine | bridge, raft; donut, cat, trumpet; rain cloud, ladder, trampoline |
+| Glowroot Hollow | A moonlit forest of giant trees and mushroom houses | A river with no bridge, a gremlin with a taste for star seeds, a bluff with a dried-up skyvine, a curtain of thornvines | bridge, raft; donut, cat, trumpet; rain cloud, ladder, trampoline; torch, axe, lumberjack |
 
 Design choices that keep a world from being solved the same way every time:
 
@@ -89,7 +89,7 @@ node nounsense/test/playtest.js
 ```
 
 The first checks the dictionary and parser. The second needs Playwright; it
-plays about 65 scripted solutions and interactions in a headless browser, then
+plays 65 scripted solutions and interactions in a headless browser, then
 spawns every word with random adjectives and inputs to look for crashes. It
 takes several minutes. `test/sheet.html` draws every object on one page.
 
