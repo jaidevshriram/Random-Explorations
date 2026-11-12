@@ -471,7 +471,7 @@
     }
     const tx = xAt(top);
     ctx.beginPath(); ctx.arc(tx + 7, top - 2, 7, Math.PI, Math.PI * 2.6); ctx.strokeStyle = INK; ctx.lineWidth = 5.4; ctx.stroke(); ctx.strokeStyle = P.lime; ctx.lineWidth = 3; ctx.stroke();
-    if (e.spec.grow && e.spec.grow.thirsty && e.h < e.spec.grow.to && !sim.isWet(e) && top - 12 < cam.y + WH - 34) label('so thirsty…', e.x, top - 22 + Math.sin(sim.time * 2) * 2, 12, P.dgreen);
+    if (e.spec.grow && e.spec.grow.thirsty && e.h < e.spec.grow.to && !sim.isWet(e) && top - 12 < cam.y + WH - 34) label('so thirsty…', e.x, top - 26 + Math.sin(sim.time * 2) * 2, 16, P.dgreen);
   }
 
   const layerOf = (e) => (e.placing ? 9 : e.native && !e.spec.alive ? 1 : e.spec.traps ? 5 : e.spec.alive || e.spec.wasAlive ? 4 : e.spec.rideable ? 3 : e.spec.solid ? 2 : (e.spec.anchored || e.spec.floating) ? 0 : 6);
