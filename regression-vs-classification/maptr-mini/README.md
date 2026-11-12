@@ -61,7 +61,7 @@ All ± over 3 seeds are ≤ 0.03 (see `results_forks.md`).
 
 MapTR is set prediction. Every map element gets its own query, and Hungarian matching assigns each query exactly one ground-truth element, with start point and direction already normalised. The "which branch" ambiguity never reaches a coordinate head: both branches are separate instances. What is left is precise regression of one known element.
 
-There, a per-coordinate classifier learns slower than L1's residual on the reference point, and per-axis independence makes polygons zigzag (`plots/av2_bins.png`). Adding Tesla-style coarse+offset to the AV2 MapTR model did not change that: mAP at 4,000 steps was 0.200 (coarse CE weight 0.3) and 0.119 (0.03), vs L1's 0.40–0.43 (`runs_av2_cbins_w*`).
+There, a per-coordinate classifier learns slower than L1's residual on the reference point, and per-axis independence makes polygons zigzag (`plots/av2_bins.png`). Adding Tesla-style coarse+offset to the AV2 MapTR model narrows the gap but does not close it. At 8,000 steps (2 seeds, coarse CE weight 0.3, `runs_av2_long`), mAP is 0.337 with x and y separate and 0.308 with joint 16 × 16 cells, vs L1's 0.484. The joint grid, which is what makes the forks work, adds nothing here, because matching leaves each point a single target.
 
 **Rule of thumb from these experiments:** use joint, autoregressive coarse+fine bins when the decoder itself must *choose* among several valid answers (sequence generation, lane-graph decoding, sampling futures). Use L1 residual regression when matching has already fixed which answer each output is responsible for (DETR/MapTR-style set prediction).
 
@@ -111,10 +111,14 @@ The only setting where we saw bins win is the toy one: a single output trained o
 | Head | mAP | Divider / ped / boundary AP | Median Chamfer |
 |---|---|---|---|
 | **L1** | **0.484 ± 0.003** | 0.659 / 0.524 / 0.269 | 0.68 m |
-| bins | 0.297 ± 0.002 | 0.515 / 0.167 / 0.208 | 1.23 m |
+| bins (128 per coordinate, x and y separate) | 0.297 ± 0.002 | 0.515 / 0.167 / 0.208 | 1.23 m |
+| coarse+offset, x and y separate (16 cells + offset) | 0.337 ± 0.005 | 0.521 / 0.279 / 0.211 | 1.09 m |
+| joint 2D coarse+offset (16 × 16 cells + (x, y) offset) | 0.308 ± 0.006 | 0.499 / 0.236 / 0.189 | 1.17 m |
 
 - The gap narrows with training: bins reach 51% of L1's mAP at step 4,000 and 61% at step 8,000.
 - It is still large at the end, and largest on pedestrian crossings.
+- Tesla-style coarse+offset helps most on pedestrian crossings (AP 0.17 → 0.28): the regressed offset removes much of the zigzag. It is still well behind L1 (0.52).
+- Making the cell choice joint over (x, y) does not help here: 0.308 vs 0.337 for separate x and y. Every point has one target after matching, so there is no x/y pairing to get wrong.
 
 ## MapTR-faithful model
 
