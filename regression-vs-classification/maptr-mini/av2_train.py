@@ -59,7 +59,7 @@ class AV2MapTR(nn.Module):
         self.pts = nn.Embedding(P, 2 * d)
         self.ref = nn.Linear(d, 2)
         self.layers = nn.ModuleList([mf.DecoderLayer(d) for _ in range(layers)])
-        out = {"l1": 2, "bins": 2 * K_BINS, "rbins": 2 * K_REL, "cbins": 4 * KC}[head]
+        out = {"l1": 2, "bins": 2 * K_BINS, "rbins": 2 * K_REL, "cbins": 4 * KC, "jcbins": 3 * KC * KC}[head]
         mk_cls = lambda: nn.Sequential(nn.Linear(d, d), nn.LayerNorm(d), nn.ReLU(), nn.Linear(d, d), nn.LayerNorm(d),
                                        nn.ReLU(), nn.Linear(d, N_CLS))
         mk_reg = lambda: nn.Sequential(nn.Linear(d, d), nn.ReLU(), nn.Linear(d, d), nn.ReLU(), nn.Linear(d, out))
@@ -95,6 +95,17 @@ class AV2MapTR(nn.Module):
                 pts = (c + off.gather(-1, c))[..., 0] / KC
                 o["bins"] = lg.view(B, N_Q, P, 2, KC)
                 o["off"] = off.view(B, N_Q, P, 2, KC)
+            elif self.head == "jcbins":  # joint (x, y): one of KC x KC cells + an (x, y) offset inside it
+                M = N_Q * P
+                cc = (torch.arange(KC, dtype=torch.float32) + 0.5) / KC
+                gx, gy = cc.repeat_interleave(KC), cc.repeat(KC)  # cell c = ix * KC + iy
+                lg = r[..., :KC * KC] - 0.5 * (((gx - ref[..., :1]) ** 2 + (gy - ref[..., 1:]) ** 2) / mf.PRIOR_SIGMA ** 2)
+                off = r[..., KC * KC:].view(B, M, KC * KC, 2).sigmoid()
+                c = lg.argmax(-1)
+                oo = off.gather(2, c[..., None, None].expand(B, M, 1, 2))[:, :, 0]
+                pts = torch.stack([(c // KC).float() + oo[..., 0], (c % KC).float() + oo[..., 1]], -1) / KC
+                o["bins"] = lg.view(B, N_Q, P, KC * KC)
+                o["off"] = off.view(B, N_Q, P, KC * KC, 2)
             elif self.head == "rbins":
                 lg = r.view(B, N_Q * P, 2, K_REL) - 0.5 * ((mf.bin_centers(K_REL) - 0.5) / 0.25) ** 2
                 u = mf.decode(lg)
@@ -150,6 +161,14 @@ def loss_fn(outs, labels_b, orders_b, head, w_ce):
             tgt = torch.stack([orders_b[b][g][o] for g, o in zip(gi, oi)])
             if head == "l1":
                 l_pts = l_pts + (pts[qi] - tgt).abs().sum()
+            elif head == "jcbins":
+                ci = (tgt * KC).long().clamp(0, KC - 1)
+                cell = ci[..., 0] * KC + ci[..., 1]
+                q = mf.hl_gauss(tgt, k=KC, sigma=0.3)  # soft 2D label = outer product of the per-axis labels
+                q2 = (q[..., 0, :, None] * q[..., 1, None, :]).flatten(-2)
+                l_pts = l_pts + -(q2 * out["bins"][b][qi].log_softmax(-1)).sum()
+                off = out["off"][b][qi].gather(-2, cell[..., None, None].expand(*cell.shape, 1, 2))[..., 0, :]
+                l_reg = l_reg + ((ci.float() + off) / KC - tgt).abs().sum()
             elif head == "cbins":
                 c = (tgt * KC).long().clamp(0, KC - 1)
                 l_pts = l_pts + -(mf.hl_gauss(tgt, k=KC, sigma=0.3) * out["bins"][b][qi].log_softmax(-1)).sum()
